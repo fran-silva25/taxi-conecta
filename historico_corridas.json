@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1792769075848,
+    "dataHora": "23/10/2026, 12:24:35",
+    "telefoneCliente": "88266644660394",
+    "nomeCliente": "Bia",
+    "origem": "Rua jalisco 45",
+    "idTaxi": "68",
+    "nomeMotorista": "Fbson",
+    "placa": "TTT1020"
+  },
+  {
+    "id": 1792769007814,
+    "dataHora": "23/10/2026, 12:23:27",
+    "telefoneCliente": "161229263884406",
+    "nomeCliente": "Pedro",
+    "origem": "G3 do Carrefour",
+    "idTaxi": "65",
+    "nomeMotorista": "Lucas",
+    "placa": "DDD1023"
+  },
+  {
+    "id": 1792767061223,
+    "dataHora": "23/10/2026, 11:51:01",
+    "telefoneCliente": "88266644660394",
+    "nomeCliente": "Bia",
+    "origem": "Oiti 200",
+    "idTaxi": "70",
+    "nomeMotorista": "LITO",
+    "placa": "TET0001"
+  },
+  {
+    "id": 1792764545031,
+    "dataHora": "23/10/2026, 11:09:05",
+    "telefoneCliente": "161229263884406",
+    "nomeCliente": "Pipoca",
+    "origem": "Rua São Marino - Jardim Anália Franco 📍 (https://www.google.com/maps?q=-23.568599903456498,-46.55120462179184)",
+    "idTaxi": "99",
+    "nomeMotorista": "Geraldo",
+    "placa": "GGG1U98"
+  },
+  {
+    "id": 1792763650957,
+    "dataHora": "23/10/2026, 10:54:10",
+    "telefoneCliente": "250912576671819",
+    "nomeCliente": "Pedro",
+    "origem": "G3 do Carrefour",
+    "idTaxi": "66",
+    "nomeMotorista": "Davi",
+    "placa": "QQQ6B99"
+  },
+  {
+    "id": 1792763606271,
+    "dataHora": "23/10/2026, 10:53:26",
+    "telefoneCliente": "161229263884406",
+    "nomeCliente": "Pipoca",
+    "origem": "Endereço Externo (GPS)",
+    "idTaxi": "98",
+    "nomeMotorista": "FLAVIO",
+    "placa": "FFF1B77"
+  },
+  {
+    "id": 1792763529686,
+    "dataHora": "23/10/2026, 10:52:09",
+    "telefoneCliente": "88266644660394",
+    "nomeCliente": "Nagib Izar 415",
+    "origem": "Endereço Externo (GPS)",
+    "idTaxi": "99",
+    "nomeMotorista": "Geraldo",
+    "placa": "GGG1U98"
+  },
+  {
+    "id": 1792760482183,
+    "dataHora": "23/10/2026, 10:01:22",
+    "telefoneCliente": "179766057525286",
+    "nomeCliente": "Dennys",
+    "origem": "Endereço: Rua Itapura 1238",
+    "idTaxi": "36",
+    "nomeMotorista": "Franklin Silva",
+    "placa": "EET6090"
+  },
+  {
+    "id": 1792758506972,
+    "dataHora": "23/10/2026, 09:28:26",
+    "telefoneCliente": "193488830333075",
+    "nomeCliente": "Fabiana\nRua Pantojo 865",
+    "origem": "Endereço: Rua Pantojo 865",
+    "idTaxi": "70",
+    "nomeMotorista": "LITO",
+    "placa": "TET0001"
+  },
+  {
+    "id": 1792757994237,
+    "dataHora": "23/10/2026, 09:19:54",
+    "telefoneCliente": "161229263884406",
+    "nomeCliente": "Pipoca",
+    "origem": "Endereço: Oiti 200",
+    "idTaxi": "65",
+    "nomeMotorista": "Lucas",
+    "placa": "DDD1023"
+  },
+  {
+    "id": 1792757872648,
+    "dataHora": "23/10/2026, 09:17:52",
+    "telefoneCliente": "250912576671819",
+    "nomeCliente": "Fran",
+    "origem": "G3 do Carrefour",
+    "idTaxi": "68",
+    "nomeMotorista": "Fbson",
+    "placa": "TTT1020"
+  }
+]

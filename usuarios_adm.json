@@ -1,0 +1,20 @@
+{
+  "adm": {
+    "usuario": "adm",
+    "senha": "123",
+    "cargo": "ADM",
+    "nome": "Administrador Geral"
+  },
+  "fiscal": {
+    "usuario": "fiscal",
+    "senha": "123",
+    "cargo": "FISCAL",
+    "nome": "Fiscal de Ponto"
+  },
+  "fran.sps": {
+    "usuario": "fran.sps",
+    "senha": "fran2519",
+    "cargo": "ADM",
+    "nome": "Franklin Silva"
+  }
+}

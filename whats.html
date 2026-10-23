@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamar Táxi - Carrefour (PA5)</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; box-sizing: border-box; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        h2 { color: #d97706; margin-top: 0; }
+        p { color: #475569; font-size: 15px; line-height: 1.4; }
+        input[type="text"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #1d4ed8; }
+        .btn-green { background: #16a34a; }
+        .btn-green:hover { background: #15803d; }
+        .btn-red { background: #dc2626; margin-top: 15px; }
+        .btn-red:hover { background: #b91c1c; }
+        .etapa { display: none; }
+        .etapa.ativa { display: block; }
+        .resultado-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left; }
+
+        .radar-box { position: relative; width: 160px; height: 160px; margin: 20px auto; display: flex; justify-content: center; align-items: center; }
+        .ponto-central { width: 20px; height: 20px; background-color: #d97706; border-radius: 50%; z-index: 2; position: relative; box-shadow: 0 0 10px rgba(217,119,6,0.5); }
+        .onda-radar { position: absolute; width: 100%; height: 100%; border: 2px solid #f59e0b; border-radius: 50%; animation: pulsar 2s infinite ease-out; opacity: 0; }
+        .onda-radar:nth-child(2) { animation-delay: 0.6s; }
+        .onda-radar:nth-child(3) { animation-delay: 1.2s; }
+        .icone-taxi-animado { position: absolute; font-size: 26px; z-index: 3; animation: aproximaTaxi 3s infinite ease-in-out; }
+
+        @keyframes pulsar { 0% { transform: scale(0.1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+        @keyframes aproximaTaxi { 0% { transform: translate(-60px, -60px) scale(0.7); opacity: 0.3; } 50% { transform: translate(0, 0) scale(1.1); opacity: 1; } 100% { transform: translate(-60px, -60px) scale(0.7); opacity: 0.3; } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🚖 Ponto de Táxi Carrefour</h2>
+    
+    <div id="etapaNome" class="etapa ativa">
+        <p id="saudacaoHora">Olá! Seja bem-vindo(a). Vou te ajudar a chamar o seu táxi rapidinho.</p>
+        <p>Para começarmos, qual é o seu <strong>nome</strong>?</p>
+        <input type="text" id="inputNome" placeholder="Digite seu nome aqui...">
+        <button onclick="avancarParaLocal()">Continuar</button>
+    </div>
+
+    <div id="etapaLocal" class="etapa">
+        <p>Perfeito, <span id="spanNomeCliente" style="font-weight: bold; color: #2563eb;"></span>!</p>
+        <p>Confirme o seu local de embarque:</p>
+        <button class="btn-green" onclick="confirmarLocalG3()">📍 G3 do Carrefour<br><span style="font-size: 12px; font-weight: normal;">Próximo ao nosso totem</span></button>
+        <button class="btn-red" onclick="irParaFiscal()">⚠️ Estou em outro local</button>
+    </div>
+
+    <div id="etapaBusca" class="etapa">
+        <div class="radar-box">
+            <div class="onda-radar"></div>
+            <div class="onda-radar"></div>
+            <div class="onda-radar"></div>
+            <div class="ponto-central"></div>
+            <div class="icone-taxi-animado">🚖</div>
+        </div>
+        <h3 style="color: #b45309; margin: 10px 0 5px 0;">Estamos localizando seu táxi...</h3>
+        <p style="margin: 0; font-size: 14px; color: #64748b;">Aguarde um momento. Assim que o motorista confirmar, a informação aparecerá aqui na tela.</p>
+    </div>
+
+    <div id="etapaSucesso" class="etapa">
+        <div class="resultado-box">
+            <h3 style="color: #15803d; margin-top: 0;">✅ Tudo pronto!</h3>
+            <p style="margin: 5px 0;">Seu táxi já foi acionado e está a caminho.</p>
+            <hr style="border: 0; border-top: 1px solid #d1fae5; margin: 10px 0;">
+            <p id="detalhesTaxi" style="font-size: 15px; color: #1e293b; line-height: 1.6;"></p>
+        </div>
+        <p style="font-size: 13px; color: #64748b; margin-top: 20px;">Aguarde no local indicado. Bom trajeto!</p>
+    </div>
+
+    <div id="etapaFiscal" class="etapa">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #991b1b; margin-top: 0;">📞 Atendimento com Fiscal</h3>
+            <p>Como você está em outro local fora do G3, nossa equipe precisa te atender pessoalmente.</p>
+        </div>
+        <a href="tel:11999999999" style="text-decoration: none;"><button class="btn-green" style="margin-top: 20px;">📞 Ligar para o Fiscal</button></a>
+        <button style="background: #64748b; margin-top: 10px;" onclick="location.reload()">Voltar ao início</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let nomeCliente = "";
+
+    const hora = new Date().getHours();
+    let saudacao = "Bom dia";
+    if (hora >= 12 && hora < 18) saudacao = "Boa tarde";
+    else if (hora >= 18 || hora < 5) saudacao = "Boa noite";
+    document.getElementById('saudacaoHora').innerText = `Olá! ${saudacao}. Seja bem-vindo(a). Vou te ajudar a chamar o seu táxi rapidinho.`;
+
+    function avancarParaLocal() {
+        const input = document.getElementById('inputNome').value.trim();
+        if (!input) { alert("Por favor, digite o seu nome."); return; }
+        nomeCliente = input;
+        document.getElementById('spanNomeCliente').innerText = nomeCliente;
+        document.getElementById('etapaNome').classList.remove('ativa');
+        document.getElementById('etapaLocal').classList.add('ativa');
+    }
+
+    function confirmarLocalG3() {
+        document.getElementById('etapaLocal').classList.remove('ativa');
+        document.getElementById('etapaBusca').classList.add('ativa');
+        socket.emit('solicitarCorridaPassageiro', { nomeCliente: nomeCliente });
+    }
+
+    function irParaFiscal() {
+        document.getElementById('etapaLocal').classList.remove('ativa');
+        document.getElementById('etapaFiscal').classList.add('ativa');
+    }
+
+    socket.on('corridaAtribuidaPassageiro', (dados) => {
+        document.getElementById('etapaBusca').classList.remove('ativa');
+        document.getElementById('etapaLocal').classList.remove('ativa');
+        document.getElementById('etapaSucesso').classList.add('ativa');
+        
+        document.getElementById('detalhesTaxi').innerHTML = `
+            Cliente: <strong>${dados.nomeCliente || nomeCliente}</strong><br>
+            Modelo: <strong>${dados.modelo}</strong><br>
+            Carro: <strong>Carro.${dados.idTaxi}</strong><br>
+            Motorista: <strong>${dados.nome}</strong>
+        `;
+    });
+</script>
+
+</body>
+</html>

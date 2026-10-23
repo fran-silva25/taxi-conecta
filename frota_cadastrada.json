@@ -1,0 +1,148 @@
+{
+  "Carro.36": {
+    "numero": "36",
+    "placa": "EET6090",
+    "login": "Carro.36",
+    "nome": "Franklin Silva",
+    "modelo": "Fiat Grand Siena 1.4 EVO",
+    "telefones": [
+      "11961484413"
+    ],
+    "senha": "fran25",
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "ehModerador": true
+  },
+  "Carro.70": {
+    "numero": "70",
+    "placa": "TET0001",
+    "login": "Carro.70",
+    "nome": "LITO",
+    "modelo": "VISTUR",
+    "cargo": "Comum",
+    "telefones": [
+      "11943765089"
+    ],
+    "senha": "fabi19",
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.69": {
+    "numero": "69",
+    "placa": "TKS2020",
+    "login": "Carro.69",
+    "nome": "John",
+    "modelo": "Logan 1.4",
+    "cargo": "Comum",
+    "telefones": [
+      "11988888888"
+    ],
+    "senha": "fran25",
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.68": {
+    "numero": "68",
+    "placa": "TTT1020",
+    "login": "Carro.68",
+    "nome": "Fbson",
+    "modelo": "Corolla",
+    "cargo": "Comum",
+    "telefones": [
+      "11900001111"
+    ],
+    "senha": "fran25",
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null
+  },
+  "Carro.65": {
+    "numero": "65",
+    "placa": "DDD1023",
+    "login": "Carro.65",
+    "nome": "Lucas",
+    "modelo": "Kisck",
+    "cargo": "Comum",
+    "telefones": [
+      "11966667777"
+    ],
+    "senha": "fran25",
+    "statusRadio": "ONLINE",
+    "mutadoAte": 1792721828583,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.98": {
+    "numero": "98",
+    "placa": "FFF1B77",
+    "login": "Carro.98",
+    "nome": "FLAVIO",
+    "modelo": "KICK",
+    "cargo": "Comum",
+    "telefones": [
+      "11934343434"
+    ],
+    "senha": "fran25",
+    "ehModerador": true,
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.99": {
+    "numero": "99",
+    "placa": "GGG1U98",
+    "login": "Carro.99",
+    "nome": "Geraldo",
+    "modelo": "Corolla Gli",
+    "cargo": "Comum",
+    "telefones": [
+      "11962626262"
+    ],
+    "senha": "fran25",
+    "ehModerador": false,
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.66": {
+    "numero": "66",
+    "placa": "QQQ6B99",
+    "login": "Carro.66",
+    "nome": "Davi",
+    "modelo": "Onix plus",
+    "cargo": "Comum",
+    "telefones": [
+      "11966666666"
+    ],
+    "senha": "fran",
+    "ehModerador": false,
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  },
+  "Carro.67": {
+    "numero": "67",
+    "placa": "JJJ2K88",
+    "login": "Carro.67",
+    "nome": "João",
+    "modelo": "Meriva - Branca",
+    "cargo": "Comum",
+    "telefones": [
+      "11967676767"
+    ],
+    "senha": "fran",
+    "ehModerador": false,
+    "statusRadio": "ONLINE",
+    "mutadoAte": null,
+    "banidoAte": null,
+    "bloqueioRecusa": false
+  }
+}
