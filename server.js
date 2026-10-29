@@ -40,23 +40,28 @@ let chamadasPendentes = {};
 // Função para garantir automaticamente que as tabelas existem na nuvem
 async function garantirTabelasNoBanco() {
     try {
+        // Cria a tabela caso não exista
         await db.query(`
             CREATE TABLE IF NOT EXISTS motoristas (
                 id SERIAL PRIMARY KEY,
-                numero VARCHAR(50),
-                placa VARCHAR(20),
-                login VARCHAR(50) UNIQUE NOT NULL,
-                nome VARCHAR(100),
-                modelo VARCHAR(100),
-                cargo VARCHAR(50),
-                telefones TEXT[],
-                senha_hash VARCHAR(100),
-                eh_moderador BOOLEAN DEFAULT FALSE,
-                status_radio VARCHAR(20) DEFAULT 'ONLINE',
-                mutado_ate BIGINT,
-                banido_ate BIGINT,
-                bloqueio_recusa BOOLEAN DEFAULT FALSE
+                login VARCHAR(50) UNIQUE NOT NULL
             );
+        `);
+
+        // Garante que todas as colunas necessárias existam na tabela (mesmo se ela for antiga)
+        await db.query(`
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
         `);
 
         await db.query(`
@@ -83,9 +88,9 @@ async function garantirTabelasNoBanco() {
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Tabelas e dados padrão validados com sucesso no PostgreSQL!");
+        console.log("✔ Tabelas e colunas do banco validadas e atualizadas com sucesso!");
     } catch (e) {
-        console.error("❌ Erro ao validar tabelas automáticas:", e);
+        console.error("❌ Erro ao atualizar tabelas automáticas:", e);
     }
 }
 
