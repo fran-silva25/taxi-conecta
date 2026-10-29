@@ -289,17 +289,22 @@ io.on('connection', async (socket) => {
     await emitirSistemaGeral(socket);
 
     socket.on('adminLimparSistemaGeral', async () => {
-        filaGeral = [];
-        chamadasPendentes = {};
         try {
-            await db.query('UPDATE motoristas SET bloqueio_recusa = false');
-        } catch (e) {}
-
-        for (let idTaxi in motoristasConectados) {
-            motoristasConectados[idTaxi].status = "LIVRE";
+            // 1. APAGA TODOS OS MOTORISTAS DO POSTGRESQL
+            await db.query('DELETE FROM motoristas;');
+            
+            // 2. RESETA A MEMÓRIA RAM DO SERVIDOR
+            filaGeral = [];
+            chamadasPendentes = {};
+            motoristasConectados = {};
+            
+            console.log("🧹 BANCO DE DADOS E MEMÓRIA ZERADOS VIA ADMIN!");
+            
+            await emitirSistemaGeral(io);
+            io.emit('forcarStatusLivreGeral');
+        } catch (e) {
+            console.error("❌ Erro ao limpar banco via admin:", e);
         }
-        await emitirSistemaGeral(io);
-        io.emit('forcarStatusLivreGeral');
     });
 
     socket.on('loginAdm', async (dados) => {
