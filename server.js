@@ -8,7 +8,6 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const path = require('path');
 const db = require('./db');
 
 const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216 } = require('./bot_whatsapp');
