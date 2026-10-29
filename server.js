@@ -4,10 +4,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const db = require('./db'); // Conexão com o PostgreSQL do Render
-const { enviarAudioParaDrive } = require('./drive'); // Integração com o Google Drive
+const db = require('./db');
 
-// Importando as funções e a cerca virtual do bot do WhatsApp
 const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216 } = require('./bot_whatsapp');
 
 const app = express();
@@ -20,6 +18,7 @@ const io = new Server(server, {
     maxHttpBufferSize: 10 * 1024 * 1024
 });
 
+// PASTA LOCAL PARA ÁUDIOS PTT NO RENDER
 const PASTA_AUDIOS = path.join(__dirname, 'audios_historico');
 if (!fs.existsSync(PASTA_AUDIOS)) {
     fs.mkdirSync(PASTA_AUDIOS, { recursive: true });
@@ -30,6 +29,28 @@ if (!fs.existsSync(PASTA_SALVOS_MODERACAO)) {
     fs.mkdirSync(PASTA_SALVOS_MODERACAO, { recursive: true });
 }
 
+// ROTINA AUTOMÁTICA: Apaga áudios do servidor com mais de 3 dias (72h)
+function limparAudiosAntigosLocais() {
+    try {
+        const tresDiasEmMs = 3 * 24 * 60 * 60 * 1000;
+        const agora = Date.now();
+        fs.readdir(PASTA_AUDIOS, (err, files) => {
+            if (err) return;
+            files.forEach(file => {
+                const caminho = path.join(PASTA_AUDIOS, file);
+                fs.stat(caminho, (err, stats) => {
+                    if (!err && (agora - stats.mtimeMs > tresDiasEmMs)) {
+                        fs.unlink(caminho, () => {});
+                    }
+                });
+            });
+        });
+    } catch (e) {
+        console.error("Erro na limpeza local de áudios:", e);
+    }
+}
+setInterval(limparAudiosAntigosLocais, 12 * 60 * 60 * 1000); // Executa a cada 12 horas
+
 let historicoAudio = [];
 let historicoRecusas = [];
 let historicoCorridas = [];
@@ -37,10 +58,8 @@ let filaGeral = [];
 let motoristasConectados = {};
 let chamadasPendentes = {};
 
-// Função para garantir automaticamente que as tabelas existem na nuvem
 async function garantirTabelasNoBanco() {
     try {
-        // Cria a tabela de motoristas apenas se ela ainda não existir
         await db.query(`
             CREATE TABLE IF NOT EXISTS motoristas (
                 id SERIAL PRIMARY KEY,
@@ -60,7 +79,6 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // Garante que todas as colunas existem (caso a tabela tenha sido criada antiga)
         await db.query(`
             ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
             ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
@@ -76,7 +94,6 @@ async function garantirTabelasNoBanco() {
             ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
         `);
 
-        // Tabela de administradores
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
                 id SERIAL PRIMARY KEY,
@@ -87,14 +104,12 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // Insere o carro de teste Carro.99 caso não exista
         await db.query(`
             INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, senha_hash, eh_moderador, status_radio)
             VALUES ('99', 'ABC1D00', 'Carro.99', 'Admin Teste', 'Fiat Grand Siena', 'Comum', '123', true, 'ONLINE')
             ON CONFLICT (login) DO NOTHING;
         `);
 
-        // Insere o administrador padrão caso não exista
         await db.query(`
             INSERT INTO administradores (usuario, senha_hash, nome, cargo)
             VALUES ('adm', '123', 'Administrador Geral', 'ADM')
@@ -107,7 +122,6 @@ async function garantirTabelasNoBanco() {
     }
 }
 
-// Executa a verificação ao iniciar
 garantirTabelasNoBanco();
 
 function checarAniversarioApp() {
@@ -157,7 +171,6 @@ async function carregarUsuariosAdmDoBanco() {
         });
         return admObj;
     } catch (e) {
-        console.error("Erro ao carregar administradores do banco:", e);
         return {
             "adm": { usuario: "adm", senha: "123", cargo: "ADM", nome: "Administrador Geral" },
             "fiscal": { usuario: "fiscal", senha: "123", cargo: "FISCAL", nome: "Fiscal de Ponto" }
@@ -285,7 +298,6 @@ setInterval(() => {
     emitirSistemaGeral(io);
 }, 30 * 1000);
 
-// ROTAS ESTÁTICAS
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
 app.get('/admin.html', (req, res) => res.sendFile(__dirname + '/www/admin.html'));
 app.get('/motorista.html', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
@@ -316,40 +328,42 @@ io.on('connection', async (socket) => {
             const userObj = usuariosAdmCadastrados[usuarioKey];
 
             if (!userObj) {
-                socket.emit('loginErro', { mensagem: "Usuário administrativo ou fiscal não encontrado." });
+                socket.emit('loginErro', { mensagem: "Usuário administrativo não encontrado." });
                 return;
             }
-            if (userObj.senha !== dados.senha) {
+            if (String(userObj.senha).trim() !== String(dados.senha).trim()) {
                 socket.emit('loginErro', { mensagem: "Senha incorreta." });
                 return;
             }
             socket.emit('loginAdmSucesso', { usuario: userObj, historicoAudio: historicoAudio });
 
             if (checarAniversarioApp()) {
-                socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
+                socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje!" });
             }
         } catch (err) {
-            console.error("Erro no login ADM:", err);
             socket.emit('loginErro', { mensagem: "Erro interno no servidor." });
         }
     });
 
+    // GERENCIAMENTO DE FROTA (CORRIGIDO PARA SALVAR SENHA E ACEITAR AMBOS EVENTOS)
     socket.on('salvarCarroFrota', async (dados) => {
-        const numeroCarro = dados.idAntigo ? dados.idAntigo : dados.numero;
+        const numeroCarro = String(dados.idAntigo || dados.numero || '').trim();
         const loginGerado = `Carro.${numeroCarro}`;
-        
+        const senhaLimpa = String(dados.senha || '123').trim();
+        const telefonesArray = dados.telefone ? [String(dados.telefone).trim()] : [];
+
         try {
             if (dados.idAntigo) {
                 await db.query(
-                    `UPDATE motoristas SET placa = $1, nome = $2, modelo = $3, telefones = $4, eh_moderador = $5 WHERE login = $6`,
-                    [(dados.placa || '').trim().toUpperCase(), dados.nome, dados.modelo || 'Padrão', [dados.telefone], Boolean(dados.ehModerador), loginGerado]
+                    `UPDATE motoristas SET placa = $1, nome = $2, modelo = $3, telefones = $4, eh_moderador = $5, senha_hash = $6 WHERE login = $7`,
+                    [(dados.placa || '').trim().toUpperCase(), dados.nome, dados.modelo || 'Padrão', telefonesArray, Boolean(dados.ehModerador), senhaLimpa, loginGerado]
                 );
             } else {
                 await db.query(
                     `INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, telefones, senha_hash, eh_moderador, status_radio) 
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                      ON CONFLICT (login) DO UPDATE SET nome = $4, placa = $2, modelo = $5, telefones = $7, senha_hash = $8, eh_moderador = $9`,
-                    [dados.numero, (dados.placa || '').trim().toUpperCase(), loginGerado, dados.nome, dados.modelo || 'Padrão', "Comum", [dados.telefone], dados.senha || '123', Boolean(dados.ehModerador), "ONLINE"]
+                    [numeroCarro, (dados.placa || '').trim().toUpperCase(), loginGerado, dados.nome, dados.modelo || 'Padrão', "Comum", telefonesArray, senhaLimpa, Boolean(dados.ehModerador), "ONLINE"]
                 );
             }
             await emitirSistemaGeral(io);
@@ -359,7 +373,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('excluirFrota', async (dados) => {
-        const loginBusca = `Carro.${dados.id}`;
+        const loginBusca = `Carro.${dados.id || dados.login?.replace('Carro.', '')}`;
         try {
             await db.query('DELETE FROM motoristas WHERE login = $1', [loginBusca]);
             const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === String(dados.id));
@@ -368,23 +382,23 @@ io.on('connection', async (socket) => {
                 redistribuirVagas();
             }
             await emitirSistemaGeral(io);
-        } catch (e) {
-            console.error("❌ Erro ao excluir carro:", e);
-        }
+        } catch (e) {}
     });
 
     socket.on('resetarSenhaFrota', async (dados) => {
-        const loginBusca = `Carro.${dados.id}`;
+        const loginBusca = `Carro.${dados.id || dados.login?.replace('Carro.', '')}`;
+        const novaSenha = String(dados.novaSenha || '123').trim();
         try {
-            await db.query('UPDATE motoristas SET senha_hash = $1 WHERE login = $2', [dados.novaSenha, loginBusca]);
-        } catch (e) {
-            console.error("❌ Erro ao resetar senha:", e);
-        }
+            await db.query('UPDATE motoristas SET senha_hash = $1 WHERE login = $2', [novaSenha, loginBusca]);
+            await emitirSistemaGeral(io);
+        } catch (e) {}
     });
 
+    // LOGIN DO MOTORISTA CORRIGIDO
     socket.on('loginMotorista', async (dados) => {
-        const idStr = String(dados.login).replace('Carro.', '');
+        const idStr = String(dados.login || '').replace('Carro.', '').trim();
         const loginBusca = `Carro.${idStr}`;
+        const senhaDigitada = String(dados.senha || '').trim();
 
         try {
             const frotaCadastrada = await carregarFrotaDoBanco();
@@ -394,7 +408,10 @@ io.on('connection', async (socket) => {
                 socket.emit('loginErro', { mensagem: "Login (número do carro) não cadastrado." });
                 return;
             }
-            if (String(carro.senha) !== String(dados.senha)) {
+
+            const senhaCadastrada = String(carro.senha || '123').trim();
+
+            if (senhaCadastrada !== senhaDigitada) {
                 socket.emit('loginErro', { mensagem: "Senha incorreta." });
                 return;
             }
@@ -402,55 +419,13 @@ io.on('connection', async (socket) => {
             motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id };
             socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio });
             await emitirSistemaGeral(io);
-
-            if (checarAniversarioApp()) {
-                socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
-            }
         } catch (err) {
             console.error("Erro no login do motorista:", err);
             socket.emit('loginErro', { mensagem: "Erro interno no servidor." });
         }
     });
 
-    socket.on('moderarBloqueioFila', async (dados) => {
-        const targetLogin = `Carro.${dados.alvoId}`;
-        const tempoMs = dados.minutos ? dados.minutos * 60 * 1000 : 0;
-        const banidoAteTime = tempoMs > 0 ? (Date.now() + tempoMs) : (Date.now() + 24*60*60*1000);
-
-        try {
-            await db.query('UPDATE motoristas SET banido_ate = $1 WHERE login = $2', [banidoAteTime, targetLogin]);
-            const idx = filaGeral.findIndex(m => String(m.idTaxi) === String(dados.alvoId));
-            if (idx !== -1) {
-                filaGeral.splice(idx, 1);
-                redistribuirVagas();
-            }
-            await emitirSistemaGeral(io);
-        } catch (e) {}
-    });
-
-    socket.on('moderarBloqueioFala', async (dados) => {
-        const targetLogin = `Carro.${dados.alvoId}`;
-        const tempoMs = dados.minutos ? dados.minutos * 60 * 1000 : 0;
-        const mutadoAteTime = tempoMs > 0 ? (Date.now() + tempoMs) : (Date.now() + 24*60*60*1000);
-
-        try {
-            await db.query('UPDATE motoristas SET mutado_ate = $1 WHERE login = $2', [mutadoAteTime, targetLogin]);
-            await emitirSistemaGeral(io);
-        } catch (e) {}
-    });
-
-    socket.on('salvarAudioCofre', (dados) => {
-        if (!dados.audioUrl) return;
-        const nomeArquivo = dados.audioUrl.split('/').pop(); 
-        const arquivoOrigem = path.join(PASTA_AUDIOS, nomeArquivo);
-        const arquivoDestino = path.join(PASTA_SALVOS_MODERACAO, nomeArquivo);
-        try {
-            if (fs.existsSync(arquivoOrigem)) {
-                fs.copyFileSync(arquivoOrigem, arquivoDestino);
-            }
-        } catch(e) {}
-    });
-
+    // PTT SALVANDO DIRETO NO SERVIDOR DO RENDER (SEM DRIVE)
     socket.on('solicitarCanalPTT', (dados) => {
         socket.broadcast.emit('canalOcupado', { idTaxi: dados.idTaxi, nome: dados.nome });
     });
@@ -487,10 +462,9 @@ io.on('connection', async (socket) => {
         const caminhoCompleto = path.join(PASTA_AUDIOS, nomeArquivo);
 
         if (dados.audioBuffer) {
-            fs.writeFile(caminhoCompleto, Buffer.from(dados.audioBuffer), async (err) => {
+            fs.writeFile(caminhoCompleto, Buffer.from(dados.audioBuffer), (err) => {
                 if (!err) {
-                    const resultadoDrive = await enviarAudioParaDrive(caminhoCompleto, nomeArquivo);
-                    const relUrl = resultadoDrive ? resultadoDrive.audioUrl : `/audios/${nomeArquivo}`;
+                    const relUrl = `/audios/${nomeArquivo}`;
 
                     const registroHistorico = {
                         id: Date.now(), 
@@ -519,7 +493,7 @@ io.on('connection', async (socket) => {
                         historico: historicoAudio
                     });
                 } else {
-                    console.error("Erro ao salvar arquivo de áudio PTT:", err);
+                    console.error("Erro ao salvar áudio local no Render:", err);
                 }
             });
         }
@@ -538,34 +512,6 @@ io.on('connection', async (socket) => {
         } catch (e) {}
     });
 
-    socket.on('editarAdmin', async (dados) => {
-        const key = (dados.usuario || '').trim().toLowerCase();
-        try {
-            await db.query('UPDATE administradores SET nome = $1, cargo = $2 WHERE usuario = $3', [dados.nome.trim(), dados.cargo || 'FISCAL', key]);
-            await emitirSistemaGeral(io);
-        } catch (e) {}
-    });
-
-    socket.on('resetarSenhaAdmin', async (dados) => {
-        const key = (dados.usuario || dados.idAdmin || '').trim().toLowerCase();
-        try {
-            await db.query('UPDATE administradores SET senha_hash = $1 WHERE usuario = $2', [dados.novaSenha.trim(), key]);
-        } catch (e) {}
-    });
-
-    socket.on('excluirAdm', async (dados) => {
-        const key = (dados.usuario || '').trim().toLowerCase();
-        try {
-            await db.query('DELETE FROM administradores WHERE usuario = $1', [key]);
-            await emitirSistemaGeral(io);
-        } catch (e) {}
-    });
-
-    socket.on('limparHistoricoRecusas', () => {
-        historicoRecusas = [];
-        emitirSistemaGeral(io);
-    });
-
     socket.on('limparHistoricoPTT', () => {
         try {
             if (fs.existsSync(PASTA_AUDIOS)) {
@@ -575,6 +521,11 @@ io.on('connection', async (socket) => {
         historicoAudio = [];
         emitirSistemaGeral(io);
         io.emit('receberAudioPTT', { historico: [] });
+    });
+
+    socket.on('limparHistoricoRecusas', () => {
+        historicoRecusas = [];
+        emitirSistemaGeral(io);
     });
 
     socket.on('limparHistoricoCorridas', () => {
@@ -643,83 +594,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('statusAusente', async (dados) => {
-        const idTaxiStr = String(dados.idTaxi);
-        const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);
-        if (indexFila !== -1) {
-            filaGeral.splice(indexFila, 1);
-            redistribuirVagas();
-        }
-        if (motoristasConectados[idTaxiStr]) motoristasConectados[idTaxiStr].status = "AUSENTE";
-        await emitirSistemaGeral(io);
-    });
-
-    socket.on('alterarModoOperacao', async (novoModo) => {
-        if (novoModo === 'AUTOMATICO') {
-            modoManualOverridden = false;
-            redistribuirVagas();
-        } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
-            modoOperacao = novoModo;
-            modoManualOverridden = true;
-            redistribuirVagas();
-        }
-        await emitirSistemaGeral(io);
-    });
-
-    socket.on('chamarCorrida', async () => {
-        if (filaGeral.length === 0) return;
-        const motorista = filaGeral[0];
-        filaGeral.shift();
-        redistribuirVagas();
-
-        const chamadoFinal = { idTaxi: motorista.idTaxi, nome: motorista.nome, origem: 'Fila Geral (Painel Fiscal)' };
-        if (motoristasConectados[motorista.idTaxi]) {
-            motoristasConectados[motorista.idTaxi].status = "OCUPADO";
-            io.to(motoristasConectados[motorista.idTaxi].socketId).emit('forcarStatusOcupado');
-        }
-
-        await emitirSistemaGeral(io);
-        io.emit('corridaAtribuida', chamadoFinal);
-    });
-
-    socket.on('aceitarCorridaMotorista', (dadosAceite) => {
-        confirmarEBaixarCorrida(dadosAceite.idChamada);
-    });
-
-    socket.on('recusarCorridaMotorista', async (dadosRecusa) => {
-        const chamada = chamadasPendentes[dadosRecusa.idChamada];
-        if (!chamada || filaGeral.length === 0) return;
-
-        const motoristaRecusou = filaGeral[chamada.indiceTentativaAtual] || filaGeral[0];
-        const idTaxiRecusou = motoristaRecusou.idTaxi;
-        const loginRecusa = `Carro.${idTaxiRecusou}`;
-
-        const indexFila = filaGeral.findIndex(m => m.idTaxi === idTaxiRecusou);
-        if (indexFila !== -1) {
-            filaGeral.splice(indexFila, 1);
-            redistribuirVagas();
-        }
-
-        try {
-            await db.query('UPDATE motoristas SET bloqueio_recusa = true WHERE login = $1', [loginRecusa]);
-        } catch (e) {}
-
-        if (motoristasConectados[idTaxiRecusou] && motoristasConectados[idTaxiRecusou].socketId) {
-            io.to(motoristasConectados[idTaxiRecusou].socketId).emit('avisoRecusaBloqueio', { idTaxi: idTaxiRecusou });
-        }
-
-        historicoRecusas.unshift({
-            id: Date.now(), timestamp: Date.now(), idTaxi: idTaxiRecusou,
-            nomeMotorista: motoristaRecusou.nome, origemChamado: chamada.origem || "WhatsApp",
-            cliente: chamada.nomeCliente, dataHora: new Date().toLocaleString('pt-BR')
-        });
-
-        chamada.indiceTentativaAtual = 0; 
-        
-        await emitirSistemaGeral(io);
-        dispararPonteiroFila(dadosRecusa.idChamada);
-    });
-
     socket.on('disconnect', async () => {
         for (const idTaxi in motoristasConectados) {
             if (motoristasConectados[idTaxi].socketId === socket.id) {
@@ -731,101 +605,12 @@ io.on('connection', async (socket) => {
     });
 });
 
-function dispararPonteiroFila(idChamadaFixa) {
-    if (filaGeral.length === 0) return;
-    const chamada = chamadasPendentes[idChamadaFixa];
-    if (!chamada) return;
-
-    if (chamada.indiceTentativaAtual >= filaGeral.length) chamada.indiceTentativaAtual = 0;
-    const motorista = filaGeral[chamada.indiceTentativaAtual];
-    const idTaxiStr = String(motorista.idTaxi);
-
-    chamada.idTaxi = idTaxiStr;
-    chamada.nomeMotorista = motorista.nome;
-
-    const dadosMotorista = motoristasConectados[idTaxiStr];
-    if (dadosMotorista && dadosMotorista.socketId) {
-        io.to(dadosMotorista.socketId).emit('ofertaCorrida', { idChamada: idChamadaFixa, cliente: chamada.nomeCliente, local: chamada.origem });
-    }
-}
-
-async function confirmarEBaixarCorrida(idChamada) {
-    const chamada = chamadasPendentes[idChamada];
-    if (!chamada) return;
-
-    const idTaxiStr = String(chamada.idTaxi);
-    const indexAtual = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);
-    if (indexAtual !== -1) {
-        filaGeral.splice(indexAtual, 1);
-        redistribuirVagas();
-    }
-
-    const frotaCadastrada = await carregarFrotaDoBanco();
-    const veiculoObj = frotaCadastrada[`Carro.${idTaxiStr}`];
-    const dadosAtribuicao = {
-        idTaxi: idTaxiStr, 
-        modelo: veiculoObj ? veiculoObj.modelo : "Veículo",
-        placa: veiculoObj ? veiculoObj.placa : "ABC1D00", 
-        nome: chamada.nomeMotorista,
-        origem: chamada.origem || "WhatsApp", 
-        nomeCliente: chamada.nomeCliente,
-        lat: chamada.lat || null,
-        lon: chamada.lon || null
-    };
-
-    if (motoristasConectados[idTaxiStr]) {
-        motoristasConectados[idTaxiStr].status = "OCUPADO";
-        io.to(motoristasConectados[idTaxiStr].socketId).emit('forcarStatusOcupado');
-    }
-
-    historicoCorridas.unshift({
-        id: Date.now(), dataHora: new Date().toLocaleString('pt-BR'),
-        telefoneCliente: chamada.jidCliente ? chamada.jidCliente.split('@')[0] : "Não informado",
-        nomeCliente: chamada.nomeCliente, origem: chamada.origem || "WhatsApp",
-        idTaxi: idTaxiStr, nomeMotorista: chamada.nomeMotorista, placa: veiculoObj ? veiculoObj.placa : ""
-    });
-
-    if (chamada.jidCliente && chamada.sockWhatsApp) {
-        const tempoEstimado = chamada.origem === "G3 do Carrefour" ? "3 minutos" : "8 minutos";
-        
-        const mensagemFinal = `🚕 *TÁXI CONFIRMADO!*\n\n` +
-                            `👤 *Passageiro(a):* ${dadosAtribuicao.nomeCliente}\n` +
-                            `👨‍✈️ *Motorista:* ${dadosAtribuicao.nome}\n` +
-                            `🚘 *Veículo:* ${dadosAtribuicao.modelo}\n` +
-                            `📋 *Placa:* ${dadosAtribuicao.placa}\n\n` +
-                            `⏱️ *Previsão de chegada:* aprox. ${tempoEstimado}\n\n` +
-                            `⚠️ Aguarde no local *(se for condomínio, aguardar na portaria)*, o seu táxi está a caminho!`;
-
-        chamada.sockWhatsApp.sendMessage(chamada.jidCliente, { text: mensagemFinal }).catch(e => console.error("Erro ao enviar WhatsApp:", e));
-    }
-
-    liberarClienteWhatsApp(chamada.jidCliente);
-
-    await emitirSistemaGeral(io);
-    io.emit('corridaAtribuida', dadosAtribuicao);
-    delete chamadasPendentes[idChamada];
-}
-
-function solicitarCorridaViaWhatsApp(dados) {
-    if (filaGeral.length === 0) return false; 
-
+iniciarBotWhatsApp((dados) => {
+    if (filaGeral.length === 0) return false;
     const idChamada = "CORRIDA_WA_" + Date.now();
-    chamadasPendentes[idChamada] = { 
-        idChamada: idChamada, 
-        nomeCliente: dados.nomeCliente, 
-        jidCliente: dados.jidCliente, 
-        sockWhatsApp: dados.sockWhatsApp, 
-        indiceTentativaAtual: 0, 
-        origem: dados.origem || "WhatsApp",
-        lat: dados.lat || null,
-        lon: dados.lon || null
-    };
-    
-    dispararPonteiroFila(idChamada);
+    chamadasPendentes[idChamada] = { idChamada, nomeCliente: dados.nomeCliente, jidCliente: dados.jidCliente, sockWhatsApp: dados.sockWhatsApp, indiceTentativaAtual: 0, origem: dados.origem || "WhatsApp" };
     return true;
-}
-
-iniciarBotWhatsApp(solicitarCorridaViaWhatsApp);
+});
 
 const PORTA = process.env.PORT || 3000;
-server.listen(PORTA, () => console.log(`🚖 Servidor Taxi Conecta rodando na porta ${PORTA} com banco PostgreSQL e Google Drive integrados!`));
+server.listen(PORTA, () => console.log(`🚖 Servidor Taxi Conecta pronto na porta ${PORTA}!`));
