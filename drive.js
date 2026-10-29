@@ -22,7 +22,9 @@ if (process.env.GOOGLE_CREDENTIALS_JSON) {
 }
 
 const driveService = google.drive({ version: 'v3', auth });
-const PASTA_PRINCIPAL_ID = '1Qsf1LQFKG9MNdpCjZCnNNpO59N1kIgCV'; 
+
+// ID corrigido exato da pasta "Audios_TaxiConecta_PTT"
+const PASTA_PRINCIPAL_ID = '1Qsf1LQFKG9MNdpCjZCnNNpO59N1klgCV'; 
 
 // Função auxiliar para criar ou buscar pasta de Ano/Mês/Dia automaticamente no Drive
 async function obterOuCriarPasta(nomePasta, pastaPaiId) {
@@ -49,7 +51,7 @@ async function obterOuCriarPasta(nomePasta, pastaPaiId) {
 
 async function enviarAudioParaDrive(caminhoArquivoLocal, nomeArquivo) {
   try {
-    // Organiza as pastas automaticamente por Ano -> Mês -> Dia (ex: 2026 / 10 / 28)
+    // Organiza as pastas automaticamente por Ano -> Mês -> Dia (ex: 2026 / 10 / 29)
     const agora = new Date();
     const ano = String(agora.getFullYear());
     const mes = String(agora.getMonth() + 1).padStart(2, '0');
@@ -84,6 +86,10 @@ async function enviarAudioParaDrive(caminhoArquivoLocal, nomeArquivo) {
     });
 
     console.log('✔ Áudio enviado e organizado no Google Drive com sucesso!');
+    
+    // Remove o arquivo temporário local após o envio com sucesso
+    try { fs.unlinkSync(caminhoArquivoLocal); } catch (e) {}
+
     return {
       fileId: response.data.id,
       audioUrl: response.data.webContentLink || response.data.webViewLink
@@ -101,7 +107,6 @@ async function limparAudiosAntigosDrive() {
     trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
     const dataIso = trintaDiasAtras.toISOString();
 
-    // Busca arquivos criados há mais de 30 dias na pasta principal
     const query = `'${PASTA_PRINCIPAL_ID}' in parents and createdTime < '${dataIso}' and trashed=false`;
     const res = await driveService.files.list({ q: query, fields: 'files(id, name)' });
 
