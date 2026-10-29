@@ -60,8 +60,12 @@ let chamadasPendentes = {};
 
 async function garantirTabelasNoBanco() {
     try {
+        // 1. APAGA A TABELA COMPLETA E REINICIA A ESTRUTURA
+        await db.query(`DROP TABLE IF EXISTS motoristas CASCADE;`);
+
+        // 2. CRIA A TABELA NOVA E LIMPA
         await db.query(`
-            CREATE TABLE IF NOT EXISTS motoristas (
+            CREATE TABLE motoristas (
                 id SERIAL PRIMARY KEY,
                 numero VARCHAR(50),
                 placa VARCHAR(20),
@@ -79,9 +83,7 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // LIMPEZA TOTAL DA FROTA ANTIGA DO BANCO
-        await db.query(`TRUNCATE TABLE motoristas RESTART IDENTITY CASCADE;`);
-
+        // 3. GARANTE A TABELA DE ADMINISTRADORES
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
                 id SERIAL PRIMARY KEY,
@@ -98,9 +100,9 @@ async function garantirTabelasNoBanco() {
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Banco de dados ZERADO e pronto para novos cadastros limpos!");
+        console.log("✔ Tabela de motoristas eliminada e recriada do zero no PostgreSQL!");
     } catch (e) {
-        console.error("❌ Erro ao validar tabelas automáticas:", e);
+        console.error("❌ Erro ao recriar tabela no PostgreSQL:", e);
     }
 }
 function checarAniversarioApp() {
