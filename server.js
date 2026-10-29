@@ -40,11 +40,9 @@ let chamadasPendentes = {};
 // Função para garantir automaticamente que as tabelas existem na nuvem
 async function garantirTabelasNoBanco() {
     try {
-        // 1. APAGA A TABELA DEFEITUOSA COMPLETAMENTE (Cuidado: remova essa linha depois que funcionar)
-
-        // 2. CRIA A TABELA NOVA, LIMPA E PERFEITA DO ZERO
+        // Cria a tabela de motoristas apenas se ela ainda não existir
         await db.query(`
-            CREATE TABLE motoristas (
+            CREATE TABLE IF NOT EXISTS motoristas (
                 id SERIAL PRIMARY KEY,
                 numero VARCHAR(50),
                 placa VARCHAR(20),
@@ -62,7 +60,23 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // Garante a tabela de admins
+        // Garante que todas as colunas existem (caso a tabela tenha sido criada antiga)
+        await db.query(`
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
+        `);
+
+        // Tabela de administradores
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
                 id SERIAL PRIMARY KEY,
@@ -73,23 +87,23 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // Insere o carro de teste Carro.99
+        // Insere o carro de teste Carro.99 caso não exista
         await db.query(`
             INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, senha_hash, eh_moderador, status_radio)
             VALUES ('99', 'ABC1D00', 'Carro.99', 'Admin Teste', 'Fiat Grand Siena', 'Comum', '123', true, 'ONLINE')
             ON CONFLICT (login) DO NOTHING;
         `);
 
-        // Insere o adm padrão
+        // Insere o administrador padrão caso não exista
         await db.query(`
             INSERT INTO administradores (usuario, senha_hash, nome, cargo)
             VALUES ('adm', '123', 'Administrador Geral', 'ADM')
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Tabela antiga apagada e tabela nova recriada com sucesso do zero!");
+        console.log("✔ Tabelas e colunas do PostgreSQL validadas com sucesso!");
     } catch (e) {
-        console.error("❌ Erro ao recriar tabelas automáticas:", e);
+        console.error("❌ Erro ao validar tabelas automáticas:", e);
     }
 }
 
@@ -320,57 +334,51 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('cadastrarCarro', async (dados) => {
-        const loginGerado = `Carro.${dados.numero}`;
+    socket.on('salvarCarroFrota', async (dados) => {
+        const numeroCarro = dados.idAntigo ? dados.idAntigo : dados.numero;
+        const loginGerado = `Carro.${numeroCarro}`;
+        
         try {
-            await db.query(
-                `INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, telefones, senha_hash, eh_moderador, status_radio) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                 ON CONFLICT (login) DO UPDATE SET nome = $4, placa = $2, modelo = $5, cargo = $6, telefones = $7, senha_hash = $8, eh_moderador = $9`,
-                [dados.numero, (dados.placa || '').trim().toUpperCase(), loginGerado, dados.nome, dados.modelo, dados.cargo || "Comum", dados.telefones, dados.senha, Boolean(dados.ehModerador), "ONLINE"]
-            );
+            if (dados.idAntigo) {
+                await db.query(
+                    `UPDATE motoristas SET placa = $1, nome = $2, modelo = $3, telefones = $4, eh_moderador = $5 WHERE login = $6`,
+                    [(dados.placa || '').trim().toUpperCase(), dados.nome, dados.modelo || 'Padrão', [dados.telefone], Boolean(dados.ehModerador), loginGerado]
+                );
+            } else {
+                await db.query(
+                    `INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, telefones, senha_hash, eh_moderador, status_radio) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                     ON CONFLICT (login) DO UPDATE SET nome = $4, placa = $2, modelo = $5, telefones = $7, senha_hash = $8, eh_moderador = $9`,
+                    [dados.numero, (dados.placa || '').trim().toUpperCase(), loginGerado, dados.nome, dados.modelo || 'Padrão', "Comum", [dados.telefone], dados.senha || '123', Boolean(dados.ehModerador), "ONLINE"]
+                );
+            }
             await emitirSistemaGeral(io);
-            socket.emit('cadastroSucesso', { login: loginGerado });
         } catch (e) {
-            console.error("Erro ao cadastrar carro:", e);
+            console.error("❌ Erro ao salvar frota:", e);
         }
     });
 
-    socket.on('atualizarCarro', async (dados) => {
-        const login = dados.login;
+    socket.on('excluirFrota', async (dados) => {
+        const loginBusca = `Carro.${dados.id}`;
         try {
-            await db.query(
-                `UPDATE motoristas SET placa = $1, nome = $2, modelo = $3, telefones = $4, eh_moderador = $5 WHERE login = $6`,
-                [(dados.placa || '').trim().toUpperCase(), dados.nome, dados.modelo, dados.telefones, Boolean(dados.ehModerador), login]
-            );
-            await emitirSistemaGeral(io);
-            socket.emit('edicaoSucesso', { login: login });
-        } catch (e) {
-            console.error("Erro ao atualizar carro:", e);
-        }
-    });
-
-    socket.on('excluirCarro', async (dados) => {
-        try {
-            await db.query('DELETE FROM motoristas WHERE login = $1', [dados.login]);
-            const indexFila = filaGeral.findIndex(m => `Carro.${m.idTaxi}` === dados.login || String(m.idTaxi) === String(dados.login.replace('Carro.', '')));
+            await db.query('DELETE FROM motoristas WHERE login = $1', [loginBusca]);
+            const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === String(dados.id));
             if (indexFila !== -1) {
                 filaGeral.splice(indexFila, 1);
                 redistribuirVagas();
             }
             await emitirSistemaGeral(io);
-            socket.emit('excluirSucesso', { login: dados.login });
         } catch (e) {
-            console.error("Erro ao excluir carro:", e);
+            console.error("❌ Erro ao excluir carro:", e);
         }
     });
 
-    socket.on('resetarSenhaCarro', async (dados) => {
+    socket.on('resetarSenhaFrota', async (dados) => {
+        const loginBusca = `Carro.${dados.id}`;
         try {
-            await db.query('UPDATE motoristas SET senha_hash = $1 WHERE login = $2', [dados.novaSenha, dados.login]);
-            socket.emit('senhaResetadaSucesso', { login: dados.login });
+            await db.query('UPDATE motoristas SET senha_hash = $1 WHERE login = $2', [dados.novaSenha, loginBusca]);
         } catch (e) {
-            console.error("Erro ao resetar senha:", e);
+            console.error("❌ Erro ao resetar senha:", e);
         }
     });
 
