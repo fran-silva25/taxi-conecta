@@ -599,19 +599,34 @@
             return;
         }
 
-        socket.emit('salvarCarroFrota', {
-            idAntigo: idEdit,
-            numero: numero,
-            placa: placa,
-            nome: nome,
-            modelo: modelo || 'Padrão',
-            telefone: telefone,
-            senha: senha || '123',
-            ehModerador: ehModerador
-        });
+        // SE TIVER ID (EDITAR)
+        if (idEdit) {
+            socket.emit('atualizarCarro', {
+                login: `Carro.${idEdit}`,
+                placa: placa,
+                nome: nome,
+                modelo: modelo || 'Padrão',
+                telefones: telefone,
+                ehModerador: ehModerador
+            });
+            alert(`✅ Veículo Carro.${idEdit} atualizado com sucesso!`);
+        } 
+        // SE NÃO TIVER ID (CADASTRAR NOVO)
+        else {
+            socket.emit('cadastrarCarro', {
+                numero: numero,
+                placa: placa,
+                nome: nome,
+                modelo: modelo || 'Padrão',
+                cargo: 'Comum',
+                telefones: telefone,
+                senha: senha || '123',
+                ehModerador: ehModerador
+            });
+            alert("✅ Novo veículo cadastrado com sucesso!");
+        }
 
         cancelarEdicaoFrota();
-        alert("✅ Veículo salvo com sucesso!");
     }
 
     function prepararEdicaoFrota(id, placa, nome, modelo, telefone, ehModerador) {
@@ -645,14 +660,14 @@
     function resetarSenhaFrota(id) {
         const novaSenha = prompt(`Digite a nova senha para o Carro.${id}:`, "123");
         if (novaSenha) {
-            socket.emit('resetarSenhaFrota', { id: id, novaSenha: novaSenha });
+            socket.emit('resetarSenhaCarro', { login: `Carro.${id}`, novaSenha: novaSenha });
             alert(`✅ Senha do Carro.${id} alterada com sucesso!`);
         }
     }
 
     function excluirFrota(id) {
         if (confirm(`Deseja realmente excluir o veículo Carro.${id} da frota?`)) {
-            socket.emit('excluirFrota', { id: id });
+            socket.emit('excluirCarro', { login: `Carro.${id}` });
             alert(`🗑️ Veículo Carro.${id} excluído.`);
         }
     }
