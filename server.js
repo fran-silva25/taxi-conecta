@@ -1,13 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-// Apaga a pasta de sessão antiga se existir ao iniciar
-try {
-    fs.rmSync(path.join(__dirname, 'sessao_whatsapp'), { recursive: true, force: true });
-} catch (e) {}
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const db = require('./db');
 
 const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216 } = require('./bot_whatsapp');

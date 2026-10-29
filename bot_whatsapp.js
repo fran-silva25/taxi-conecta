@@ -1,10 +1,13 @@
 // bot_whatsapp.js
 
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
+const fs = require('fs');
+const path = require('path');
 
+const PASTA_SESSAO = path.join(__dirname, 'sessao_whatsapp');
 const estadosClientes = {};
+let qrCodeAtual = null;
 
 // Coordenadas que formam o contorno exato do mapa de abrangência (Ponto 2216)
 const fronteiraPonto2216 = [
@@ -96,12 +99,16 @@ function liberarClienteWhatsApp(jidCliente) {
     }
 }
 
+function obterQrCodeAtual() {
+    return qrCodeAtual;
+}
+
 function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
     let sock = null;
 
     async function conectarWhatsApp() {
         try {
-            const { state, saveCreds } = await useMultiFileAuthState('sessao_whatsapp');
+            const { state, saveCreds } = await useMultiFileAuthState(PASTA_SESSAO);
 
             sock = makeWASocket({
                 logger: pino({ level: 'silent' }),
@@ -116,38 +123,33 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
             sock.ev.on('creds.update', saveCreds);
 
-            const fs = require('fs');
-const path = require('path');
-const PASTA_SESSAO = path.join(__dirname, 'sessao_whatsapp');
+            sock.ev.on('connection.update', (update) => {
+                const { connection, lastDisconnect, qr } = update;
 
-// Dentro da sua função iniciarBotWhatsApp, na verificação de desconexão:
-sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect, qr } = update;
+                if (qr) {
+                    qrCodeAtual = qr;
+                    console.log("📱 NOVO QR CODE GERADO PARA O WHATSAPP!");
+                    console.log("👉 Acesse no seu navegador: https://taxi-conecta-api.onrender.com/qr");
+                }
 
-    // Se gerar QR Code, exibe no log do Render
-    if (qr) {
-        console.log("📱 ESCANEE O QR CODE ABAIXO NO SEU WHATSAPP:");
-        require('qrcode-terminal').generate(qr, { small: true });
-    }
+                if (connection === 'close') {
+                    qrCodeAtual = null;
+                    const statusCode = lastDisconnect?.error?.output?.statusCode;
+                    console.log(`🔴 Conexão fechada. Código: ${statusCode}`);
 
-    if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`🔴 Conexão fechada. Código: ${statusCode}`);
+                    if (statusCode === 401 || statusCode === 403 || statusCode === DisconnectReason.loggedOut) {
+                        console.log("🧹 Apagando credenciais antigas da pasta sessao_whatsapp...");
+                        try {
+                            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
+                        } catch (e) {}
+                    }
 
-        // Se for 401 (desconectado do celular) ou sessão encerrada, APAGA a pasta para gerar novo QR Code
-        if (statusCode === 401 || statusCode === 403) {
-            console.log("🧹 Apagando credenciais antigas da pasta sessao_whatsapp...");
-            try {
-                fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
-            } catch (e) {}
-        }
-
-        // Tenta reconectar após 5 segundos
-        setTimeout(() => iniciarBotWhatsApp(), 5000);
-    } else if (connection === 'open') {
-        console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
-    }
-});
+                    setTimeout(() => conectarWhatsApp(), 5000);
+                } else if (connection === 'open') {
+                    qrCodeAtual = null;
+                    console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
+                }
+            });
 
             sock.ev.on('messages.upsert', async (m) => {
                 try {
@@ -350,5 +352,6 @@ module.exports = {
     iniciarBotWhatsApp, 
     liberarClienteWhatsApp,
     verificarDentroDaCerca,
-    fronteiraPonto2216
+    fronteiraPonto2216,
+    obterQrCodeAtual
 };
