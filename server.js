@@ -41,7 +41,6 @@ let chamadasPendentes = {};
 async function garantirTabelasNoBanco() {
     try {
         // 1. APAGA A TABELA DEFEITUOSA COMPLETAMENTE (Cuidado: remova essa linha depois que funcionar)
-        await db.query(`DROP TABLE IF EXISTS motoristas CASCADE;`);
 
         // 2. CRIA A TABELA NOVA, LIMPA E PERFEITA DO ZERO
         await db.query(`
