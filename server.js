@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./db');
 
-const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216 } = require('./bot_whatsapp');
+const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216, obterQrCodeAtual } = require('./bot_whatsapp');
 
 const app = express();
 app.use(cors());
@@ -29,7 +29,7 @@ if (!fs.existsSync(PASTA_SALVOS_MODERACAO)) {
     fs.mkdirSync(PASTA_SALVOS_MODERACAO, { recursive: true });
 }
 
-// ROTINA AUTOMÁTICA: Apaga áudios do servidor com mais de 3 dias (72h)
+// ROTINA AUTOMÁTICA: Apaga áudios com mais de 3 dias (72h)
 function limparAudiosAntigosLocais() {
     try {
         const tresDiasEmMs = 3 * 24 * 60 * 60 * 1000;
@@ -49,7 +49,7 @@ function limparAudiosAntigosLocais() {
         console.error("Erro na limpeza local de áudios:", e);
     }
 }
-setInterval(limparAudiosAntigosLocais, 12 * 60 * 60 * 1000); // Executa a cada 12 horas
+setInterval(limparAudiosAntigosLocais, 12 * 60 * 60 * 1000);
 
 let historicoAudio = [];
 let historicoRecusas = [];
@@ -60,12 +60,8 @@ let chamadasPendentes = {};
 
 async function garantirTabelasNoBanco() {
     try {
-        // 1. APAGA A TABELA COMPLETA E REINICIA A ESTRUTURA
-        await db.query(`DROP TABLE IF EXISTS motoristas CASCADE;`);
-
-        // 2. CRIA A TABELA NOVA E LIMPA
         await db.query(`
-            CREATE TABLE motoristas (
+            CREATE TABLE IF NOT EXISTS motoristas (
                 id SERIAL PRIMARY KEY,
                 numero VARCHAR(50),
                 placa VARCHAR(20),
@@ -83,7 +79,21 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // 3. GARANTE A TABELA DE ADMINISTRADORES
+        await db.query(`
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
+            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
+        `);
+
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
                 id SERIAL PRIMARY KEY,
@@ -100,11 +110,14 @@ async function garantirTabelasNoBanco() {
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Tabela de motoristas eliminada e recriada do zero no PostgreSQL!");
+        console.log("✔ Tabelas e colunas do PostgreSQL validadas com sucesso!");
     } catch (e) {
-        console.error("❌ Erro ao recriar tabela no PostgreSQL:", e);
+        console.error("❌ Erro ao validar tabelas automáticas:", e);
     }
 }
+
+garantirTabelasNoBanco();
+
 function checarAniversarioApp() {
     const hoje = new Date();
     return (hoje.getDate() === 3 && hoje.getMonth() === 9 && hoje.getFullYear() > 2026);
@@ -279,27 +292,51 @@ setInterval(() => {
     emitirSistemaGeral(io);
 }, 30 * 1000);
 
+// ROTAS DE PÁGINAS E ESTÁTICOS
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
 app.get('/admin.html', (req, res) => res.sendFile(__dirname + '/www/admin.html'));
 app.get('/motorista.html', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
 app.get('/motorista', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
 app.use('/audios', express.static(PASTA_AUDIOS));
 
+// ROTA EXCLUSIVA PARA ESCANEAR O QR CODE DO WHATSAPP EM IMAGEM LIMPA
+app.get('/qr', (req, res) => {
+    const qr = obterQrCodeAtual();
+    if (!qr) {
+        return res.send(`
+            <div style="font-family:sans-serif; text-align:center; padding:50px; background:#121212; color:white; height:100vh;">
+                <h2>✅ WhatsApp já está conectado ou aguardando inicialização!</h2>
+                <p>Se o WhatsApp estiver desconectado, aguarde alguns segundos e recarregue a página (F5).</p>
+            </div>
+        `);
+    }
+
+    const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=350x350`;
+    res.send(`
+        <html>
+            <head><title>QR Code - Ponto 2216</title></head>
+            <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#121212; color:white; margin:0;">
+                <h2>Escaneie com o seu WhatsApp</h2>
+                <div style="background:white; padding:15px; border-radius:12px; margin:20px 0;">
+                    <img src="${imgUrl}" alt="QR Code" style="display:block;" />
+                </div>
+                <p style="color:#aaa;">Atualize a página (F5) se o QR Code expirar.</p>
+            </body>
+        </html>
+    `);
+});
+
+// EVENTOS SOCKET.IO
 io.on('connection', async (socket) => {
     await emitirSistemaGeral(socket);
 
     socket.on('adminLimparSistemaGeral', async () => {
         try {
-            // 1. APAGA TODOS OS MOTORISTAS DO POSTGRESQL
             await db.query('DELETE FROM motoristas;');
-            
-            // 2. RESETA A MEMÓRIA RAM DO SERVIDOR
             filaGeral = [];
             chamadasPendentes = {};
             motoristasConectados = {};
-            
             console.log("🧹 BANCO DE DADOS E MEMÓRIA ZERADOS VIA ADMIN!");
-            
             await emitirSistemaGeral(io);
             io.emit('forcarStatusLivreGeral');
         } catch (e) {
@@ -331,7 +368,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // GERENCIAMENTO DE FROTA (CORRIGIDO PARA SALVAR SENHA E ACEITAR AMBOS EVENTOS)
     socket.on('salvarCarroFrota', async (dados) => {
         const numeroCarro = String(dados.idAntigo || dados.numero || '').trim();
         const loginGerado = `Carro.${numeroCarro}`;
@@ -380,8 +416,6 @@ io.on('connection', async (socket) => {
         } catch (e) {}
     });
 
-    // LOGIN DO MOTORISTA CORRIGIDO
-    // LOGIN DO MOTORISTA ULTRA-FLEXÍVEL E COM LOGS DE DIAGNÓSTICO
     socket.on('loginMotorista', async (dados) => {
         const loginEntrada = String(dados.login || '').trim();
         const senhaDigitada = String(dados.senha || '').trim();
@@ -444,7 +478,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // PTT SALVANDO DIRETO NO SERVIDOR DO RENDER (SEM DRIVE)
     socket.on('solicitarCanalPTT', (dados) => {
         socket.broadcast.emit('canalOcupado', { idTaxi: dados.idTaxi, nome: dados.nome });
     });
