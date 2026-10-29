@@ -40,30 +40,30 @@ let chamadasPendentes = {};
 // Função para garantir automaticamente que as tabelas existem na nuvem
 async function garantirTabelasNoBanco() {
     try {
-        // Cria a tabela caso não exista
+        // 1. APAGA A TABELA DEFEITUOSA COMPLETAMENTE (Cuidado: remova essa linha depois que funcionar)
+        await db.query(`DROP TABLE IF EXISTS motoristas CASCADE;`);
+
+        // 2. CRIA A TABELA NOVA, LIMPA E PERFEITA DO ZERO
         await db.query(`
-            CREATE TABLE IF NOT EXISTS motoristas (
+            CREATE TABLE motoristas (
                 id SERIAL PRIMARY KEY,
-                login VARCHAR(50) UNIQUE NOT NULL
+                numero VARCHAR(50),
+                placa VARCHAR(20),
+                login VARCHAR(50) UNIQUE NOT NULL,
+                nome VARCHAR(100),
+                modelo VARCHAR(100),
+                cargo VARCHAR(50),
+                telefones TEXT[],
+                senha_hash VARCHAR(100),
+                eh_moderador BOOLEAN DEFAULT FALSE,
+                status_radio VARCHAR(20) DEFAULT 'ONLINE',
+                mutado_ate BIGINT,
+                banido_ate BIGINT,
+                bloqueio_recusa BOOLEAN DEFAULT FALSE
             );
         `);
 
-        // Garante que todas as colunas necessárias existam na tabela (mesmo se ela for antiga)
-        await db.query(`
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
-        `);
-
+        // Garante a tabela de admins
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
                 id SERIAL PRIMARY KEY,
@@ -74,23 +74,23 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        // Insere o carro de teste Carro.99 caso não exista
+        // Insere o carro de teste Carro.99
         await db.query(`
             INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, senha_hash, eh_moderador, status_radio)
             VALUES ('99', 'ABC1D00', 'Carro.99', 'Admin Teste', 'Fiat Grand Siena', 'Comum', '123', true, 'ONLINE')
             ON CONFLICT (login) DO NOTHING;
         `);
 
-        // Insere o adm padrão caso não exista
+        // Insere o adm padrão
         await db.query(`
             INSERT INTO administradores (usuario, senha_hash, nome, cargo)
             VALUES ('adm', '123', 'Administrador Geral', 'ADM')
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Tabelas e colunas do banco validadas e atualizadas com sucesso!");
+        console.log("✔ Tabela antiga apagada e tabela nova recriada com sucesso do zero!");
     } catch (e) {
-        console.error("❌ Erro ao atualizar tabelas automáticas:", e);
+        console.error("❌ Erro ao recriar tabelas automáticas:", e);
     }
 }
 
