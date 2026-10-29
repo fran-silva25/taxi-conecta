@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Táxi Conecta - App Motorista</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-container: #ffffff;
+            --texto-principal: #1e293b;
+            --texto-secundario: #64748b;
+            --amarelo-ponto: #e6b800;
+            --preto-ponto: #1e293b;
+            --borda-card: #cbd5e1;
+            --bg-card: #f8fafc;
+            --tab-bg: #e2e8f0;
+            --tab-texto: #475569;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #121212;
+                --bg-container: #1e1e1e;
+                --texto-principal: #f8fafc;
+                --texto-secundario: #94a3b8;
+                --amarelo-ponto: #ffcc00;
+                --preto-ponto: #000000;
+                --borda-card: #333333;
+                --bg-card: #252525;
+                --tab-bg: #2d2d2d;
+                --tab-texto: #cbd5e1;
+            }
+        }
+
+        [data-tema="escuro"] {
+            --bg-body: #121212;
+            --bg-container: #1e1e1e;
+            --texto-principal: #f8fafc;
+            --texto-secundario: #94a3b8;
+            --amarelo-ponto: #ffcc00;
+            --preto-ponto: #000000;
+            --borda-card: #333333;
+            --bg-card: #252525;
+            --tab-bg: #2d2d2d;
+            --tab-texto: #cbd5e1;
+        }
+
+        [data-tema="claro"] {
+            --bg-body: #f1f5f9;
+            --bg-container: #ffffff;
+            --texto-principal: #1e293b;
+            --texto-secundario: #64748b;
+            --amarelo-ponto: #e6b800;
+            --preto-ponto: #1e293b;
+            --borda-card: #cbd5e1;
+            --bg-card: #f8fafc;
+            --tab-bg: #e2e8f0;
+            --tab-texto: #475569;
+        }
+
+        body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        
+        /* ADAPTAÇÃO RESPONSIVA PARA WINDOWS, TABLET E CELULAR */
+        .container { 
+            width: 100%; 
+            max-width: 460px; 
+            background: var(--bg-container); 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            position: relative; 
+            min-height: 560px; 
+            border: 2px solid var(--amarelo-ponto); 
+            box-sizing: border-box;
+            transition: max-width 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+            .container { max-width: 650px; padding: 30px; } /* Tablets e Telas Médias */
+        }
+        @media (min-width: 1024px) {
+            .container { max-width: 750px; padding: 35px; } /* Windows / Desktops */
+        }
+        
+        .banner-ponto-2216 { background: #000000; border: 2px solid #ffcc00; border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .logo-estrela { color: #ffcc00; font-size: 20px; font-weight: bold; line-height: 1; }
+        .texto-banner-ponto { color: #ffffff; font-size: 18px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+
+        .carro-badge-container { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; background: var(--preto-ponto); padding: 8px; border-radius: 8px; border: 1px solid var(--amarelo-ponto); }
+        .carro-label { font-size: 20px; font-weight: bold; color: var(--amarelo-ponto); }
+        .carro-numero-box { background: #000; color: #ffcc00; font-size: 28px; font-weight: bold; padding: 2px 12px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; border: 1px solid #ffcc00; }
+
+        .topo-acoes { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; gap: 6px; flex-wrap: wrap; }
+        .btn-acao-topo { background: var(--amarelo-ponto); color: #000; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-sair { background: #dc2626; color: #fff; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
+
+        input, select { padding: 12px; margin: 8px 0 15px 0; width: 100%; border: 1px solid var(--borda-card); background: var(--bg-card); color: var(--texto-principal); border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--amarelo-ponto); color: #000; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; }
+        button:hover { opacity: 0.9; }
+        .btn-green { background: #16a34a !important; color: white !important; }
+        .btn-red { background: #dc2626 !important; color: white !important; }
+        .btn-blue { background: #3b82f6 !important; color: white !important; }
+
+        .btn-nav-maps { background: #4285F4 !important; color: white !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-nav-waze { background: #33CCFF !important; color: #000 !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }
+        
+        .status-box { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 16px; color: white; text-transform: uppercase; letter-spacing: 1px; }
+
+        .tabs { display: flex; gap: 6px; margin-bottom: 15px; }
+        .tab-btn { background: var(--tab-bg); border: none; padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; font-size: 13px; color: var(--tab-texto); display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center; }
+        .tab-btn.ativo { background: var(--amarelo-ponto); color: #000; }
+        .secao { display: none; }
+        .secao.ativa { display: block; }
+
+        .card { background: var(--bg-card); padding: 18px; border-radius: 8px; border: 1px solid var(--borda-card); text-align: center; margin-top: 10px; box-sizing: border-box; }
+        .card h3 { margin-top: 0; font-size: 16px; color: var(--texto-principal); }
+        .escondido { display: none !important; }
+
+        .alerta-chamada { background: #fef08a !important; border: 3px solid #eab308 !important; color: #000; padding: 20px; border-radius: 12px; margin-bottom: 15px; animation: piscar 1s infinite alternate; }
+        @keyframes piscar { from { box-shadow: 0 0 10px #eab308; } to { box-shadow: 0 0 25px #ca8a04; } }
+
+        #modalBloqueioRecusa { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 204, 0, 0.96); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; border-radius: 16px; border: 4px solid #000; }
+        .texto-recusa-vermelho { color: #000; font-size: 20px; font-weight: bold; line-height: 1.4; margin-bottom: 10px; }
+
+        .ptt-container { text-align: center; margin: 15px 0; }
+        .btn-ptt { width: 140px; height: 140px; border-radius: 50%; background: var(--amarelo-ponto); color: #000; font-size: 18px; font-weight: bold; border: 5px solid #d9a700; box-shadow: 0 6px 20px rgba(255, 204, 0, 0.3); cursor: pointer; user-select: none; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; -webkit-touch-callout: none; touch-action: manipulation; }
+        .btn-ptt.transmitindo { background: #dc2626 !important; color: white !important; border-color: #991b1b !important; box-shadow: 0 0 25px rgba(220, 38, 38, 0.8); }
+        .btn-ptt.ouvindo { background: #2563eb !important; color: #ffffff !important; border-color: #1d4ed8 !important; box-shadow: 0 0 20px rgba(37, 99, 235, 0.8) !important; pointer-events: none; }
+
+        .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .audio-item { position: relative; background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; text-align: left; }
+
+        .badge-carro-historico { background: #000; color: #ffcc00; font-weight: bold; font-family: 'Courier New', Courier, monospace; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffcc00; font-size: 13px; letter-spacing: 1px; display: inline-block; }
+        
+        .modal-config-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .modal-config-box { background: var(--bg-container); border: 2px solid var(--amarelo-ponto); width: 90%; max-width: 400px; border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
+
+        .overlay-bloqueio-total { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(220, 38, 38, 0.98); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; color: white; }
+        .modal-aviso-mudo { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .caixa-mudo { background: #1e1e1e; border: 3px solid #dc2626; border-radius: 12px; padding: 25px; text-align: center; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+    </style>
+</head>
+<body>
+
+<div id="telaBloqueioTotal" class="overlay-bloqueio-total escondido">
+    <div style="font-size: 70px; margin-bottom: 10px;">🚫</div>
+    <h1 style="margin-top: 0; letter-spacing: 2px;">ACESSO BLOQUEADO</h1>
+    <p style="font-size: 22px; line-height: 1.5; font-weight: bold; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 10px; border: 2px solid white;">
+        Bloqueado. Entre em contato com a Coordenação e aguarde o desbloqueio.
+    </p>
+</div>
+
+<div id="telaAvisoMudo" class="modal-aviso-mudo escondido">
+    <div class="caixa-mudo">
+        <div style="font-size: 50px; margin-bottom: 10px;">🔇</div>
+        <h2 style="color: #dc2626; margin-top: 0;">RÁDIO SILENCIADO</h2>
+        <p style="color: white; font-size: 16px; margin-bottom: 25px; line-height: 1.4;">
+            A Moderação bloqueou temporariamente o seu envio de áudios.<br><br>
+            <strong>As outras funções do app permanecem normais.</strong> Você continuará ouvindo a rádio e recebendo corridas.
+        </p>
+        <button class="btn-red" onclick="fecharAvisoMudo()" style="padding: 15px; font-size: 18px;">ESTOU CIENTE</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="banner-ponto-2216">
+        <span class="logo-estrela">✦</span>
+        <span class="texto-banner-ponto">Ponto 2216</span>
+        <span class="logo-estrela">✦</span>
+    </div>
+
+    <div class="topo-acoes">
+        <span style="font-weight: bold; color: var(--amarelo-ponto);">App Motorista</span>
+        <div style="display: flex; gap: 6px;">
+            <button class="btn-acao-topo" onclick="abrirConfiguracoes()">⚙️ Config</button>
+            <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
+            <button id="btnSairApp" class="btn-sair" onclick="fazerLogout()">🚪 Sair</button>
+        </div>
+    </div>
+
+    <div id="telaOperacional">
+        <div class="carro-badge-container">
+            <span class="carro-label">CARRO <span id="badgeEstrelaModerador" class="escondido" style="color: #c084fc;">⭐</span></span>
+            <span id="displayNumeroCarro" class="carro-numero-box">--</span>
+        </div>
+
+        <div id="boxStatusVisual" class="status-box" style="background: #16a34a;">
+            STATUS: <span id="labelStatus">LIVRE</span>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button>
+            <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button>
+            <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button>
+        </div>
+
+        <!-- MODAL DE PUNIÇÃO POR RECUSA -->
+        <div id="modalBloqueioRecusa" class="escondido">
+            <div style="font-size: 55px; margin-bottom: 5px;">⚠️</div>
+            <h2 style="color: #000; margin-top: 0; font-size: 24px; text-transform: uppercase;">Corrida Recusada</h2>
+            <div id="textoMensagemRecusa" class="texto-recusa-vermelho">Você perdeu a vez e foi reposicionado no final da fila.</div>
+            <p style="color: #000; font-size: 17px; font-weight: bold; margin-bottom: 25px;">Dirija-se IMEDIATAMENTE para o FINAL DA FILA.</p>
+            <button class="btn-red" onclick="fecharAvisoRecusa()" style="max-width: 220px; padding: 15px; font-size: 18px; background: #000 !important; color: #ffcc00 !important; border: 2px solid #ffcc00;">ESTOU CIENTE / AGUARDANDO GPS</button>
+        </div>
+
+        <!-- OFERTA DE CORRIDA -->
+        <div id="modalOferta" class="alerta-chamada escondido">
+            <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🛎️ NOVA CORRIDA DISPONÍVEL!</h2>
+            <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="ofertaCliente">--</span></p>
+            <p style="font-size: 15px; margin: 6px 0;"><strong>Origem:</strong> <span id="ofertaLocal">--</span></p>
+            
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <button class="btn-green" onclick="aceitarCorrida()" style="padding: 12px;">ACEITAR</button>
+                <button class="btn-red" onclick="recusarCorrida()" style="padding: 12px;">RECUSAR</button>
+            </div>
+        </div>
+
+        <!-- CARTÃO DE VIAGEM ATIVA -->
+        <div id="cartaoViagemAtiva" class="alerta-chamada escondido" style="background: #f0fdf4 !important; border-color: #16a34a !important; animation: none;">
+            <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚖 CORRIDA EM ANDAMENTO</h2>
+            <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="viagemCliente">--</span></p>
+            <p style="font-size: 15px; margin: 6px 0;"><strong>Endereço de Embarque:</strong> <br><span id="viagemOrigem" style="font-weight: bold; color: #000;">--</span></p>
+            
+            <div id="boxBotoesNavegacao" class="escondido" style="margin-top: 12px; display: flex; gap: 8px;">
+                <button id="btnAbrirMaps" class="btn-nav-maps" style="flex: 1;">🗺️ Google Maps</button>
+                <button id="btnAbrirWaze" class="btn-nav-waze" style="flex: 1;">🚙 Waze</button>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <button class="btn-green" onclick="fecharCartaoViagem()" style="padding: 12px; font-size: 15px;">✔️ OK (Ciente)</button>
+            </div>
+        </div>
+
+        <!-- ABA: STATUS E FILA -->
+        <div id="tabStatus" class="secao ativa">
+            <div class="card">
+                <h3>Controle de Status</h3>
+                <button id="btnStatus" class="btn-red" onclick="alternarStatus()">Mudar para: Em Corrida</button>
+                <hr style="border: 1px solid var(--borda-card); margin: 15px 0;">
+                <button class="btn-blue" onclick="simularChegadaPonto()" style="margin-bottom: 10px;">📍 Simular Chegada no Ponto (Teste)</button>
+                <button id="btnAusente" style="background: #d97706; color: white;" onclick="marcarAusente()">⏸️ Ficar Ausente (Pausa / Banheiro)</button>
+            </div>
+        </div>
+
+        <!-- ABA: RADIO PTT -->
+        <div id="tabRadio" class="secao">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h4 style="margin: 0; color: var(--texto-principal); font-size: 14px;" id="tituloTabRadio">📻 Transmissão de Rádio</h4>
+                <button class="btn-red" style="width: auto; padding: 6px 10px; font-size: 11px;" onclick="limparPttMotorista()">🗑️ Limpar Tela</button>
+            </div>
+
+            <div class="ptt-container">
+                <button id="btnPTT" class="btn-ptt">
+                    <span>🎙️</span>
+                    <span id="labelPTT" style="margin-top: 5px; font-size: 12px; line-height: 1.2;">SEGURE<br>P/ FALAR</span>
+                </button>
+            </div>
+
+            <h4 style="margin: 10px 0 5px 0; color: var(--texto-principal); text-align: left; font-size: 14px;">📜 Histórico do Rádio</h4>
+            <div id="listaAudios" class="historico-audio-list">
+                <div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>
+            </div>
+        </div>
+
+        <!-- ABA: CONEXÃO E FROTA ONLINE -->
+        <div id="tabDados" class="secao">
+            <div class="card" style="text-align: left;">
+                <h3 style="margin-top:0; text-align: center;">📍 Informações do Veículo</h3>
+                <p><strong>Veículo:</strong> Carro.<span id="infoNumero">--</span></p>
+                <p><strong>Motorista:</strong> <span id="infoNome">--</span></p>
+                <p><strong>Modelo:</strong> <span id="infoModelo">--</span></p>
+                <p><strong>Privilégio:</strong> <span id="infoPerfil">Motorista Comum</span></p>
+                <p id="infoGpsStatus" style="color: var(--amarelo-ponto); font-weight: bold; margin-bottom: 0;">Conectando ao GPS...</p>
+            </div>
+
+            <!-- LISTA DE CARROS ONLINE -->
+            <div class="card mt-3 text-left">
+                <h3 style="margin-top:0; text-align: center; color: var(--amarelo-ponto);">🟢 Frota Online na Praça</h3>
+                <div id="listaFrotaOnline" class="space-y-1 max-h-40 overflow-y-auto text-xs" style="display: flex; flex-direction: column; gap: 6px;">
+                    <p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIGURAÇÕES ⚙️ -->
+<div id="modalConfig" class="modal-config-overlay escondido">
+    <div class="modal-config-box">
+        <h3 style="margin-top:0; color: var(--amarelo-ponto); display: flex; justify-content: space-between; align-items: center; font-size: 16px;">
+            ⚙️ Configurações do App
+            <button onclick="fecharConfiguracoes()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer; width:auto; padding:0;">✖</button>
+        </h3>
+        
+        <div style="margin: 12px 0;">
+            <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">🔊 Volume Global do Rádio:</label>
+            <input type="range" id="volumeGlobal" min="0" max="100" value="100" onchange="alterarVolumeGlobal(this.value)">
+        </div>
+
+        <div style="margin: 12px 0;">
+            <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">🎙️ Modo do Botão PTT:</label>
+            <select id="selectModoPTT" onchange="alterarModoPTT(this.value)" style="margin:0; padding:8px; font-size:14px;">
+                <option value="pressionar">Pressionar e segurar para falar</option>
+                <option value="clique">1 Clique para falar / 1 Parar</option>
+            </select>
+        </div>
+
+        <div style="margin: 15px 0 5px 0; display: flex; gap: 8px;">
+            <button class="btn-red" onclick="limparPttMotorista()" style="font-size: 12px; padding: 10px;">🧹 Limpar Tela</button>
+            <button onclick="fecharConfiguracoes()" style="background: var(--amarelo-ponto); color: #000; font-size: 13px; padding: 10px;">⬅️ Voltar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SOCKET_URL = "https://taxi-conecta-api.onrender.com";
+    let socket;
+    let meuTaxi = null;
+    let statusAtual = "LIVRE";
+    let minhaLat = -23.580278; 
+    let minhaLon = -46.561389; 
+    let idChamadaAtual = null;
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let gravando = false;
+    let tempoInicioGravacao = 0;
+
+    let meuTaxiEstaMutado = false;
+    let simulandoChegadaNoPonto = false;
+    let estadoCanal = 'LIVRE';
+    let modoPTTAtual = 'pressionar';
+    let temaAtual = 'escuro';
+
+    function aplicarTema(tema) {
+        document.documentElement.setAttribute('data-tema', tema);
+        const lbl = document.getElementById('labelTema');
+        if (lbl) lbl.innerText = tema === 'claro' ? 'Claro' : 'Escuro';
+    }
+
+    function alternarTema() {
+        temaAtual = temaAtual === 'escuro' ? 'claro' : 'escuro';
+        aplicarTema(temaAtual);
+        if (meuTaxi && meuTaxi.numero) {
+            localStorage.setItem(`tema_${meuTaxi.numero}`, temaAtual);
+        }
+    }
+
+    function abrirConfiguracoes() { document.getElementById('modalConfig').classList.remove('escondido'); }
+    function fecharConfiguracoes() { document.getElementById('modalConfig').classList.add('escondido'); }
+    function fecharAvisoMudo() { document.getElementById('telaAvisoMudo').classList.add('escondido'); }
+    function fecharAvisoRecusa() {
+        const modal = document.getElementById('modalBloqueioRecusa');
+        modal.classList.add('escondido');
+        modal.removeAttribute('data-travado');
+    }
+
+    function alterarVolumeGlobal(val) {
+        if (meuTaxi && meuTaxi.numero) {
+            localStorage.setItem(`volGlobal_${meuTaxi.numero}`, val);
+        }
+        const vol = val / 100;
+        document.querySelectorAll('audio').forEach(a => {
+            a.volume = vol;
+        });
+    }
+
+    function alterarModoPTT(modo) {
+        modoPTTAtual = modo;
+        if (meuTaxi && meuTaxi.numero) {
+            localStorage.setItem(`modoPTT_${meuTaxi.numero}`, modo);
+        }
+        document.getElementById('labelPTT').innerText = modo === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+    }
+
+    function limparPttMotorista() {
+        if (confirm("Deseja apagar as mensagens da sua tela?")) {
+            if (meuTaxi && meuTaxi.numero) {
+                localStorage.setItem(`ponto2216_limpou_${meuTaxi.numero}`, 'true');
+            }
+            const divLista = document.getElementById('listaAudios');
+            if (divLista) {
+                divLista.innerHTML = `<div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>`;
+            }
+            fecharConfiguracoes();
+        }
+    }
+
+    function mudarTab(aba) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+        document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+        if (aba === 'radio') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('ativo');
+            document.getElementById('tabRadio').classList.add('ativa');
+        } else if (aba === 'status') {
+            document.querySelectorAll('.tab-btn')[1].classList.add('ativo');
+            document.getElementById('tabStatus').classList.add('ativa');
+        } else if (aba === 'dados') {
+            document.querySelectorAll('.tab-btn')[2].classList.add('ativo');
+            document.getElementById('tabDados').classList.add('ativa');
+        }
+    }
+
+    function iniciarSocketApp() {
+        try {
+            // Solicita permissão de áudio nativa no WebView do celular ao iniciar
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(() => console.log('Microfone autorizado!'))
+                    .catch(err => console.log('Aguardando liberação de microfone:', err));
+            }
+
+            socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+            configurarEventosSocket();
+            
+            const carroLogado = localStorage.getItem('taxi_carro');
+            if (carroLogado) {
+                const senhaSalva = localStorage.getItem('taxi_senha_temp') || "123";
+                socket.emit('loginMotorista', { login: String(carroLogado).trim(), senha: String(senhaSalva).trim() });
+            } else {
+                alert("Nenhum carro logado. Faça o login na tela inicial.");
+                window.location.href = "index.html";
+            }
+        } catch (e) {
+            console.error("Erro ao conectar socket:", e);
+        }
+    }
+
+    function configurarEventosSocket() {
+        socket.on('loginErro', (dados) => { 
+            alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas.")); 
+            window.location.href = "index.html";
+        });
+
+        socket.on('loginSucesso', (dados) => {
+            try {
+                if (!dados || !dados.carro) return;
+                meuTaxi = dados.carro;
+                
+                document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--';
+                document.getElementById('infoNumero').innerText = meuTaxi.numero || '--';
+                document.getElementById('infoNome').innerText = meuTaxi.nome || 'Motorista';
+                document.getElementById('infoModelo').innerText = meuTaxi.modelo || 'Padrão';
+
+                if (meuTaxi.ehModerador) {
+                    document.getElementById('badgeEstrelaModerador').classList.remove('escondido');
+                    document.getElementById('infoPerfil').innerText = "⭐ Moderador";
+                } else {
+                    document.getElementById('badgeEstrelaModerador').classList.add('escondido');
+                    document.getElementById('infoPerfil').innerText = "Motorista Comum";
+                }
+
+                const temaDoCarro = localStorage.getItem(`tema_${meuTaxi.numero}`) || 'escuro';
+                temaAtual = temaDoCarro;
+                aplicarTema(temaAtual);
+
+                const volDoCarro = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
+                document.getElementById('volumeGlobal').value = volDoCarro;
+                alterarVolumeGlobal(volDoCarro);
+
+                const pttDoCarro = localStorage.getItem(`modoPTT_${meuTaxi.numero}`) || 'pressionar';
+                document.getElementById('selectModoPTT').value = pttDoCarro;
+                alterarModoPTT(pttDoCarro);
+
+                const agora = Date.now();
+                if (meuTaxi.banidoAte && meuTaxi.banidoAte > agora) {
+                    document.getElementById('telaBloqueioTotal').classList.remove('escondido');
+                }
+                if (meuTaxi.mutadoAte && meuTaxi.mutadoAte > agora) {
+                    meuTaxiEstaMutado = true;
+                    document.getElementById('telaAvisoMudo').classList.remove('escondido');
+                }
+
+                const chaveCacheLocal = `ponto2216_limpou_${meuTaxi.numero}`;
+                if (localStorage.getItem(chaveCacheLocal) === 'true') {
+                    renderizarHistoricoAudio([]);
+                } else if (dados.historicoAudio) {
+                    renderizarHistoricoAudio(dados.historicoAudio);
+                }
+
+                setTimeout(() => { try { iniciarGPS(); } catch (e) {} }, 1000);
+            } catch (err) {
+                console.error("Erro no pós-login:", err);
+            }
+        });
+
+        socket.on('ofertaCorrida', (dados) => {
+            if (!meuTaxi) return;
+            idChamadaAtual = dados.idChamada;
+            const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
+            document.getElementById('ofertaCliente').innerText = nomePassageiro;
+            document.getElementById('ofertaLocal').innerText = dados.local || dados.origem || 'Local não informado';
+            document.getElementById('modalOferta').classList.remove('escondido');
+        });
+
+        socket.on('avisoRecusaBloqueio', () => {
+            document.getElementById('modalOferta').classList.add('escondido');
+            const modalRecusa = document.getElementById('modalBloqueioRecusa');
+            modalRecusa.classList.remove('escondido');
+            modalRecusa.setAttribute('data-travado', 'true');
+        });
+
+        socket.on('forcarStatusOcupado', () => {
+            statusAtual = "OCUPADO";
+            simulandoChegadaNoPonto = false;
+            document.getElementById('labelStatus').innerText = "EM CORRIDA";
+            document.getElementById('boxStatusVisual').style.background = "#dc2626";
+            document.getElementById('btnStatus').innerText = "Mudar para: Livre";
+            document.getElementById('btnStatus').className = "btn-green";
+            document.getElementById('btnAusente').classList.add('escondido');
+            document.getElementById('modalOferta').classList.add('escondido');
+            document.getElementById('modalBloqueioRecusa').classList.add('escondido');
+            document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";
+        });
+
+        socket.on('corridaAtribuida', (dados) => {
+            if (meuTaxi && String(dados.idTaxi) === String(meuTaxi.numero)) {
+                const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
+                document.getElementById('viagemCliente').innerText = nomePassageiro;
+                document.getElementById('viagemOrigem').innerText = dados.origem || 'Não informado';
+                
+                const boxNav = document.getElementById('boxBotoesNavegacao');
+                const btnMaps = document.getElementById('btnAbrirMaps');
+                const btnWaze = document.getElementById('btnAbrirWaze');
+
+                if (dados.lat && dados.lon) {
+                    boxNav.classList.remove('escondido');
+                    btnMaps.onclick = () => window.open(`https://www.google.com/maps/search/?api=1&query=${dados.lat},${dados.lon}`, '_blank');
+                    btnWaze.onclick = () => window.open(`https://waze.com/ul?ll=${dados.lat},${dados.lon}&navigate=yes`, '_blank');
+                } else {
+                    boxNav.classList.add('escondido');
+                }
+
+                document.getElementById('cartaoViagemAtiva').classList.remove('escondido');
+                if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+            }
+        });
+
+        socket.on('atualizarSistema', (dados) => {
+            const divOnline = document.getElementById('listaFrotaOnline');
+            if (dados.conectados && dados.conectados.length > 0) {
+                divOnline.innerHTML = dados.conectados.map(m => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 8px; border-radius: 6px; border: 1px solid var(--borda-card);">
+                        <span style="font-weight: bold; color: var(--amarelo-ponto);">Carro.${m.idTaxi} (${m.nome})</span>
+                        <span style="font-size: 10px; background: rgba(22, 163, 74, 0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${m.status}</span>
+                    </div>
+                `).join('');
+            } else {
+                divOnline.innerHTML = `<p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>`;
+            }
+
+            if (dados.historico && meuTaxi && meuTaxi.numero) {
+                const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';
+                if (!jaLimpou) renderizarHistoricoAudio(dados.historico);
+            }
+        });
+
+        socket.on('canalOcupado', (dados) => {
+            if (!meuTaxi || String(dados.idTaxi) === String(meuTaxi.numero)) return;
+            estadoCanal = 'OCUPADO';
+            const btn = document.getElementById('btnPTT');
+            const lbl = document.getElementById('labelPTT');
+            btn.classList.add('ouvindo');
+            lbl.innerHTML = `RECEBENDO<br>TRANSMISSÃO`;
+        });
+
+        socket.on('canalLivre', () => {
+            estadoCanal = 'LIVRE';
+            const btn = document.getElementById('btnPTT');
+            btn.classList.remove('ouvindo');
+            btn.classList.remove('transmitindo');
+            document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";
+        });
+
+        socket.on('receberAudioPTT', (dados) => {
+            if (!meuTaxi || !meuTaxi.numero) return;
+            const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';
+            if (!jaLimpou && dados.historico) renderizarHistoricoAudio(dados.historico);
+            if (dados.audioUrl && statusAtual === "LIVRE" && String(dados.idTaxi) !== String(meuTaxi.numero)) {
+                const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
+                const audio = new Audio(urlAudioFinal);
+                const strVol = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
+                audio.volume = parseFloat(strVol) / 100;
+                audio.onplay = () => { document.getElementById('btnPTT').classList.add('ouvindo'); };
+                audio.onended = () => {
+                    document.getElementById('btnPTT').classList.remove('ouvindo');
+                    socket.emit('liberarCanalPTT');
+                };
+                audio.play().catch(() => { document.getElementById('btnPTT').classList.remove('ouvindo'); });
+            }
+        });
+    }
+
+    function fazerLogout() {
+        if (confirm("Deseja realmente sair da sua conta no aplicativo?")) {
+            localStorage.removeItem('taxi_carro');
+            localStorage.removeItem('taxi_admin');
+            localStorage.removeItem('taxi_senha_temp');
+            window.location.href = "index.html?logout=true";
+        }
+    }
+
+    function iniciarGPS() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    if (!simulandoChegadaNoPonto) {
+                        minhaLat = position.coords.latitude;
+                        minhaLon = position.coords.longitude;
+                        document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;
+                    }
+                    if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+                    
+                    navigator.geolocation.watchPosition(
+                        (pos) => {
+                            if (!simulandoChegadaNoPonto) {
+                                minhaLat = pos.coords.latitude;
+                                minhaLon = pos.coords.longitude;
+                                document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;
+                            }
+                            if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+                        },
+                        () => {},
+                        { enableHighAccuracy: false, maximumAge: 10000, timeout: 5000 }
+                    );
+                },
+                () => {
+                    document.getElementById('infoGpsStatus').innerText = simulandoChegadaNoPonto ? "GPS Simulado (No Ponto)" : "GPS Padrão (Permissão Pendente)";
+                    if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+                },
+                { timeout: 5000 }
+            );
+        } else if (meuTaxi && socket) {
+            socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+        }
+    }
+
+    function simularChegadaPonto() {
+        if (!meuTaxi) return;
+        simulandoChegadaNoPonto = true;
+        statusAtual = "LIVRE";
+        minhaLat = -23.580278; 
+        minhaLon = -46.561389;
+        document.getElementById('labelStatus').innerText = "LIVRE";
+        document.getElementById('boxStatusVisual').style.background = "#16a34a";
+        document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida";
+        document.getElementById('btnStatus').className = "btn-red";
+        document.getElementById('infoGpsStatus').innerText = "📍 GPS Simulado (Dentro do Ponto)";
+        socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: true });
+        alert("📍 Simulação Ativada!\nSeu GPS foi fixado no Ponto 2216.");
+    }
+
+    function marcarAusente() {
+        if (statusAtual === "AUSENTE") {
+            statusAtual = "LIVRE";
+            document.getElementById('labelStatus').innerText = "LIVRE";
+            document.getElementById('boxStatusVisual').style.background = "#16a34a";
+            document.getElementById('btnAusente').innerHTML = "⏸️ Ficar Ausente (Pausa / Banheiro)";
+            document.getElementById('btnAusente').style.background = "#d97706";
+            document.getElementById('infoGpsStatus').innerText = "Retornando à fila...";
+        } else {
+            statusAtual = "AUSENTE";
+            document.getElementById('labelStatus').innerText = "AUSENTE (PAUSA)";
+            document.getElementById('boxStatusVisual').style.background = "#d97706";
+            document.getElementById('btnAusente').innerHTML = "▶️ Voltar à Ativa (Livre)";
+            document.getElementById('btnAusente').style.background = "#16a34a";
+            if (meuTaxi && socket) socket.emit('statusAusente', { idTaxi: meuTaxi.numero });
+        }
+        if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+    }
+
+    function alternarStatus() {
+        if (statusAtual === "LIVRE" || statusAtual === "AUSENTE") {
+            statusAtual = "OCUPADO";
+            simulandoChegadaNoPonto = false;
+            document.getElementById('labelStatus').innerText = "EM CORRIDA";
+            document.getElementById('boxStatusVisual').style.background = "#dc2626";
+            document.getElementById('btnStatus').innerText = "Mudar para: Livre";
+            document.getElementById('btnStatus').className = "btn-green";
+            document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";
+            document.getElementById('btnAusente').classList.add('escondido'); 
+        } else {
+            statusAtual = "LIVRE";
+            document.getElementById('labelStatus').innerText = "LIVRE";
+            document.getElementById('boxStatusVisual').style.background = "#16a34a";
+            document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida";
+            document.getElementById('btnStatus').className = "btn-red";
+            document.getElementById('btnAusente').classList.remove('escondido'); 
+            document.getElementById('btnAusente').innerHTML = "⏸️ Ficar Ausente (Pausa / Banheiro)";
+            document.getElementById('btnAusente').style.background = "#d97706";
+        }
+        if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });
+    }
+
+    async function iniciarMidiaPTT() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("⚠️ API de Mídia não suportada neste dispositivo.");
+                return false;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!stream) return false;
+
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                if (audioChunks.length === 0) return;
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                audioChunks = [];
+                let duracao = Math.max(1, Math.round((Date.now() - tempoInicioGravacao) / 1000)) + "s";
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(audioBlob);
+                reader.onloadend = () => {
+                    if (meuTaxi && socket) {
+                        socket.emit('transmitirAudioPTT', { 
+                            idTaxi: meuTaxi.numero, 
+                            audioBuffer: reader.result, 
+                            duracao: duracao 
+                        });
+                    }
+                };
+            };
+            return true;
+        } catch (err) {
+            console.error("Erro de permissão de microfone:", err);
+            alert("⚠️ Permissão de microfone negada. Verifique as configurações do app no celular.");
+            return false;
+        }
+    }
+
+    async function iniciarTransmissao(e) {
+        if (e) e.preventDefault();
+        if (meuTaxiEstaMutado) { alert("🔇 Você está silenciado pela Moderação."); return; }
+        if (statusAtual === "OCUPADO" || statusAtual === "EM CORRIDA") { alert("🔇 Rádio desativado durante corridas."); return; }
+        if (gravando || !meuTaxi) return;
+
+        if (!mediaRecorder) {
+            const ativou = await iniciarMidiaPTT();
+            if (!ativou) return;
+        }
+
+        try {
+            gravando = true;
+            audioChunks = [];
+            tempoInicioGravacao = Date.now();
+            if (mediaRecorder && (mediaRecorder.state === "inactive" || mediaRecorder.state === "paused")) {
+                mediaRecorder.start();
+            }
+            document.getElementById('btnPTT').classList.add('transmitindo');
+            document.getElementById('labelPTT').innerHTML = "GRAVANDO...<br><span style='font-size:10px'>(Solte p/ Enviar)</span>";
+            socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome });
+        } catch (err) {
+            gravando = false;
+            document.getElementById('btnPTT').classList.remove('transmitindo');
+        }
+    }
+
+    function pararTransmissao(e) {
+        if (e) e.preventDefault();
+        if (!gravando) return;
+        gravando = false;
+        try { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); } catch (err) {}
+        document.getElementById('btnPTT').classList.remove('transmitindo');
+        document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";
+        setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
+    }
+
+    const btnPTTElement = document.getElementById('btnPTT');
+    if (btnPTTElement) {
+        btnPTTElement.addEventListener('mousedown', (e) => { if (modoPTTAtual === 'pressionar') iniciarTransmissao(e); });
+        btnPTTElement.addEventListener('mouseup', (e) => { if (modoPTTAtual === 'pressionar') pararTransmissao(e); });
+        btnPTTElement.addEventListener('mouseleave', (e) => { if (modoPTTAtual === 'pressionar' && gravando) pararTransmissao(e); });
+        btnPTTElement.addEventListener('touchstart', (e) => { if (modoPTTAtual === 'pressionar') iniciarTransmissao(e); }, { passive: false });
+        btnPTTElement.addEventListener('touchend', (e) => { if (modoPTTAtual === 'pressionar') pararTransmissao(e); }, { passive: false });
+        btnPTTElement.addEventListener('click', (e) => {
+            if (modoPTTAtual === 'clique') {
+                if (!gravando) iniciarTransmissao(e);
+                else pararTransmissao(e);
+            }
+        });
+    }
+
+    function renderizarHistoricoAudio(historico) {
+        const divLista = document.getElementById('listaAudios');
+        if (!divLista) return;
+        if (!historico || historico.length === 0) {
+            divLista.innerHTML = `<div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>`;
+            return;
+        }
+
+        divLista.innerHTML = historico.map(a => {
+            const estrelaTag = a.ehModerador ? ' ⭐' : '';
+            const urlAudioFinal = a.audioUrl.startsWith('http') ? a.audioUrl : `${SOCKET_URL}${a.audioUrl}`;
+
+            return `
+                <div class="audio-item">
+                    <div style="display: flex; justify-content: space-between; align-items:center; font-weight: bold; color: var(--texto-principal); margin-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="badge-carro-historico">${a.idTaxi === 'Fiscal' ? 'Central' : a.idTaxi}${estrelaTag}</span>
+                            <span style="font-size: 13px; color: var(--texto-secundario);">(${a.nomeMotorista})</span>
+                        </div>
+                        <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>
+                    </div>
+                    <audio controls src="${urlAudioFinal}" style="width: 100%; height: 30px;"></audio>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function aceitarCorrida() {
+        if (!idChamadaAtual || !socket) return;
+        socket.emit('aceitarCorridaMotorista', { idChamada: idChamadaAtual });
+        document.getElementById('modalOferta').classList.add('escondido');
+    }
+
+    function recusarCorrida() {
+        if (!idChamadaAtual || !socket) return;
+        socket.emit('recusarCorridaMotorista', { idChamada: idChamadaAtual });
+        document.getElementById('modalOferta').classList.add('escondido');
+        idChamadaAtual = null;
+    }
+
+    function fecharCartaoViagem() {
+        document.getElementById('cartaoViagemAtiva').classList.add('escondido');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        iniciarSocketApp();
+    });
+</script>
+</body>
+</html>

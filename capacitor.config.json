@@ -1,0 +1,17 @@
+{
+  "appId": "com.pontotaxi2216.conecta",
+  "appName": "Táxi Conecta",
+  "webDir": "www",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
+  }
+}

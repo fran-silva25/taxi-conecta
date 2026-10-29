@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin / Fiscal - Ponto 2216</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-container: #ffffff;
+            --texto-principal: #1e293b;
+            --texto-secundario: #64748b;
+            --amarelo-ponto: #e6b800;
+            --preto-ponto: #1e293b;
+            --borda-card: #cbd5e1;
+            --bg-card: #f8fafc;
+            --tab-bg: #e2e8f0;
+            --tab-texto: #475569;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #121212;
+                --bg-container: #1e1e1e;
+                --texto-principal: #f8fafc;
+                --texto-secundario: #94a3b8;
+                --amarelo-ponto: #ffcc00;
+                --preto-ponto: #000000;
+                --borda-card: #333333;
+                --bg-card: #252525;
+                --tab-bg: #2d2d2d;
+                --tab-texto: #cbd5e1;
+            }
+        }
+
+        [data-tema="escuro"] {
+            --bg-body: #121212;
+            --bg-container: #1e1e1e;
+            --texto-principal: #f8fafc;
+            --texto-secundario: #94a3b8;
+            --amarelo-ponto: #ffcc00;
+            --preto-ponto: #000000;
+            --borda-card: #333333;
+            --bg-card: #252525;
+            --tab-bg: #2d2d2d;
+            --tab-texto: #cbd5e1;
+        }
+
+        [data-tema="claro"] {
+            --bg-body: #f1f5f9;
+            --bg-container: #ffffff;
+            --texto-principal: #1e293b;
+            --texto-secundario: #64748b;
+            --amarelo-ponto: #e6b800;
+            --preto-ponto: #1e293b;
+            --borda-card: #cbd5e1;
+            --bg-card: #f8fafc;
+            --tab-bg: #e2e8f0;
+            --tab-texto: #475569;
+        }
+
+        body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; }
+        .container { max-width: 1200px; width: 100%; margin: 0 auto; background: var(--bg-container); padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 2px solid var(--amarelo-ponto); min-height: 600px; box-sizing: border-box; }
+        
+        /* BANNER COM BOTÕES NAS EXTREMIDADES DA MESMA LINHA */
+        .banner-ponto-2216 { 
+            background: #000000; 
+            border: 2px solid #ffcc00; 
+            border-radius: 10px; 
+            padding: 12px 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin-bottom: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            box-sizing: border-box;
+            flex-wrap: nowrap;
+            gap: 10px;
+        }
+        .texto-banner-ponto { 
+            color: #ffffff; 
+            font-size: 15px; 
+            font-weight: 900; 
+            letter-spacing: 1px; 
+            text-transform: uppercase; 
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topo-acoes { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px; }
+        .btn-acao-topo { background: var(--amarelo-ponto); color: #000; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .btn-sair { background: #dc2626; color: #fff; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        
+        .btn-refresh-geral { background: #7f1d1d !important; color: #fff !important; border: 1px solid #f87171 !important; padding: 8px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        .btn-refresh-geral:hover { background: #991b1b !important; }
+
+        .tabs { display: flex; gap: 6px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { background: var(--tab-bg); border: none; padding: 10px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; min-width: 130px; font-size: 13px; color: var(--tab-texto); text-align: center; }
+        .tab-btn.ativo { background: var(--amarelo-ponto); color: #000; }
+        .secao { display: none; }
+        .secao.ativa { display: block; }
+
+        input, select { padding: 10px; margin: 6px 0 12px 0; width: 100%; border: 1px solid var(--borda-card); background: var(--bg-card); color: var(--texto-principal); border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { background: var(--amarelo-ponto); color: #000; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        button:hover { opacity: 0.9; }
+
+        .card { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--borda-card); margin-bottom: 15px; box-sizing: border-box; }
+        .card h3 { margin-top: 0; font-size: 16px; color: var(--texto-principal); }
+
+        /* TABELAS ADAPTÁVEIS PARA TABLET E WINDOWS */
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: var(--bg-card); border-radius: 8px; overflow: hidden; min-width: 600px; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--borda-card); font-size: 13px; vertical-align: middle; white-space: nowrap; }
+        th { background: #000; color: var(--amarelo-ponto); }
+
+        .acoes-tabela { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+        .btn-acao-tabela { 
+            border: none; 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            font-size: 11px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 4px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: opacity 0.2s;
+        }
+        .btn-acao-tabela:hover { opacity: 0.85; }
+        .btn-editar { background: #eab308; color: #000; }
+        .btn-senha { background: #2563eb; color: #fff; }
+        .btn-excluir { background: #dc2626; color: #fff; }
+        .escondido { display: none !important; }
+
+        #alertaRecusaFlutuante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: var(--bg-container);
+            border: 2px solid #dc2626;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            z-index: 9999;
+        }
+
+        .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .audio-item { background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+
+        .btn-ptt-fiscal {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--amarelo-ponto);
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            border: 4px solid #d9a700;
+            cursor: pointer;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(230, 184, 0, 0.4);
+            user-select: none;
+        }
+        .btn-ptt-fiscal.transmitindo {
+            background: #dc2626 !important;
+            color: white !important;
+            border-color: #991b1b !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- BANNER COM BOTÃO TEMA NA ESQUERDA E SAIR NA DIREITA -->
+    <div class="banner-ponto-2216">
+        <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
+        <span class="texto-banner-ponto">PONTO 2216 - ADMIN / FISCAL</span>
+        <button id="btnSairAdm" class="btn-sair" onclick="fazerLogoutAdm()">🚪 Sair</button>
+    </div>
+
+    <div id="alertaRecusaFlutuante" class="escondido">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: #dc2626; font-size: 14px;">🚨 CORRIDA RECUSADA!</strong>
+            <span id="recusaHora" style="font-size: 11px; color: var(--texto-secundario);">--:--</span>
+        </div>
+        <p id="recusaDetalhesCarro" style="font-size: 13px; margin: 4px 0;"><strong>Carro:</strong> --</p>
+        <p id="recusaDetalhesCliente" style="font-size: 13px; margin: 4px 0;"><strong>Passageiro:</strong> --</p>
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button onclick="fecharAlertaRecusa()" style="background: #64748b; color: #ffffff; width: 80px; font-size: 12px; padding: 6px;">OK</button>
+        </div>
+    </div>
+
+    <div id="telaOperacionalAdm">
+        <div class="topo-acoes">
+            <div>
+                <span style="font-weight: bold; color: var(--amarelo-ponto);">Bem-vindo, <span id="nomeUsuarioLogado">Carregando...</span></span>
+                <span id="badgeCargoLogado" style="background: #000; border: 1px solid var(--amarelo-ponto); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: var(--amarelo-ponto); margin-left: 8px;">ADM</span>
+            </div>
+            <div>
+                <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn ativo" onclick="mudarTab('fila')">🚦 Fila ao Vivo</button>
+            <button class="tab-btn" onclick="mudarTab('frota')">🚖 Frota / Motoristas</button>
+            <button class="tab-btn" onclick="mudarTab('radio')">📻 Rádio PTT</button>
+            <button class="tab-btn" onclick="mudarTab('corridas')">📖 Histórico</button>
+            <button class="tab-btn" onclick="mudarTab('recusas')">📜 Recusas</button>
+            <button class="tab-btn" onclick="mudarTab('adms')">🛡️ Cad. ADM / Fiscal</button>
+        </div>
+
+        <!-- ABA 1: FILA AO VIVO -->
+        <div id="tabFila" class="secao ativa">
+            <div class="card">
+                <h3>⚙️ Modo de Operação do Shopping</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <button onclick="alterarModo('AUTOMATICO')" style="flex: 1; background: #22c55e; color: #fff;">🤖 Modo Automático (IA)</button>
+                    <button onclick="alterarModo('SHOPPING_COMPLETO')" style="flex: 1;">Shopping Completo (PH + PA2 + PA4)</button>
+                    <button onclick="alterarModo('SO_PH')" style="flex: 1; background: #eab308; color: #000;">Apenas Ponto PH</button>
+                    <button onclick="alterarModo('BAIXA_FROTA')" style="flex: 1; background: #3b82f6; color: #fff;">Baixa Frota</button>
+                </div>
+                <p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="labelModoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">🚗 Fila Geral de Veículos no Ponto</h3>
+                    <button onclick="chamarProximoManual()" style="background: #16a34a; color: white;">🛎️ Chamar Próximo da Fila</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Posição</th>
+                                <th>Carro</th>
+                                <th>Motorista</th>
+                                <th>Setor Atribuído</th>
+                                <th>Tempo na Fila</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaFilaGeral">
+                            <tr><td colspan="5" style="text-align: center;">Nenhum veículo na fila no momento.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 2: FROTA -->
+        <div id="tabFrota" class="secao">
+            <div class="card">
+                <h3 id="tituloFormFrota">➕ Cadastrar Novo Veículo / Motorista</h3>
+                <input type="hidden" id="editandoCarroId" value="">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="frotaNumero" placeholder="Número do Carro (Ex: 99)" style="flex: 1; min-width: 150px;">
+                    <input type="text" id="frotaPlaca" placeholder="Placa (Ex: ABC1D00)" maxlength="7" style="text-transform: uppercase; flex: 1; min-width: 150px;" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="frotaNome" placeholder="Nome do Motorista" style="flex: 1; min-width: 150px;">
+                    <input type="text" id="frotaModelo" placeholder="Modelo do Veículo" style="flex: 1; min-width: 150px;">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="frotaTelefone" placeholder="Telefone / WhatsApp" style="flex: 1; min-width: 150px;">
+                    <input type="password" id="frotaSenha" placeholder="Senha de Acesso (Ex: 123)" style="flex: 1; min-width: 150px;">
+                </div>
+                <div style="margin: 10px 0; background: var(--bg-body); padding: 10px; border-radius: 6px; border: 1px solid var(--borda-card);">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: bold; color: var(--amarelo-ponto);">
+                        <input type="checkbox" id="frotaEhModerador" style="width: auto; margin: 0;">
+                        ⭐ Marcar este motorista como MODERADOR
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button onclick="salvarCarroFrota()" id="btnSalvarFrota" style="background: #16a34a; color: white; flex: 1;">Salvar Veículo</button>
+                    <button onclick="cancelarEdicaoFrota()" id="btnCancelarFrota" class="escondido" style="background: #64748b; color: white; width: 120px;">Cancelar</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🚖 Veículos Cadastrados na Frota</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Carro</th>
+                                <th>Placa</th>
+                                <th>Motorista</th>
+                                <th>Função</th>
+                                <th style="text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaFrota">
+                            <tr><td colspan="5" style="text-align: center;">Carregando frota...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 3: RÁDIO PTT -->
+        <div id="tabRadio" class="secao">
+            <div class="card" style="text-align: center;">
+                <h3 style="color: var(--amarelo-ponto);">📻 Microfone PTT da Central / Telefone Fixo</h3>
+                <p style="font-size: 13px; color: var(--texto-secundario);">Segure o botão abaixo para anunciar corridas do telefone fixo para toda a frota conectada.</p>
+                <button id="btnPTTFiscal" class="btn-ptt-fiscal">
+                    <span>🎙️</span>
+                    <span id="labelPTTFiscal" style="font-size: 11px; margin-top: 4px;">SEGURE<br>P/ FALAR</span>
+                </button>
+            </div>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">📜 Histórico de Áudios do Rádio PTT</h3>
+                    <button class="btn-excluir" onclick="limparHistoricoPTT()">🗑️ Apagar Todo Histórico</button>
+                </div>
+                <div id="listaAudiosAdm" class="historico-audio-list">
+                    <div style="text-align: center; color: var(--texto-secundario);">Nenhuma mensagem gravada recentemente.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ABA 4: HISTÓRICO DE CORRIDAS -->
+        <div id="tabCorridas" class="secao">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">🚖 Histórico de Corridas Atendidas</h3>
+                    <button id="btnLimparCorridas" class="btn-excluir" onclick="limparHistoricoCorridas()">🗑️ Limpar Histórico</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Motorista</th>
+                                <th>Passageiro</th>
+                                <th>Origem / Destino</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaCorridas">
+                            <tr><td colspan="4" style="text-align: center;">Nenhuma corrida registrada recentemente.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 5: RECUSAS -->
+        <div id="tabRecusas" class="secao">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">📜 Histórico de Recusas de Corridas</h3>
+                    <button class="btn-excluir" onclick="limparHistoricoRecusas()">🗑️ Limpar Recusas</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Carro / Motorista</th>
+                                <th>Passageiro</th>
+                                <th>Origem</th>
+                                <th style="text-align: center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaRecusas">
+                            <tr><td colspan="5" style="text-align: center;">Nenhuma recusa registrada.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 6: ADM / FISCAL -->
+        <div id="tabAdms" class="secao">
+            <div class="card">
+                <h3 id="tituloFormAdm">🛡️ Cadastrar Novo Administrador / Fiscal</h3>
+                <input type="hidden" id="editandoAdmId" value="">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="admUsuario" placeholder="Login / Usuário" style="flex: 1; min-width: 150px;">
+                    <input type="password" id="admSenha" placeholder="Senha de Acesso" style="flex: 1; min-width: 150px;">
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="admNome" placeholder="Nome Completo" style="flex: 1; min-width: 150px;">
+                    <select id="admCargo" style="flex: 1; min-width: 150px;">
+                        <option value="FISCAL">FISCAL</option>
+                        <option value="ADM">ADM</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button onclick="salvarAdmin()" id="btnSalvarAdm" style="background: #16a34a; color: white; flex: 1;">Cadastrar Acesso</button>
+                    <button onclick="cancelarEdicaoAdm()" id="btnCancelarAdm" class="escondido" style="background: #64748b; color: white; width: 120px;">Cancelar</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>📋 Administradores e Fiscais Cadastrados</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Usuário (Login)</th>
+                                <th>Nome Completo</th>
+                                <th>Cargo</th>
+                                <th style="text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaAdmins">
+                            <tr><td colspan="4" style="text-align: center;">Carregando administradores...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SOCKET_URL = "https://taxi-conecta-api.onrender.com";
+    const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+
+    let mediaRecorderFiscal = null;
+    let audioChunksFiscal = [];
+    let gravandoFiscal = false;
+    let tempoInicioFiscal = 0;
+    let dadosCacheFrota = {};
+    let dadosCacheAdms = {};
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
+        const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
+        const elNome = document.getElementById('nomeUsuarioLogado');
+        const elCargo = document.getElementById('badgeCargoLogado');
+        if (elNome) elNome.innerText = nomeSalvo;
+        if (elCargo) elCargo.innerText = cargoSalvo;
+        inicializarGravadorFiscal();
+    });
+
+    (function carregarTemaSalvo() {
+        const temaSalvo = localStorage.getItem('ponto2216_tema_adm') || 'escuro';
+        document.documentElement.setAttribute('data-tema', temaSalvo);
+        const lbl = document.getElementById('labelTema');
+        if (lbl) lbl.innerText = temaSalvo === 'claro' ? 'Claro' : 'Escuro';
+    })();
+
+    function alternarTema() {
+        const htmlElement = document.documentElement;
+        let temaAtual = htmlElement.getAttribute('data-tema');
+        let novoTema = temaAtual === 'escuro' ? 'claro' : 'escuro';
+        htmlElement.setAttribute('data-tema', novoTema);
+        document.getElementById('labelTema').innerText = novoTema === 'claro' ? 'Claro' : 'Escuro';
+        localStorage.setItem('ponto2216_tema_adm', novoTema);
+    }
+
+    function mudarTab(aba) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+        document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+        const tabsMap = { 'fila': 0, 'frota': 1, 'radio': 2, 'corridas': 3, 'recusas': 4, 'adms': 5 };
+        const secoesMap = { 'fila': 'tabFila', 'frota': 'tabFrota', 'radio': 'tabRadio', 'corridas': 'tabCorridas', 'recusas': 'tabRecusas', 'adms': 'tabAdms' };
+        if (tabsMap[aba] !== undefined) {
+            document.querySelectorAll('.tab-btn')[tabsMap[aba]].classList.add('ativo');
+            document.getElementById(secoesMap[aba]).classList.add('ativa');
+        }
+    }
+
+    function fazerLogoutAdm() {
+        if (confirm("Deseja realmente sair do painel administrativo?")) {
+            localStorage.removeItem('taxi_admin');
+            localStorage.removeItem('taxi_admin_nome');
+            localStorage.removeItem('taxi_admin_cargo');
+            window.location.href = "index.html?logout=true";
+        }
+    }
+
+    function executarLimpezaGeralSistema() {
+        if (confirm("⚠️ Deseja realmente executar a Limpeza Geral do sistema?")) {
+            socket.emit('adminLimparSistemaGeral');
+            alert("✅ Sistema limpo com sucesso!");
+        }
+    }
+
+    socket.on('alertaRecusaAdmin', (dados) => {
+        document.getElementById('recusaHora').innerText = dados.dataHora || new Date().toLocaleTimeString();
+        document.getElementById('recusaDetalhesCarro').innerHTML = `<strong>Carro:</strong> Carro.${dados.idTaxi} (${dados.nomeMotorista || 'Motorista'})`;
+        const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
+        document.getElementById('recusaDetalhesCliente').innerHTML = `<strong>Passageiro:</strong> ${nomePassageiro}`;
+        document.getElementById('alertaRecusaFlutuante').classList.remove('escondido');
+    });
+
+    function fecharAlertaRecusa() {
+        document.getElementById('alertaRecusaFlutuante').classList.add('escondido');
+    }
+
+    function fiscalLiberarMotoristaPorRecusa(idTaxi) {
+        if (confirm(`Deseja liberar e desbloquear o aplicativo do Carro.${idTaxi} manualmente?`)) {
+            socket.emit('fiscalLiberarMotorista', { idTaxi: idTaxi });
+            alert(`✅ Carro.${idTaxi} liberado com sucesso!`);
+        }
+    }
+
+    socket.on('atualizarSistema', (dados) => {
+        if (dados.modo) document.getElementById('labelModoAtual').innerText = dados.modo;
+        if (dados.fila) renderizarFila(dados.fila);
+        if (dados.frota) {
+            dadosCacheFrota = dados.frota;
+            renderizarFrota(dados.frota);
+        }
+        if (dados.usuariosAdm) {
+            dadosCacheAdms = dados.usuariosAdm;
+            renderizarAdms(dados.usuariosAdm);
+        }
+        if (dados.historico) renderizarAudioAdm(dados.historico);
+        if (dados.recusas) renderizarRecusas(dados.recusas);
+        if (dados.corridas) renderizarCorridas(dados.corridas);
+    });
+
+    socket.on('receberAudioPTT', (dados) => {
+        if (dados.historico) renderizarAudioAdm(dados.historico);
+    });
+
+    async function inicializarGravadorFiscal() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorderFiscal = new MediaRecorder(stream);
+            mediaRecorderFiscal.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) audioChunksFiscal.push(e.data);
+            };
+            mediaRecorderFiscal.onstop = () => {
+                if (audioChunksFiscal.length === 0) return;
+                const blob = new Blob(audioChunksFiscal, { type: 'audio/webm' });
+                audioChunksFiscal = [];
+                let duracao = Math.max(1, Math.round((Date.now() - tempoInicioFiscal) / 1000)) + "s";
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(blob);
+                reader.onloadend = () => {
+                    socket.emit('transmitirAudioPTT', {
+                        idTaxi: 'Fiscal',
+                        audioBuffer: reader.result,
+                        duracao: duracao
+                    });
+                };
+            };
+        } catch (e) {
+            console.error("Erro ao inicializar microfone do fiscal:", e);
+        }
+    }
+
+    const btnPTTFiscal = document.getElementById('btnPTTFiscal');
+    if (btnPTTFiscal) {
+        const iniciarTransmissaoFiscal = (e) => {
+            e.preventDefault();
+            if (gravandoFiscal || !mediaRecorderFiscal) return;
+            gravandoFiscal = true;
+            audioChunksFiscal = [];
+            tempoInicioFiscal = Date.now();
+            try {
+                if (mediaRecorderFiscal.state === "inactive") mediaRecorderFiscal.start();
+            } catch (err) {}
+            btnPTTFiscal.classList.add('transmitindo');
+            document.getElementById('labelPTTFiscal').innerText = "TRANSMITINDO...";
+            socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal' });
+        };
+        const pararTransmissaoFiscal = (e) => {
+            e.preventDefault();
+            if (!gravandoFiscal) return;
+            gravandoFiscal = false;
+            try {
+                if (mediaRecorderFiscal.state === "recording") mediaRecorderFiscal.stop();
+            } catch (err) {}
+            btnPTTFiscal.classList.remove('transmitindo');
+            document.getElementById('labelPTTFiscal').innerHTML = "SEGURE<br>P/ FALAR";
+            socket.emit('liberarCanalPTT');
+        };
+        btnPTTFiscal.addEventListener('mousedown', iniciarTransmissaoFiscal);
+        btnPTTFiscal.addEventListener('mouseup', pararTransmissaoFiscal);
+        btnPTTFiscal.addEventListener('touchstart', iniciarTransmissaoFiscal, { passive: false });
+        btnPTTFiscal.addEventListener('touchend', pararTransmissaoFiscal, { passive: false });
+    }
+
+    // FUNÇÕES DE GERENCIAMENTO DA FROTA
+    function salvarCarroFrota() {
+        const idEdit = document.getElementById('editandoCarroId').value;
+        const numero = document.getElementById('frotaNumero').value.trim();
+        const placa = document.getElementById('frotaPlaca').value.trim();
+        const nome = document.getElementById('frotaNome').value.trim();
+        const modelo = document.getElementById('frotaModelo').value.trim();
+        const telefone = document.getElementById('frotaTelefone').value.trim();
+        const senha = document.getElementById('frotaSenha').value.trim();
+        const ehModerador = document.getElementById('frotaEhModerador').checked;
+
+        if (!numero || !placa || !nome) {
+            alert("Preencha pelo menos o Número, Placa e Nome do motorista.");
+            return;
+        }
+
+        socket.emit('salvarCarroFrota', {
+            idAntigo: idEdit,
+            numero: numero,
+            placa: placa,
+            nome: nome,
+            modelo: modelo || 'Padrão',
+            telefone: telefone,
+            senha: senha || '123',
+            ehModerador: ehModerador
+        });
+
+        cancelarEdicaoFrota();
+        alert("✅ Veículo salvo com sucesso!");
+    }
+
+    function prepararEdicaoFrota(id, placa, nome, modelo, telefone, ehModerador) {
+        document.getElementById('editandoCarroId').value = id;
+        document.getElementById('frotaNumero').value = id;
+        document.getElementById('frotaPlaca').value = placa;
+        document.getElementById('frotaNome').value = nome;
+        document.getElementById('frotaModelo').value = modelo;
+        document.getElementById('frotaTelefone').value = telefone;
+        document.getElementById('frotaEhModerador').checked = (ehModerador === true || ehModerador === 'true');
+        document.getElementById('tituloFormFrota').innerText = `✏️ Editando Carro.${id}`;
+        document.getElementById('btnSalvarFrota').innerText = "Atualizar Veículo";
+        document.getElementById('btnCancelarFrota').classList.remove('escondido');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicaoFrota() {
+        document.getElementById('editandoCarroId').value = '';
+        document.getElementById('frotaNumero').value = '';
+        document.getElementById('frotaPlaca').value = '';
+        document.getElementById('frotaNome').value = '';
+        document.getElementById('frotaModelo').value = '';
+        document.getElementById('frotaTelefone').value = '';
+        document.getElementById('frotaSenha').value = '';
+        document.getElementById('frotaEhModerador').checked = false;
+        document.getElementById('tituloFormFrota').innerText = "➕ Cadastrar Novo Veículo / Motorista";
+        document.getElementById('btnSalvarFrota').innerText = "Salvar Veículo";
+        document.getElementById('btnCancelarFrota').classList.add('escondido');
+    }
+
+    function resetarSenhaFrota(id) {
+        const novaSenha = prompt(`Digite a nova senha para o Carro.${id}:`, "123");
+        if (novaSenha) {
+            socket.emit('resetarSenhaFrota', { id: id, novaSenha: novaSenha });
+            alert(`✅ Senha do Carro.${id} alterada com sucesso!`);
+        }
+    }
+
+    function excluirFrota(id) {
+        if (confirm(`Deseja realmente excluir o veículo Carro.${id} da frota?`)) {
+            socket.emit('excluirFrota', { id: id });
+            alert(`🗑️ Veículo Carro.${id} excluído.`);
+        }
+    }
+
+    // FUNÇÕES DE GERENCIAMENTO DE ADM / FISCAL
+    function salvarAdmin() {
+        const idEdit = document.getElementById('editandoAdmId').value;
+        const usuario = document.getElementById('admUsuario').value.trim();
+        const senha = document.getElementById('admSenha').value.trim();
+        const nome = document.getElementById('admNome').value.trim();
+        const cargo = document.getElementById('admCargo').value;
+
+        if (!usuario || !nome) {
+            alert("Preencha o Usuário e o Nome Completo.");
+            return;
+        }
+
+        socket.emit('salvarAdmin', {
+            idAntigo: idEdit,
+            usuario: usuario,
+            senha: senha || '123',
+            nome: nome,
+            cargo: cargo
+        });
+
+        cancelarEdicaoAdm();
+        alert("✅ Acesso Administrativo salvo com sucesso!");
+    }
+
+    function prepararEdicaoAdmin(usuario, nome, cargo) {
+        document.getElementById('editandoAdmId').value = usuario;
+        document.getElementById('admUsuario').value = usuario;
+        document.getElementById('admNome').value = nome;
+        document.getElementById('admCargo').value = cargo || 'FISCAL';
+        document.getElementById('tituloFormAdm').innerText = `✏️ Editando ADM: ${usuario}`;
+        document.getElementById('btnSalvarAdm').innerText = "Atualizar Acesso";
+        document.getElementById('btnCancelarAdm').classList.remove('escondido');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicaoAdm() {
+        document.getElementById('editandoAdmId').value = '';
+        document.getElementById('admUsuario').value = '';
+        document.getElementById('admSenha').value = '';
+        document.getElementById('admNome').value = '';
+        document.getElementById('admCargo').value = 'FISCAL';
+        document.getElementById('tituloFormAdm').innerText = "🛡️ Cadastrar Novo Administrador / Fiscal";
+        document.getElementById('btnSalvarAdm').innerText = "Cadastrar Acesso";
+        document.getElementById('btnCancelarAdm').classList.add('escondido');
+    }
+
+    function resetarSenhaAdmin(usuario) {
+        const novaSenha = prompt(`Digite a nova senha para o usuário ${usuario}:`, "123");
+        if (novaSenha) {
+            socket.emit('resetarSenhaAdmin', { usuario: usuario, novaSenha: novaSenha });
+            alert(`✅ Senha do usuário ${usuario} alterada com sucesso!`);
+        }
+    }
+
+    function excluirAdmin(usuario) {
+        if (confirm(`Deseja realmente excluir o acesso do usuário ${usuario}?`)) {
+            socket.emit('excluirAdmin', { usuario: usuario });
+            alert(`🗑️ Acesso de ${usuario} excluído.`);
+        }
+    }
+
+    function renderizarCorridas(corridas) {
+        const tbody = document.getElementById('tabelaCorridas');
+        if (!corridas || corridas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">Nenhuma corrida registrada.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = corridas.map(r => {
+            const nomePassageiro = r.cliente || r.passageiro || r.nomeCliente || r.nomePassageiro || 'Passageiro';
+            const origemDestino = (r.origem || r.local || 'Ponto') + (r.destino ? ' ➔ ' + r.destino : '');
+            return `
+                <tr>
+                    <td>${r.dataHora || '--'}</td>
+                    <td><strong style="color:var(--amarelo-ponto);">Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
+                    <td>${nomePassageiro}</td>
+                    <td>${origemDestino}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarRecusas(recusas) {
+        const tbody = document.getElementById('tabelaRecusas');
+        if (!recusas || recusas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhuma recusa registrada.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = recusas.map(r => {
+            const nomePassageiro = r.cliente || r.passageiro || r.nomeCliente || r.nomePassageiro || 'Passageiro';
+            return `
+                <tr>
+                    <td>${r.dataHora || '--'}</td>
+                    <td><strong>Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
+                    <td>${nomePassageiro}</td>
+                    <td>${r.origemChamado || r.origem || r.local || 'WhatsApp'}</td>
+                    <td style="text-align: center;">
+                        <button onclick="fiscalLiberarMotoristaPorRecusa('${r.idTaxi}')" style="background: #16a34a; color: #ffffff; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">✅ Liberar</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarFila(fila) {
+        const tbody = document.getElementById('tabelaFilaGeral');
+        if (!fila || fila.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo na fila.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = fila.map((c, idx) => `
+            <tr>
+                <td><strong>${idx + 1}º</strong></td>
+                <td>Carro.${c.idTaxi}</td>
+                <td>${c.nome}</td>
+                <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${c.setor || 'Aguardando'}</span></td>
+                <td>${c.distanciaMetros ? c.distanciaMetros + 'm' : 'No Ponto'}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderizarFrota(frota) {
+        const tbody = document.getElementById('tabelaFrota');
+        const chaves = Object.keys(frota);
+        if (chaves.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo.</td></tr>`; return; }
+        tbody.innerHTML = chaves.map(k => {
+            const f = frota[k];
+            const badgeFuncao = f.ehModerador ? '<span style="color:#9333ea; font-weight:bold;">⭐ Moderador</span>' : '<span>Motorista</span>';
+            const tels = f.telefones ? f.telefones.join(',') : (f.telefone || '');
+            return `
+                <tr>
+                    <td><strong>Carro.${f.numero}</strong></td>
+                    <td>${f.placa}</td>
+                    <td>${f.nome}</td>
+                    <td>${badgeFuncao}</td>
+                    <td>
+                        <div class="acoes-tabela">
+                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${k}', '${f.placa}', '${f.nome}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
+                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${k}')">🔑 Senha</button>
+                            <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${k}')">🗑️ Excluir</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarAdms(adms) {
+        const tbody = document.getElementById('corpoTabelaAdmins');
+        if (!adms) return;
+        const chaves = Object.keys(adms);
+        if (chaves.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">Nenhum ADM.</td></tr>`; return; }
+        tbody.innerHTML = chaves.map(k => {
+            const a = adms[k];
+            return `
+                <tr>
+                    <td><strong>${a.usuario || k}</strong></td>
+                    <td>${a.nome}</td>
+                    <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${a.cargo || 'FISCAL'}</span></td>
+                    <td>
+                        <div class="acoes-tabela">
+                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoAdmin('${a.usuario || k}', '${a.nome}', '${a.cargo}')">✏️ Editar</button>
+                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaAdmin('${a.usuario || k}')">🔑 Senha</button>
+                            <button class="btn-acao-tabela btn-excluir" onclick="excluirAdmin('${a.usuario || k}')">🗑️ Excluir</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarAudioAdm(historico) {
+        const div = document.getElementById('listaAudiosAdm');
+        if (!historico || historico.length === 0) { 
+            div.innerHTML = `<div style="text-align: center; color: var(--texto-secundario);">Nenhum áudio gravado.</div>`; 
+            return; 
+        }
+        div.innerHTML = historico.map(a => `
+            <div class="audio-item">
+                <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px;">
+                    <span style="color: var(--amarelo-ponto);">${a.idTaxi === 'Fiscal' ? '🎧 Central / Fiscal' : 'Carro.' + a.idTaxi + ' (' + a.nomeMotorista + ')'}</span>
+                    <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>
+                </div>
+                <audio controls src="${a.audioUrl.startsWith('http') ? a.audioUrl : SOCKET_URL + a.audioUrl}" style="width: 100%; height: 30px;"></audio>
+            </div>
+        `).join('');
+    }
+
+    function alterarModo(modo) { socket.emit('alterarModoOperacao', modo); }
+    function chamarProximoManual() { socket.emit('chamarCorrida'); }
+    function limparHistoricoPTT() { if (confirm("Apagar áudios?")) socket.emit('limparHistoricoPTT'); }
+    function limparHistoricoRecusas() { if (confirm("Limpar recusas?")) socket.emit('limparHistoricoRecusas'); }
+    function limparHistoricoCorridas() { if (confirm("Limpar histórico de corridas?")) socket.emit('limparHistoricoCorridas'); }
+</script>
+
+</body>
+</html>
