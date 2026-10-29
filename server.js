@@ -395,33 +395,68 @@ io.on('connection', async (socket) => {
     });
 
     // LOGIN DO MOTORISTA CORRIGIDO
+    // LOGIN DO MOTORISTA ULTRA-FLEXÍVEL E COM LOGS DE DIAGNÓSTICO
     socket.on('loginMotorista', async (dados) => {
-        const idStr = String(dados.login || '').replace('Carro.', '').trim();
-        const loginBusca = `Carro.${idStr}`;
+        const loginEntrada = String(dados.login || '').trim();
         const senhaDigitada = String(dados.senha || '').trim();
+        const numeroLimpo = loginEntrada.replace(/[^0-9]/g, ''); // Extrai apenas os números (ex: 70)
+
+        console.log(`🔑 Tentativa de login -> Recebido: "${loginEntrada}" | Núm: "${numeroLimpo}" | Senha: "${senhaDigitada}"`);
 
         try {
-            const frotaCadastrada = await carregarFrotaDoBanco();
-            const carro = frotaCadastrada[loginBusca] || frotaCadastrada[dados.login];
+            // Consulta flexível direta no PostgreSQL (busca por Carro.70, 70 ou login em minúsculas)
+            const queryRes = await db.query(
+                `SELECT * FROM motoristas 
+                 WHERE LOWER(login) = LOWER($1) 
+                    OR numero = $2 
+                    OR login = $2 
+                 LIMIT 1`,
+                [`Carro.${numeroLimpo}`, numeroLimpo]
+            );
 
-            if (!carro) {
-                socket.emit('loginErro', { mensagem: "Login (número do carro) não cadastrado." });
+            if (queryRes.rows.length === 0) {
+                console.log(`❌ Login falhou: Veículo "${loginEntrada}" (número ${numeroLimpo}) não encontrado no banco.`);
+                socket.emit('loginErro', { mensagem: `Veículo Carro.${numeroLimpo || loginEntrada} não cadastrado.` });
                 return;
             }
 
-            const senhaCadastrada = String(carro.senha || '123').trim();
+            const carroBanco = queryRes.rows[0];
+            const senhaBanco = String(carroBanco.senha_hash || '123').trim();
 
-            if (senhaCadastrada !== senhaDigitada) {
-                socket.emit('loginErro', { mensagem: "Senha incorreta." });
+            console.log(`🔍 Cadastro localizado: ${carroBanco.login} | Senha Banco: "${senhaBanco}" | Senha Digitada: "${senhaDigitada}"`);
+
+            if (senhaBanco !== senhaDigitada) {
+                console.log(`❌ Login falhou: Senha incorreta para o ${carroBanco.login}.`);
+                socket.emit('loginErro', { mensagem: "Senha incorreta. Verifique no painel Admin." });
                 return;
             }
 
-            motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id };
-            socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio });
+            const idStr = String(carroBanco.numero || numeroLimpo);
+            const objetoMotorista = {
+                numero: carroBanco.numero,
+                placa: carroBanco.placa,
+                login: carroBanco.login,
+                nome: carroBanco.nome,
+                modelo: carroBanco.modelo,
+                cargo: carroBanco.cargo,
+                ehModerador: carroBanco.eh_moderador
+            };
+
+            motoristasConectados[idStr] = { 
+                idTaxi: idStr, 
+                nome: carroBanco.nome, 
+                status: "LIVRE", 
+                socketId: socket.id 
+            };
+
+            console.log(`✔ LOGIN AUTORIZADO COM SUCESSO: ${carroBanco.login} (${carroBanco.nome})`);
+            
+            socket.emit('loginSucesso', { carro: objetoMotorista, historicoAudio: historicoAudio });
             await emitirSistemaGeral(io);
+
         } catch (err) {
-            console.error("Erro no login do motorista:", err);
-            socket.emit('loginErro', { mensagem: "Erro interno no servidor." });
+            console.error("❌ Erro interno ao validar login de motorista:", err);
+            socket.emit('loginErro', { mensagem: "Erro no servidor ao validar o acesso." });
         }
     });
 
