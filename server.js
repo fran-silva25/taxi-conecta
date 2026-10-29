@@ -79,20 +79,8 @@ async function garantirTabelasNoBanco() {
             );
         `);
 
-        await db.query(`
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
-        `);
+        // LIMPEZA TOTAL DA FROTA ANTIGA DO BANCO
+        await db.query(`TRUNCATE TABLE motoristas RESTART IDENTITY CASCADE;`);
 
         await db.query(`
             CREATE TABLE IF NOT EXISTS administradores (
@@ -105,25 +93,16 @@ async function garantirTabelasNoBanco() {
         `);
 
         await db.query(`
-            INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, senha_hash, eh_moderador, status_radio)
-            VALUES ('99', 'ABC1D00', 'Carro.99', 'Admin Teste', 'Fiat Grand Siena', 'Comum', '123', true, 'ONLINE')
-            ON CONFLICT (login) DO NOTHING;
-        `);
-
-        await db.query(`
             INSERT INTO administradores (usuario, senha_hash, nome, cargo)
             VALUES ('adm', '123', 'Administrador Geral', 'ADM')
             ON CONFLICT (usuario) DO NOTHING;
         `);
 
-        console.log("✔ Tabelas e colunas do PostgreSQL validadas com sucesso!");
+        console.log("✔ Banco de dados ZERADO e pronto para novos cadastros limpos!");
     } catch (e) {
         console.error("❌ Erro ao validar tabelas automáticas:", e);
     }
 }
-
-garantirTabelasNoBanco();
-
 function checarAniversarioApp() {
     const hoje = new Date();
     return (hoje.getDate() === 3 && hoje.getMonth() === 9 && hoje.getFullYear() > 2026);
@@ -399,12 +378,11 @@ io.on('connection', async (socket) => {
     socket.on('loginMotorista', async (dados) => {
         const loginEntrada = String(dados.login || '').trim();
         const senhaDigitada = String(dados.senha || '').trim();
-        const numeroLimpo = loginEntrada.replace(/[^0-9]/g, ''); // Extrai apenas os números (ex: 70)
+        const numeroLimpo = loginEntrada.replace(/[^0-9]/g, '');
 
         console.log(`🔑 Tentativa de login -> Recebido: "${loginEntrada}" | Núm: "${numeroLimpo}" | Senha: "${senhaDigitada}"`);
 
         try {
-            // Consulta flexível direta no PostgreSQL (busca por Carro.70, 70 ou login em minúsculas)
             const queryRes = await db.query(
                 `SELECT * FROM motoristas 
                  WHERE LOWER(login) = LOWER($1) 
@@ -415,25 +393,24 @@ io.on('connection', async (socket) => {
             );
 
             if (queryRes.rows.length === 0) {
-                console.log(`❌ Login falhou: Veículo "${loginEntrada}" (número ${numeroLimpo}) não encontrado no banco.`);
+                console.log(`❌ Login falhou: Carro.${numeroLimpo} não encontrado.`);
                 socket.emit('loginErro', { mensagem: `Veículo Carro.${numeroLimpo || loginEntrada} não cadastrado.` });
                 return;
             }
 
             const carroBanco = queryRes.rows[0];
-            const senhaBanco = String(carroBanco.senha_hash || '123').trim();
-
-            console.log(`🔍 Cadastro localizado: ${carroBanco.login} | Senha Banco: "${senhaBanco}" | Senha Digitada: "${senhaDigitada}"`);
+            const senhaBanco = String(carroBanco.senha_hash || '').trim();
 
             if (senhaBanco !== senhaDigitada) {
-                console.log(`❌ Login falhou: Senha incorreta para o ${carroBanco.login}.`);
+                console.log(`❌ Senha incorreta para o ${carroBanco.login}.`);
                 socket.emit('loginErro', { mensagem: "Senha incorreta. Verifique no painel Admin." });
                 return;
             }
 
             const idStr = String(carroBanco.numero || numeroLimpo);
             const objetoMotorista = {
-                numero: carroBanco.numero,
+                idTaxi: idStr,
+                numero: idStr,
                 placa: carroBanco.placa,
                 login: carroBanco.login,
                 nome: carroBanco.nome,
@@ -449,13 +426,13 @@ io.on('connection', async (socket) => {
                 socketId: socket.id 
             };
 
-            console.log(`✔ LOGIN AUTORIZADO COM SUCESSO: ${carroBanco.login} (${carroBanco.nome})`);
+            console.log(`✔ LOGIN AUTORIZADO: ${carroBanco.login} (${carroBanco.nome})`);
             
-            socket.emit('loginSucesso', { carro: objetoMotorista, historicoAudio: historicoAudio });
+            socket.emit('loginSucesso', { carro: objetoMotorista, idTaxi: idStr, historicoAudio: historicoAudio });
             await emitirSistemaGeral(io);
 
         } catch (err) {
-            console.error("❌ Erro interno ao validar login de motorista:", err);
+            console.error("❌ Erro ao validar login:", err);
             socket.emit('loginErro', { mensagem: "Erro no servidor ao validar o acesso." });
         }
     });
