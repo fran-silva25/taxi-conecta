@@ -116,31 +116,38 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
             sock.ev.on('creds.update', saveCreds);
 
-            sock.ev.on('connection.update', (update) => {
-                const { connection, lastDisconnect, qr } = update;
+            const fs = require('fs');
+const path = require('path');
+const PASTA_SESSAO = path.join(__dirname, 'sessao_whatsapp');
 
-                if (qr) {
-                    console.log('\n==================================================');
-                    console.log('📱 ESCANEIE O QR CODE ABAIXO COM O WHATSAPP DO PONTO:');
-                    console.log('==================================================\n');
-                    qrcode.generate(qr, { small: true });
-                }
+// Dentro da sua função iniciarBotWhatsApp, na verificação de desconexão:
+sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-                if (connection === 'close') {
-                    const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    const deviaReconectar = (statusCode !== DisconnectReason.loggedOut);
-                    
-                    console.log(`🔴 Conexão com WhatsApp fechada (Código: ${statusCode || 'desconhecido'}). Reconectando em 5s...`);
+    // Se gerar QR Code, exibe no log do Render
+    if (qr) {
+        console.log("📱 ESCANEE O QR CODE ABAIXO NO SEU WHATSAPP:");
+        require('qrcode-terminal').generate(qr, { small: true });
+    }
 
-                    if (deviaReconectar) {
-                        setTimeout(() => { conectarWhatsApp(); }, 5000);
-                    } else {
-                        console.log('❌ Sessão encerrada. Apague a pasta "sessao_whatsapp" e inicie o servidor novamente.');
-                    }
-                } else if (connection === 'open') {
-                    console.log('🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!');
-                }
-            });
+    if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        console.log(`🔴 Conexão fechada. Código: ${statusCode}`);
+
+        // Se for 401 (desconectado do celular) ou sessão encerrada, APAGA a pasta para gerar novo QR Code
+        if (statusCode === 401 || statusCode === 403) {
+            console.log("🧹 Apagando credenciais antigas da pasta sessao_whatsapp...");
+            try {
+                fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
+            } catch (e) {}
+        }
+
+        // Tenta reconectar após 5 segundos
+        setTimeout(() => iniciarBotWhatsApp(), 5000);
+    } else if (connection === 'open') {
+        console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
+    }
+});
 
             sock.ev.on('messages.upsert', async (m) => {
                 try {
