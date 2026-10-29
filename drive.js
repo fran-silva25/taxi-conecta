@@ -2,13 +2,24 @@ const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 
-const KEYFILEPATH = path.join(__dirname, 'credenciais-drive.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
-const auth = new google.auth.GoogleAuth({
-  keyFile: KEYFILEPATH,
-  scopes: SCOPES,
-});
+let auth;
+
+// Se estiver na nuvem (Render), lê da variável de ambiente. Se estiver local, lê do arquivo.
+if (process.env.GOOGLE_CREDENTIALS_JSON) {
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+  auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: SCOPES,
+  });
+} else {
+  const KEYFILEPATH = path.join(__dirname, 'credenciais-drive.json');
+  auth = new google.auth.GoogleAuth({
+    keyFile: KEYFILEPATH,
+    scopes: SCOPES,
+  });
+}
 
 const driveService = google.drive({ version: 'v3', auth });
 const PASTA_PRINCIPAL_ID = '1Qsf1LQFKG9MNdpCjZCnNNpO59N1kIgCV'; 
