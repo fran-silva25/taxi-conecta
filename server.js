@@ -37,12 +37,66 @@ let filaGeral = [];
 let motoristasConectados = {};
 let chamadasPendentes = {};
 
+// Função para garantir automaticamente que as tabelas existem na nuvem
+async function garantirTabelasNoBanco() {
+    try {
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS motoristas (
+                id SERIAL PRIMARY KEY,
+                numero VARCHAR(50),
+                placa VARCHAR(20),
+                login VARCHAR(50) UNIQUE NOT NULL,
+                nome VARCHAR(100),
+                modelo VARCHAR(100),
+                cargo VARCHAR(50),
+                telefones TEXT[],
+                senha_hash VARCHAR(100),
+                eh_moderador BOOLEAN DEFAULT FALSE,
+                status_radio VARCHAR(20) DEFAULT 'ONLINE',
+                mutado_ate BIGINT,
+                banido_ate BIGINT,
+                bloqueio_recusa BOOLEAN DEFAULT FALSE
+            );
+        `);
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS administradores (
+                id SERIAL PRIMARY KEY,
+                usuario VARCHAR(50) UNIQUE NOT NULL,
+                senha_hash VARCHAR(100) NOT NULL,
+                nome VARCHAR(100),
+                cargo VARCHAR(50)
+            );
+        `);
+
+        // Insere o carro de teste Carro.99 caso não exista
+        await db.query(`
+            INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, senha_hash, eh_moderador, status_radio)
+            VALUES ('99', 'ABC1D00', 'Carro.99', 'Admin Teste', 'Fiat Grand Siena', 'Comum', '123', true, 'ONLINE')
+            ON CONFLICT (login) DO NOTHING;
+        `);
+
+        // Insere o adm padrão caso não exista
+        await db.query(`
+            INSERT INTO administradores (usuario, senha_hash, nome, cargo)
+            VALUES ('adm', '123', 'Administrador Geral', 'ADM')
+            ON CONFLICT (usuario) DO NOTHING;
+        `);
+
+        console.log("✔ Tabelas e dados padrão validados com sucesso no PostgreSQL!");
+    } catch (e) {
+        console.error("❌ Erro ao validar tabelas automáticas:", e);
+    }
+}
+
+// Executa a verificação ao iniciar
+garantirTabelasNoBanco();
+
 function checarAniversarioApp() {
     const hoje = new Date();
     return (hoje.getDate() === 3 && hoje.getMonth() === 9 && hoje.getFullYear() > 2026);
 }
 
-// Funções de busca no Banco de Dados PostgreSQL do Render
 async function carregarFrotaDoBanco() {
     try {
         const res = await db.query('SELECT * FROM motoristas');
@@ -102,7 +156,6 @@ const PONTOS_FISICOS = {
 let modoOperacao = "MANHA_SHOPPING";
 let modoManualOverridden = false;
 
-// Função auxiliar para enviar a lista de conectados atualizada para todos
 async function emitirSistemaGeral(ioInstance) {
     const frotaCadastrada = await carregarFrotaDoBanco();
     const usuariosAdmCadastrados = await carregarUsuariosAdmDoBanco();
@@ -215,10 +268,10 @@ setInterval(() => {
 }, 30 * 1000);
 
 // ROTAS ESTÁTICAS
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.get('/admin.html', (req, res) => res.sendFile(__dirname + '/admin.html'));
-app.get('/motorista.html', (req, res) => res.sendFile(__dirname + '/motorista.html'));
-app.get('/motorista', (req, res) => res.sendFile(__dirname + '/motorista.html'));
+app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
+app.get('/admin.html', (req, res) => res.sendFile(__dirname + '/www/admin.html'));
+app.get('/motorista.html', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
+app.get('/motorista', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
 app.use('/audios', express.static(PASTA_AUDIOS));
 
 io.on('connection', async (socket) => {
@@ -238,7 +291,6 @@ io.on('connection', async (socket) => {
         io.emit('forcarStatusLivreGeral');
     });
 
-    // LOGIN ADM CONSULTANDO O POSTGRESQL DO RENDER
     socket.on('loginAdm', async (dados) => {
         const usuarioKey = dados.usuario.trim().toLowerCase();
         try {
@@ -318,7 +370,6 @@ io.on('connection', async (socket) => {
         }
     });
 
-    // LOGIN DO MOTORISTA CONSULTANDO O POSTGRESQL DO RENDER
     socket.on('loginMotorista', async (dados) => {
         const idStr = String(dados.login).replace('Carro.', '');
         const loginBusca = `Carro.${idStr}`;
@@ -396,7 +447,6 @@ io.on('connection', async (socket) => {
         io.emit('canalLivre');
     });
 
-    // ROTA PTT UNIFICADA (Integrada com Google Drive)
     socket.on('transmitirAudioPTT', async (dados) => {
         let idIdentificacao = dados.idTaxi;
         let nomeMotorista = "Fiscal / Central";
