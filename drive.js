@@ -6,7 +6,6 @@ const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
 let auth;
 
-// Se estiver na nuvem (Render), lê da variável de ambiente. Se estiver local, lê do arquivo.
 if (process.env.GOOGLE_CREDENTIALS_JSON) {
   const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
   auth = new google.auth.GoogleAuth({
@@ -23,103 +22,52 @@ if (process.env.GOOGLE_CREDENTIALS_JSON) {
 
 const driveService = google.drive({ version: 'v3', auth });
 
-// ID corrigido exato da pasta "Audios_TaxiConecta_PTT"
+// ID da pasta principal compartilhada no seu Google Drive
 const PASTA_PRINCIPAL_ID = '1Qsf1LQFKG9MNdpCjZCnNNpO59N1klgCV'; 
 
-// Função auxiliar para criar ou buscar pasta de Ano/Mês/Dia automaticamente no Drive
-async function obterOuCriarPasta(nomePasta, pastaPaiId) {
-  try {
-    const query = `name='${nomePasta}' and '${pastaPaiId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const res = await driveService.files.list({ q: query, fields: 'files(id, name)' });
-    
-    if (res.data.files.length > 0) {
-      return res.data.files[0].id;
-    }
-
-    const fileMetadata = {
-      name: nomePasta,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [pastaPaiId],
-    };
-    const folder = await driveService.files.create({ resource: fileMetadata, fields: 'id' });
-    return folder.data.id;
-  } catch (e) {
-    console.error('Erro ao gerenciar pasta no Drive:', e);
-    return pastaPaiId;
-  }
-}
-
 async function enviarAudioParaDrive(caminhoArquivoLocal, nomeArquivo) {
-  try {
-    // Organiza as pastas automaticamente por Ano -> Mês -> Dia (ex: 2026 / 10 / 29)
-    const agora = new Date();
-    const ano = String(agora.getFullYear());
-    const mes = String(agora.getMonth() + 1).padStart(2, '0');
-    const dia = String(agora.getDate()).padStart(2, '0');
+    try {
+        // Envia o arquivo direto para a pasta compartilhada (evita erro de cota de subpastas)
+        const fileMetadata = {
+            name: nomeArquivo,
+            parents: [PASTA_PRINCIPAL_ID]
+        };
 
-    const idPastaAno = await obterOuCriarPasta(ano, PASTA_PRINCIPAL_ID);
-    const idPastaMes = await obterOuCriarPasta(mes, idPastaAno);
-    const idPastaDia = await obterOuCriarPasta(dia, idPastaMes);
+        const media = {
+            mimeType: 'audio/webm',
+            body: fs.createReadStream(caminhoArquivoLocal),
+        };
 
-    const fileMetadata = {
-      name: nomeArquivo,
-      parents: [idPastaDia],
-    };
+        const response = await driveService.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id, webViewLink, webContentLink',
+        });
 
-    const media = {
-      mimeType: 'audio/webm',
-      body: fs.createReadStream(caminhoArquivoLocal),
-    };
+        // Torna o áudio legível para o player do aplicativo
+        await driveService.permissions.create({
+            fileId: response.data.id,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
 
-    const response = await driveService.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: 'id, webViewLink, webContentLink',
-    });
+        console.log('✔ Áudio enviado com sucesso direto para a pasta do Drive!');
 
-    await driveService.permissions.create({
-      fileId: response.data.id,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
+        // Remove o arquivo temporário local
+        try { fs.unlinkSync(caminhoArquivoLocal); } catch (e) {}
 
-    console.log('✔ Áudio enviado e organizado no Google Drive com sucesso!');
-    
-    // Remove o arquivo temporário local após o envio com sucesso
-    try { fs.unlinkSync(caminhoArquivoLocal); } catch (e) {}
+        const linkBaixar = response.data.webContentLink || `https://drive.google.com/uc?export=download&id=${response.data.id}`;
 
-    return {
-      fileId: response.data.id,
-      audioUrl: response.data.webContentLink || response.data.webViewLink
-    };
-  } catch (error) {
-    console.error('❌ Erro ao enviar áudio para o Google Drive:', error);
-    return null;
-  }
-}
-
-// Função para apagar áudios do Drive com mais de 30 dias (reciclagem de espaço)
-async function limparAudiosAntigosDrive() {
-  try {
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-    const dataIso = trintaDiasAtras.toISOString();
-
-    const query = `'${PASTA_PRINCIPAL_ID}' in parents and createdTime < '${dataIso}' and trashed=false`;
-    const res = await driveService.files.list({ q: query, fields: 'files(id, name)' });
-
-    for (const file of res.data.files) {
-      await driveService.files.delete({ fileId: file.id });
-      console.log(`🗑️ Áudio antigo reciclado do Drive: ${file.name}`);
+        return {
+            fileId: response.data.id,
+            audioUrl: linkBaixar
+        };
+    } catch (error) {
+        console.error('❌ Erro ao enviar áudio para o Google Drive:', error);
+        return null;
     }
-  } catch (e) {
-    console.error('Erro na limpeza automática do Drive:', e);
-  }
 }
-
-// Executa a faxina de áudios antigos no Drive uma vez por dia
-setInterval(limparAudiosAntigosDrive, 24 * 60 * 60 * 1000);
 
 module.exports = { enviarAudioParaDrive };
