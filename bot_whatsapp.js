@@ -156,11 +156,17 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
     setTimeout(() => conectarWhatsApp(), 5000);
 }
-                } else if (connection === 'open') {
-                    qrCodeAtual = null;
-                    reconectando = false;
-                    console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO (Sessão Preservada)!");
-                }
+                if (connection === 'close') {
+        const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+        console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
+        if (shouldReconnect) {
+            setTimeout(() => conectarWhatsApp(), 5000);
+        }
+    } else if (connection === 'open') {
+        qrCodeAtual = null;
+        reconectando = false;
+        console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
+    }
             });
 
             sock.ev.on('messages.upsert', async (m) => {
