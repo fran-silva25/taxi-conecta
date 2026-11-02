@@ -402,50 +402,60 @@ io.on('connection', (socket) => {
     });
 
     socket.on('salvarCarroFrota', (dados) => {
-        const numeroCarro = String(dados.idAntigo || dados.numero || '').replace(/[^0-9]/g, '').trim();
-        const loginGerado = `Carro.${numeroCarro}`;
-        const senhaInformada = dados.senha ? String(dados.senha).trim() : null;
-        const telefonesArray = dados.telefone ? [String(dados.telefone).trim()] : [];
+        const numCarro = dados.numero.trim();
+        const loginGerado = `Carro.${numCarro}`;
 
-        if (frotaCadastrada[loginGerado]) {
-            frotaCadastrada[loginGerado].placa = (dados.placa || '').trim().toUpperCase();
-            frotaCadastrada[loginGerado].nome = dados.nome;
-            frotaCadastrada[loginGerado].modelo = dados.modelo || 'Padrão';
-            frotaCadastrada[loginGerado].telefones = telefonesArray;
-            frotaCadastrada[loginGerado].ehModerador = Boolean(dados.ehModerador);
-            if (senhaInformada) frotaCadastrada[loginGerado].senha = senhaInformada;
-        } else {
-            frotaCadastrada[loginGerado] = {
-                numero: numeroCarro,
-                placa: (dados.placa || '').trim().toUpperCase(),
-                login: loginGerado,
-                nome: dados.nome,
-                modelo: dados.modelo || 'Padrão',
-                cargo: "Comum",
-                telefones: telefonesArray,
-                senha: senhaInformada || '123',
-                ehModerador: Boolean(dados.ehModerador),
-                statusRadio: "ONLINE",
-                mutadoAte: null, banidoAte: null, bloqueioRecusa: false
-            };
+        // Se houver um ID antigo e o número mudou, remove o antigo
+        if (dados.idAntigo && String(dados.idAntigo) !== String(numCarro)) {
+            delete frotaCadastrada[`Carro.${dados.idAntigo}`];
         }
+
+        // Mantém a senha anterior caso venha em branco na edição
+        let senhaFinal = dados.senha ? dados.senha.trim() : null;
+        if (!senhaFinal && frotaCadastrada[loginGerado]) {
+            senhaFinal = frotaCadastrada[loginGerado].senha;
+        }
+        if (!senhaFinal) {
+            senhaFinal = "123"; // Senha padrão de segurança
+        }
+
+        // Normaliza o campo telefone para garantir compatibilidade com array ou string
+        let listaTelefones = [];
+        if (Array.isArray(dados.telefone)) {
+            listaTelefones = dados.telefone;
+        } else if (dados.telefone) {
+            listaTelefones = [dados.telefone.trim()];
+        } else if (frotaCadastrada[loginGerado] && frotaCadastrada[loginGerado].telefones) {
+            listaTelefones = frotaCadastrada[loginGerado].telefones;
+        }
+
+        frotaCadastrada[loginGerado] = {
+            numero: numCarro,
+            placa: (dados.placa || '').trim().toUpperCase(),
+            login: loginGerado,
+            nome: dados.nome.trim(),
+            modelo: dados.modelo || 'Padrão',
+            cargo: dados.ehModerador ? "Moderador" : "Comum",
+            telefones: listaTelefones,
+            senha: senhaFinal,
+            ehModerador: Boolean(dados.ehModerador),
+            statusRadio: "ONLINE",
+            mutadoAte: null,
+            banidoAte: null,
+            bloqueioRecusa: false
+        };
+
         salvarFrota();
-        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
-    });
-
-    socket.on('excluirFrota', (dados) => {
-        const numLimpo = String(dados.id || dados.login || '').replace(/[^0-9]/g, '');
-        const chaveBusca = `Carro.${numLimpo}`;
-        if (frotaCadastrada[chaveBusca]) {
-            delete frotaCadastrada[chaveBusca];
-            salvarFrota();
-            const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === numLimpo);
-            if (indexFila !== -1) {
-                filaGeral.splice(indexFila, 1);
-                redistribuirVagas();
-            }
-            io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
-        }
+        io.emit('atualizarSistema', { 
+            fila: filaGeral, 
+            modo: modoOperacao, 
+            pa2Fechado: typeof pa2Fechado !== 'undefined' ? pa2Fechado : false,
+            frota: frotaCadastrada, 
+            usuariosAdm: usuariosAdmCadastrados, 
+            historico: historicoAudio, 
+            recusas: historicoRecusas, 
+            corridas: historicoCorridas 
+        });
     });
 
     socket.on('resetarSenhaFrota', (dados) => {
