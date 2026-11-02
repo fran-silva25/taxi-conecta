@@ -274,12 +274,12 @@
         <div id="tabFila" class="secao ativa">
             <div class="card">
                 <h3>⚙️ Modo de Operação do Shopping</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                    <button onclick="alterarModo('AUTOMATICO')" style="flex: 1; background: #22c55e; color: #fff;">🤖 Modo Automático (IA)</button>
-                    <button onclick="alterarModo('SHOPPING_COMPLETO')" style="flex: 1;">Shopping Completo (PH + PA2 + PA4)</button>
-                    <button onclick="alterarModo('SO_PH')" style="flex: 1; background: #eab308; color: #000;">Apenas Ponto PH</button>
-                    <button onclick="alterarModo('BAIXA_FROTA')" style="flex: 1; background: #3b82f6; color: #fff;">Baixa Frota</button>
-                </div>
+<div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+    <button onclick="alterarModo('AUTOMATICO')" style="flex: 1; min-width: 140px; background: #22c55e; color: #fff;">🤖 Modo Automático (IA)</button>
+    <button onclick="alterarModo('SHOPPING_COMPLETO')" style="flex: 1; min-width: 140px;">Shopping Completo (PH + PA2 + PA4)</button>
+    <button onclick="alterarModo('SO_PH')" style="flex: 1; min-width: 140px; background: #eab308; color: #000;">Apenas Ponto PH</button>
+    <button onclick="alterarModo('BAIXA_FROTA')" style="flex: 1; min-width: 140px; background: #3b82f6; color: #fff;">Baixa Frota</button>
+</div>
                 <p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="labelModoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
 
                 <!-- BOTÃO DE CONTROLE DO PA2 (EVENTOS DO SHOPPING) -->
@@ -1006,7 +1006,9 @@
         `).join('');
     }
 
-    function alterarModo(modo) { socket.emit('alterarModoOperacao', modo); }
+    function alterarModo(modo) {
+    socket.emit('alterarModoOperacao', modo);
+}
     function chamarProximoManual() { socket.emit('chamarCorrida'); }
     function limparHistoricoPTT() { if (confirm("Apagar histórico de áudios?")) socket.emit('limparHistoricoPTT'); }
     function limparHistoricoRecusas() { if (confirm("Limpar recusas?")) socket.emit('limparHistoricoRecusas'); }

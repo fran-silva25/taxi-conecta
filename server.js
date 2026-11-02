@@ -545,18 +545,31 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ⚙️ ALTERAR MODO DE OPERAÇÃO DO SHOPPING
     socket.on('alterarModoOperacao', (novoModo) => {
-        if (novoModo === 'AUTOMATICO') {
-            modoManualOverridden = false;
-            redistribuirVagas();
-        } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
+        const modosValidos = ['AUTOMATICO', 'SHOPPING_COMPLETO', 'SO_PH', 'BAIXA_FROTA'];
+        if (modosValidos.includes(novoModo)) {
             modoOperacao = novoModo;
-            modoManualOverridden = true;
-            redistribuirVagas();
-        }
-        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
-    });
+            console.log(`⚙️ [MODO] Modo de operação alterado para: ${modoOperacao}`);
+            
+            // Executa a regra de negócio para reorganizar a fila com o novo modo
+            if (typeof redistribuirVagas === 'function') {
+                redistribuirVagas();
+            }
 
+            // Envia o estado atualizado para todos os painéis e motoristas conectados
+            io.emit('atualizarSistema', {
+                fila: filaGeral,
+                modo: modoOperacao,
+                pa2Fechado: pa2Fechado,
+                frota: frotaCadastrada,
+                usuariosAdm: usuariosAdmCadastrados,
+                historico: historicoAudio,
+                recusas: historicoRecusas,
+                corridas: historicoCorridas
+            });
+        }
+    });
     socket.on('chamarCorrida', () => {
         if (filaGeral.length === 0) return;
         const motorista = filaGeral[0];
