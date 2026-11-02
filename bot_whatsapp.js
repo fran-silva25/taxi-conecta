@@ -8,6 +8,8 @@ const path = require('path');
 const PASTA_SESSAO = path.join(__dirname, 'sessao_whatsapp');
 const estadosClientes = {};
 let qrCodeAtual = null;
+let sock = null;
+let reconectando = false;
 
 // Coordenadas que formam o contorno exato do mapa de abrangência (Ponto 2216)
 const fronteiraPonto2216 = [
@@ -104,9 +106,11 @@ function obterQrCodeAtual() {
 }
 
 function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
-    let sock = null;
 
     async function conectarWhatsApp() {
+        if (reconectando) return;
+        reconectando = true;
+
         try {
             const { state, saveCreds } = await useMultiFileAuthState(PASTA_SESSAO);
 
@@ -118,7 +122,8 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                 defaultQueryTimeoutMs: 60000,
                 keepAliveIntervalMs: 25000,
                 shouldSyncHistoryMessage: () => false,
-                markOnlineOnConnect: true
+                markOnlineOnConnect: true,
+                browser: ["Taxi Conecta 2216", "Chrome", "1.0.0"]
             });
 
             sock.ev.on('creds.update', saveCreds);
@@ -133,21 +138,28 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                 }
 
                 if (connection === 'close') {
-                    qrCodeAtual = null;
-                    const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    console.log(`🔴 Conexão fechada. Código: ${statusCode}`);
+    qrCodeAtual = null;
+    const statusCode = lastDisconnect?.error?.output?.statusCode;
+    const ehDesconexaoDefinitiva = statusCode === DisconnectReason.loggedOut;
 
-                    if (statusCode === 401 || statusCode === 403 || statusCode === DisconnectReason.loggedOut) {
-                        console.log("🧹 Apagando credenciais antigas da pasta sessao_whatsapp...");
-                        try {
-                            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
-                        } catch (e) {}
-                    }
+    console.log(`🔴 Conexão fechada. Código de status: ${statusCode || 'Desconhecido'}`);
 
-                    setTimeout(() => conectarWhatsApp(), 5000);
+    // SÓ APAGA A PASTA SE HOUVER LOGOUT EXPLICITO PELO CELULAR
+    if (ehDesconexaoDefinitiva) {
+        console.log("🧹 Aparelho desconectado. Limpando sessão...");
+        try {
+            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
+        } catch (e) {}
+    } else {
+        console.log("🔄 Tentando reconectar mantendo a sessão salva...");
+    }
+
+    setTimeout(() => conectarWhatsApp(), 5000);
+}
                 } else if (connection === 'open') {
                     qrCodeAtual = null;
-                    console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
+                    reconectando = false;
+                    console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO (Sessão Preservada)!");
                 }
             });
 
@@ -341,6 +353,7 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
             });
         } catch (erroGeral) {
             console.error('Erro ao conectar ao WhatsApp:', erroGeral);
+            reconectando = false;
             setTimeout(() => { conectarWhatsApp(); }, 5000);
         }
     }

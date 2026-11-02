@@ -4,8 +4,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const db = require('./db');
 
+// Importando as funções e a cerca virtual do bot do WhatsApp
 const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216, obterQrCodeAtual } = require('./bot_whatsapp');
 
 const app = express();
@@ -18,7 +18,6 @@ const io = new Server(server, {
     maxHttpBufferSize: 10 * 1024 * 1024
 });
 
-// PASTA LOCAL PARA ÁUDIOS PTT NO RENDER
 const PASTA_AUDIOS = path.join(__dirname, 'audios_historico');
 if (!fs.existsSync(PASTA_AUDIOS)) {
     fs.mkdirSync(PASTA_AUDIOS, { recursive: true });
@@ -29,148 +28,144 @@ if (!fs.existsSync(PASTA_SALVOS_MODERACAO)) {
     fs.mkdirSync(PASTA_SALVOS_MODERACAO, { recursive: true });
 }
 
-// ROTINA AUTOMÁTICA: Apaga áudios com mais de 3 dias (72h)
-function limparAudiosAntigosLocais() {
-    try {
-        const tresDiasEmMs = 3 * 24 * 60 * 60 * 1000;
-        const agora = Date.now();
-        fs.readdir(PASTA_AUDIOS, (err, files) => {
-            if (err) return;
-            files.forEach(file => {
-                const caminho = path.join(PASTA_AUDIOS, file);
-                fs.stat(caminho, (err, stats) => {
-                    if (!err && (agora - stats.mtimeMs > tresDiasEmMs)) {
-                        fs.unlink(caminho, () => {});
-                    }
-                });
-            });
-        });
-    } catch (e) {
-        console.error("Erro na limpeza local de áudios:", e);
-    }
-}
-setInterval(limparAudiosAntigosLocais, 12 * 60 * 60 * 1000);
-
-let historicoAudio = [];
-let historicoRecusas = [];
-let historicoCorridas = [];
-let filaGeral = [];
-let motoristasConectados = {};
-let chamadasPendentes = {};
-
-async function garantirTabelasNoBanco() {
-    try {
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS motoristas (
-                id SERIAL PRIMARY KEY,
-                numero VARCHAR(50),
-                placa VARCHAR(20),
-                login VARCHAR(50) UNIQUE NOT NULL,
-                nome VARCHAR(100),
-                modelo VARCHAR(100),
-                cargo VARCHAR(50),
-                telefones TEXT[],
-                senha_hash VARCHAR(100),
-                eh_moderador BOOLEAN DEFAULT FALSE,
-                status_radio VARCHAR(20) DEFAULT 'ONLINE',
-                mutado_ate BIGINT,
-                banido_ate BIGINT,
-                bloqueio_recusa BOOLEAN DEFAULT FALSE
-            );
-        `);
-
-        await db.query(`
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS numero VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS placa VARCHAR(20);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS nome VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS modelo VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS cargo VARCHAR(50);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS telefones TEXT[];
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(100);
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS eh_moderador BOOLEAN DEFAULT FALSE;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS status_radio VARCHAR(20) DEFAULT 'ONLINE';
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS mutado_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS banido_ate BIGINT;
-            ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS bloqueio_recusa BOOLEAN DEFAULT FALSE;
-        `);
-
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS administradores (
-                id SERIAL PRIMARY KEY,
-                usuario VARCHAR(50) UNIQUE NOT NULL,
-                senha_hash VARCHAR(100) NOT NULL,
-                nome VARCHAR(100),
-                cargo VARCHAR(50)
-            );
-        `);
-
-        await db.query(`
-            INSERT INTO administradores (usuario, senha_hash, nome, cargo)
-            VALUES ('adm', '123', 'Administrador Geral', 'ADM')
-            ON CONFLICT (usuario) DO NOTHING;
-        `);
-
-        console.log("✔ Tabelas e colunas do PostgreSQL validadas com sucesso!");
-    } catch (e) {
-        console.error("❌ Erro ao validar tabelas automáticas:", e);
-    }
-}
-
-garantirTabelasNoBanco();
+const ARQUIVO_RECUSAS = path.join(__dirname, 'historico_recusas.json');
+const ARQUIVO_FROTA = path.join(__dirname, 'frota_cadastrada.json');
+const ARQUIVO_USUARIOS_ADM = path.join(__dirname, 'usuarios_adm.json');
+const ARQUIVO_HISTORICO_PTT = path.join(__dirname, 'historico_ptt.json');
+const ARQUIVO_CORRIDAS = path.join(__dirname, 'historico_corridas.json');
 
 function checarAniversarioApp() {
     const hoje = new Date();
     return (hoje.getDate() === 3 && hoje.getMonth() === 9 && hoje.getFullYear() > 2026);
 }
 
-async function carregarFrotaDoBanco() {
+function limparAudiosAntigos() {
     try {
-        const res = await db.query('SELECT * FROM motoristas');
-        const frotaObj = {};
-        res.rows.forEach(m => {
-            frotaObj[m.login] = {
-                numero: m.numero,
-                placa: m.placa,
-                login: m.login,
-                nome: m.nome,
-                modelo: m.modelo,
-                cargo: m.cargo,
-                telefones: m.telefones,
-                senha: m.senha_hash,
-                ehModerador: m.eh_moderador,
-                statusRadio: m.status_radio,
-                mutadoAte: m.mutado_ate,
-                banidoAte: m.banido_ate,
-                bloqueioRecusa: m.bloqueio_recusa
-            };
-        });
-        return frotaObj;
+        if (fs.existsSync(PASTA_AUDIOS)) {
+            const arquivos = fs.readdirSync(PASTA_AUDIOS);
+            const agora = Date.now();
+            const quinzeDiasMs = 15 * 24 * 60 * 60 * 1000;
+
+            arquivos.forEach(file => {
+                const caminhoArquivo = path.join(PASTA_AUDIOS, file);
+                const stats = fs.statSync(caminhoArquivo);
+                if ((agora - stats.mtimeMs) > quinzeDiasMs) {
+                    fs.unlinkSync(caminhoArquivo);
+                }
+            });
+
+            historicoAudio = historicoAudio.filter(h => (agora - h.timestamp) <= quinzeDiasMs);
+            salvarHistoricoPTTNaNuvem();
+        }
     } catch (e) {
-        console.error("Erro ao carregar frota do banco:", e);
-        return {};
+        console.error("Erro na limpeza automática de áudios antigos:", e);
     }
 }
 
-async function carregarUsuariosAdmDoBanco() {
+function carregarHistoricoPTT() {
     try {
-        const res = await db.query('SELECT * FROM administradores');
-        const admObj = {};
-        res.rows.forEach(a => {
-            admObj[a.usuario.toLowerCase().trim()] = {
-                usuario: a.usuario,
-                senha: a.senha_hash,
-                cargo: a.cargo,
-                nome: a.nome
-            };
-        });
-        return admObj;
-    } catch (e) {
-        return {
-            "adm": { usuario: "adm", senha: "123", cargo: "ADM", nome: "Administrador Geral" },
-            "fiscal": { usuario: "fiscal", senha: "123", cargo: "FISCAL", nome: "Fiscal de Ponto" }
-        };
-    }
+        if (fs.existsSync(ARQUIVO_HISTORICO_PTT)) {
+            const dados = fs.readFileSync(ARQUIVO_HISTORICO_PTT, 'utf8');
+            return JSON.parse(dados);
+        }
+    } catch (e) {}
+    return [];
 }
+
+function salvarHistoricoPTTNaNuvem() {
+    try {
+        fs.writeFileSync(ARQUIVO_HISTORICO_PTT, JSON.stringify(historicoAudio, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+let historicoAudio = carregarHistoricoPTT();
+limparAudiosAntigos();
+setInterval(limparAudiosAntigos, 24 * 60 * 60 * 1000);
+
+function carregarHistoricoRecusas() {
+    try {
+        if (fs.existsSync(ARQUIVO_RECUSAS)) {
+            const dados = fs.readFileSync(ARQUIVO_RECUSAS, 'utf8');
+            const lista = JSON.parse(dados);
+            const agora = Date.now();
+            const seteDiasMs = 7 * 24 * 60 * 60 * 1000;
+            return lista.filter(r => (agora - r.timestamp) <= seteDiasMs);
+        }
+    } catch (e) {}
+    return [];
+}
+
+function salvarHistoricoRecusas() {
+    try {
+        const agora = Date.now();
+        const seteDiasMs = 7 * 24 * 60 * 60 * 1000;
+        historicoRecusas = historicoRecusas.filter(r => (agora - r.timestamp) <= seteDiasMs);
+        fs.writeFileSync(ARQUIVO_RECUSAS, JSON.stringify(historicoRecusas, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+function carregarHistoricoCorridas() {
+    try {
+        if (fs.existsSync(ARQUIVO_CORRIDAS)) {
+            const dados = fs.readFileSync(ARQUIVO_CORRIDAS, 'utf8');
+            return JSON.parse(dados);
+        }
+    } catch (e) {}
+    return [];
+}
+
+function salvarHistoricoCorridas() {
+    try {
+        fs.writeFileSync(ARQUIVO_CORRIDAS, JSON.stringify(historicoCorridas, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+function carregarFrota() {
+    try {
+        if (fs.existsSync(ARQUIVO_FROTA)) {
+            const dados = fs.readFileSync(ARQUIVO_FROTA, 'utf8');
+            return JSON.parse(dados);
+        }
+    } catch (e) {}
+    return {
+        "Carro.99": {
+            numero: "99", placa: "ABC1D00", login: "Carro.99",
+            nome: "Admin Teste", modelo: "Fiat Grand Siena", cargo: "Comum",
+            telefones: ["11900000000"], senha: "123", ehModerador: true,
+            statusRadio: "ONLINE", mutadoAte: null, banidoAte: null, bloqueioRecusa: false
+        }
+    };
+}
+
+function salvarFrota() {
+    try {
+        fs.writeFileSync(ARQUIVO_FROTA, JSON.stringify(frotaCadastrada, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+function carregarUsuariosAdm() {
+    try {
+        if (fs.existsSync(ARQUIVO_USUARIOS_ADM)) {
+            const dados = fs.readFileSync(ARQUIVO_USUARIOS_ADM, 'utf8');
+            return JSON.parse(dados);
+        }
+    } catch (e) {}
+    return {
+        "adm": { usuario: "adm", senha: "123", cargo: "ADM", nome: "Administrador Geral" },
+        "fiscal": { usuario: "fiscal", senha: "123", cargo: "FISCAL", nome: "Fiscal de Ponto" }
+    };
+}
+
+function salvarUsuariosAdm() {
+    try {
+        fs.writeFileSync(ARQUIVO_USUARIOS_ADM, JSON.stringify(usuariosAdmCadastrados, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+let historicoRecusas = carregarHistoricoRecusas();
+let frotaCadastrada = carregarFrota();
+let usuariosAdmCadastrados = carregarUsuariosAdm();
+let historicoCorridas = carregarHistoricoCorridas(); 
 
 const PONTOS_FISICOS = {
     PH: { nome: "Ponto PH (Subida Arnaldo Rosa / Abel Ferreira)", capacidade: 15, latitude: -23.580278, longitude: -46.561389, raioMetros: 40 },
@@ -178,30 +173,13 @@ const PONTOS_FISICOS = {
     PA4: { nome: "PA4 (Ponto Final / Bolsão Lado a Lado)", capacidade: 3, latitude: -23.561417, longitude: -46.561639, raioMetros: 12 }
 };
 
-let modoOperacao = "MANHA_SHOPPING";
+let modoOperacao = "AUTOMATICO";
 let modoManualOverridden = false;
-
-async function emitirSistemaGeral(ioInstance) {
-    const frotaCadastrada = await carregarFrotaDoBanco();
-    const usuariosAdmCadastrados = await carregarUsuariosAdmDoBanco();
-
-    const listaConectadosArray = Object.values(motoristasConectados).map(m => ({
-        idTaxi: m.idTaxi,
-        nome: m.nome,
-        status: m.status
-    }));
-
-    ioInstance.emit('atualizarSistema', { 
-        fila: filaGeral, 
-        modo: modoOperacao, 
-        frota: frotaCadastrada, 
-        usuariosAdm: usuariosAdmCadastrados, 
-        historico: historicoAudio, 
-        recusas: historicoRecusas, 
-        corridas: historicoCorridas,
-        conectados: listaConectadosArray
-    });
-}
+let pa2Fechado = false; // 🛑 Flag para fechar o PA2 temporariamente (Eventos do Shopping)
+let filaGeral = [];
+let motoristasConectados = {};
+let chamadasPendentes = {};
+let idEmTransmissaoPTT = null;
 
 function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
@@ -236,9 +214,10 @@ function redistribuirVagas() {
     const totalCarros = filaGeral.length;
     filaGeral.forEach(c => c.setor = 'Aguardando Vaga');
 
-    if (modoOperacao === "SO_PH") {
+    if (modoOperacao === "SO_PH" || modoOperacao === "BAIXA_FROTA") {
+        const capacidadePH = PONTOS_FISICOS.PH.capacidade;
         filaGeral.forEach((carro, idx) => {
-            carro.setor = (idx < PONTOS_FISICOS.PH.capacidade) ? 'PH' : 'Aguardando PH';
+            carro.setor = (idx < capacidadePH) ? 'PH' : 'Aguardando PH';
         });
         return;
     }
@@ -247,9 +226,11 @@ function redistribuirVagas() {
         filaGeral.forEach((carro, idx) => {
             if (idx === 0) {
                 carro.setor = 'PA4';
-            } else if (idx === 1) {
+            } else if (idx === 1 && !pa2Fechado) {
                 carro.setor = 'PA2';
-            } else if (idx - 2 < PONTOS_FISICOS.PH.capacidade) {
+            } else if (idx === (pa2Fechado ? 1 : 2) - 1 < PONTOS_FISICOS.PA4.capacidade && pa2Fechado) {
+                carro.setor = 'PA4';
+            } else if (idx - (pa2Fechado ? 1 : 2) < PONTOS_FISICOS.PH.capacidade) {
                 carro.setor = 'PH';
             } else {
                 carro.setor = 'Aguardando PH';
@@ -259,21 +240,28 @@ function redistribuirVagas() {
     }
 
     let indiceAtribuicao = 0;
-    const vagasPA4 = Math.min(PONTOS_FISICOS.PA4.capacidade, totalCarros - indiceAtribuicao);
+    
+    // Se o PA2 estiver fechado por evento, absorvemos +3 ou +4 vagas extras no PA4
+    const capacidadePA4Real = pa2Fechado ? (PONTOS_FISICOS.PA4.capacidade + 4) : PONTOS_FISICOS.PA4.capacidade;
+    const vagasPA4 = Math.min(capacidadePA4Real, totalCarros - indiceAtribuicao);
     for (let i = 0; i < vagasPA4; i++) { 
         filaGeral[indiceAtribuicao].setor = 'PA4'; 
         indiceAtribuicao++; 
     }
 
-    const mesAtual = new Date().getMonth() + 1;
-    const mesDezembro = (mesAtual === 12);
-    const phAberto = filaGeral.some(c => c.pontoFisicoReal === 'PH');
-    const limitePA2 = (mesDezembro && !phAberto) ? 10 : PONTOS_FISICOS.PA2.capacidade;
+    // Se o PA2 estiver fechado, pulamos a atribuição dele inteiramente
+    let vagasPA2 = 0;
+    if (!pa2Fechado) {
+        const mesAtual = new Date().getMonth() + 1;
+        const mesDezembro = (mesAtual === 12);
+        const phAberto = filaGeral.some(c => c.pontoFisicoReal === 'PH');
+        const limitePA2 = (mesDezembro && !phAberto) ? 10 : PONTOS_FISICOS.PA2.capacidade;
 
-    const vagasPA2 = Math.min(limitePA2, totalCarros - indiceAtribuicao);
-    for (let i = 0; i < vagasPA2; i++) { 
-        filaGeral[indiceAtribuicao].setor = 'PA2'; 
-        indiceAtribuicao++; 
+        vagasPA2 = Math.min(limitePA2, totalCarros - indiceAtribuicao);
+        for (let i = 0; i < vagasPA2; i++) { 
+            filaGeral[indiceAtribuicao].setor = 'PA2'; 
+            indiceAtribuicao++; 
+        }
     }
 
     const vagasPH = Math.min(PONTOS_FISICOS.PH.capacidade, totalCarros - indiceAtribuicao);
@@ -289,24 +277,26 @@ function redistribuirVagas() {
 
 setInterval(() => {
     redistribuirVagas();
-    emitirSistemaGeral(io);
+    io.emit('atualizarSistema', { 
+        fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, 
+        usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, 
+        recusas: historicoRecusas, corridas: historicoCorridas,
+        emTransmissaoPTT: idEmTransmissaoPTT 
+    });
 }, 30 * 1000);
 
-// ROTAS DE PÁGINAS E ESTÁTICOS
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
 app.get('/admin.html', (req, res) => res.sendFile(__dirname + '/www/admin.html'));
 app.get('/motorista.html', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
 app.get('/motorista', (req, res) => res.sendFile(__dirname + '/www/motorista.html'));
 app.use('/audios', express.static(PASTA_AUDIOS));
 
-// ROTA EXCLUSIVA PARA ESCANEAR O QR CODE DO WHATSAPP EM IMAGEM LIMPA
 app.get('/qr', (req, res) => {
     const qr = obterQrCodeAtual();
     if (!qr) {
         return res.send(`
             <div style="font-family:sans-serif; text-align:center; padding:50px; background:#121212; color:white; height:100vh;">
                 <h2>✅ WhatsApp já está conectado ou aguardando inicialização!</h2>
-                <p>Se o WhatsApp estiver desconectado, aguarde alguns segundos e recarregue a página (F5).</p>
             </div>
         `);
     }
@@ -320,194 +310,207 @@ app.get('/qr', (req, res) => {
                 <div style="background:white; padding:15px; border-radius:12px; margin:20px 0;">
                     <img src="${imgUrl}" alt="QR Code" style="display:block;" />
                 </div>
-                <p style="color:#aaa;">Atualize a página (F5) se o QR Code expirar.</p>
             </body>
         </html>
     `);
 });
 
-// EVENTOS SOCKET.IO
-io.on('connection', async (socket) => {
-    await emitirSistemaGeral(socket);
+io.on('connection', (socket) => {
+    const listaConectadosArray = Object.values(motoristasConectados).map(m => ({
+        idTaxi: m.idTaxi, nome: m.nome, status: m.status
+    }));
 
-    socket.on('adminLimparSistemaGeral', async () => {
-        try {
-            await db.query('DELETE FROM motoristas;');
-            filaGeral = [];
-            chamadasPendentes = {};
-            motoristasConectados = {};
-            console.log("🧹 BANCO DE DADOS E MEMÓRIA ZERADOS VIA ADMIN!");
-            await emitirSistemaGeral(io);
-            io.emit('forcarStatusLivreGeral');
-        } catch (e) {
-            console.error("❌ Erro ao limpar banco via admin:", e);
-        }
+    socket.emit('atualizarSistema', { 
+        fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, 
+        usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio,
+        recusas: historicoRecusas, corridas: historicoCorridas,
+        conectados: listaConectadosArray, emTransmissaoPTT: idEmTransmissaoPTT
     });
 
-    socket.on('loginAdm', async (dados) => {
+    socket.on('adminLimparSistemaGeral', () => {
+        filaGeral = [];
+        chamadasPendentes = {};
+        idEmTransmissaoPTT = null;
+
+        for (let chave in frotaCadastrada) {
+            frotaCadastrada[chave].bloqueioRecusa = false;
+        }
+        salvarFrota();
+
+        for (let idTaxi in motoristasConectados) {
+            motoristasConectados[idTaxi].status = "LIVRE";
+        }
+
+        io.emit('atualizarSistema', { 
+            fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, 
+            usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, 
+            recusas: historicoRecusas, corridas: historicoCorridas,
+            emTransmissaoPTT: null
+        });
+
+        io.emit('forcarStatusLivreGeral');
+        io.emit('canalLivre');
+    });
+
+    // 🛑 CONTROLE DO BOTÃO DE FECHAMENTO DO PA2 (EVENTOS DO SHOPPING)
+    socket.on('alternarStatusPA2', (statusFechado) => {
+        pa2Fechado = Boolean(statusFechado);
+        redistribuirVagas();
+        io.emit('atualizarSistema', { 
+            fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, 
+            usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, 
+            recusas: historicoRecusas, corridas: historicoCorridas,
+            emTransmissaoPTT: idEmTransmissaoPTT 
+        });
+    });
+
+    socket.on('loginAdm', (dados) => {
         const usuarioKey = dados.usuario.trim().toLowerCase();
-        try {
-            const usuariosAdmCadastrados = await carregarUsuariosAdmDoBanco();
-            const userObj = usuariosAdmCadastrados[usuarioKey];
+        const userObj = usuariosAdmCadastrados[usuarioKey];
 
-            if (!userObj) {
-                socket.emit('loginErro', { mensagem: "Usuário administrativo não encontrado." });
-                return;
-            }
-            if (String(userObj.senha).trim() !== String(dados.senha).trim()) {
-                socket.emit('loginErro', { mensagem: "Senha incorreta." });
-                return;
-            }
-            socket.emit('loginAdmSucesso', { usuario: userObj, historicoAudio: historicoAudio });
+        if (!userObj || userObj.senha !== dados.senha) {
+            socket.emit('loginErro', { mensagem: "Credenciais administrativas incorretas." });
+            return;
+        }
+        socket.emit('loginAdmSucesso', { usuario: userObj, historicoAudio: historicoAudio });
 
-            if (checarAniversarioApp()) {
-                socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje!" });
-            }
-        } catch (err) {
-            socket.emit('loginErro', { mensagem: "Erro interno no servidor." });
+        if (checarAniversarioApp()) {
+            socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
         }
     });
 
-    socket.on('salvarCarroFrota', async (dados) => {
-        const numeroCarro = String(dados.idAntigo || dados.numero || '').trim();
+    socket.on('cadastrarCarro', (dados) => {
+        const loginGerado = `Carro.${dados.numero}`;
+        frotaCadastrada[loginGerado] = {
+            numero: dados.numero,
+            placa: (dados.placa || '').trim().toUpperCase(),
+            login: loginGerado,
+            nome: dados.nome,
+            modelo: dados.modelo,
+            cargo: dados.cargo || "Comum",
+            telefones: dados.telefones,
+            senha: dados.senha,
+            ehModerador: Boolean(dados.ehModerador),
+            statusRadio: "ONLINE",
+            mutadoAte: null,
+            banidoAte: null,
+            bloqueioRecusa: false
+        };
+        salvarFrota();
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        socket.emit('cadastroSucesso', { login: loginGerado });
+    });
+
+    socket.on('salvarCarroFrota', (dados) => {
+        const numeroCarro = String(dados.idAntigo || dados.numero || '').replace(/[^0-9]/g, '').trim();
         const loginGerado = `Carro.${numeroCarro}`;
-        const senhaLimpa = String(dados.senha || '123').trim();
+        const senhaInformada = dados.senha ? String(dados.senha).trim() : null;
         const telefonesArray = dados.telefone ? [String(dados.telefone).trim()] : [];
 
-        try {
-            if (dados.idAntigo) {
-                await db.query(
-                    `UPDATE motoristas SET placa = $1, nome = $2, modelo = $3, telefones = $4, eh_moderador = $5, senha_hash = $6 WHERE login = $7`,
-                    [(dados.placa || '').trim().toUpperCase(), dados.nome, dados.modelo || 'Padrão', telefonesArray, Boolean(dados.ehModerador), senhaLimpa, loginGerado]
-                );
-            } else {
-                await db.query(
-                    `INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, telefones, senha_hash, eh_moderador, status_radio) 
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                     ON CONFLICT (login) DO UPDATE SET nome = $4, placa = $2, modelo = $5, telefones = $7, senha_hash = $8, eh_moderador = $9`,
-                    [numeroCarro, (dados.placa || '').trim().toUpperCase(), loginGerado, dados.nome, dados.modelo || 'Padrão', "Comum", telefonesArray, senhaLimpa, Boolean(dados.ehModerador), "ONLINE"]
-                );
-            }
-            await emitirSistemaGeral(io);
-        } catch (e) {
-            console.error("❌ Erro ao salvar frota:", e);
+        if (frotaCadastrada[loginGerado]) {
+            frotaCadastrada[loginGerado].placa = (dados.placa || '').trim().toUpperCase();
+            frotaCadastrada[loginGerado].nome = dados.nome;
+            frotaCadastrada[loginGerado].modelo = dados.modelo || 'Padrão';
+            frotaCadastrada[loginGerado].telefones = telefonesArray;
+            frotaCadastrada[loginGerado].ehModerador = Boolean(dados.ehModerador);
+            if (senhaInformada) frotaCadastrada[loginGerado].senha = senhaInformada;
+        } else {
+            frotaCadastrada[loginGerado] = {
+                numero: numeroCarro,
+                placa: (dados.placa || '').trim().toUpperCase(),
+                login: loginGerado,
+                nome: dados.nome,
+                modelo: dados.modelo || 'Padrão',
+                cargo: "Comum",
+                telefones: telefonesArray,
+                senha: senhaInformada || '123',
+                ehModerador: Boolean(dados.ehModerador),
+                statusRadio: "ONLINE",
+                mutadoAte: null, banidoAte: null, bloqueioRecusa: false
+            };
         }
+        salvarFrota();
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
     });
 
-    socket.on('excluirFrota', async (dados) => {
-        const loginBusca = `Carro.${dados.id || dados.login?.replace('Carro.', '')}`;
-        try {
-            await db.query('DELETE FROM motoristas WHERE login = $1', [loginBusca]);
-            const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === String(dados.id));
+    socket.on('excluirFrota', (dados) => {
+        const numLimpo = String(dados.id || dados.login || '').replace(/[^0-9]/g, '');
+        const chaveBusca = `Carro.${numLimpo}`;
+        if (frotaCadastrada[chaveBusca]) {
+            delete frotaCadastrada[chaveBusca];
+            salvarFrota();
+            const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === numLimpo);
             if (indexFila !== -1) {
                 filaGeral.splice(indexFila, 1);
                 redistribuirVagas();
             }
-            await emitirSistemaGeral(io);
-        } catch (e) {}
+            io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        }
     });
 
-    socket.on('resetarSenhaFrota', async (dados) => {
-        const loginBusca = `Carro.${dados.id || dados.login?.replace('Carro.', '')}`;
-        const novaSenha = String(dados.novaSenha || '123').trim();
-        try {
-            await db.query('UPDATE motoristas SET senha_hash = $1 WHERE login = $2', [novaSenha, loginBusca]);
-            await emitirSistemaGeral(io);
-        } catch (e) {}
+    socket.on('resetarSenhaFrota', (dados) => {
+        const numLimpo = String(dados.id || dados.login || '').replace(/[^0-9]/g, '');
+        const chaveBusca = `Carro.${numLimpo}`;
+        if (frotaCadastrada[chaveBusca]) {
+            frotaCadastrada[chaveBusca].senha = String(dados.novaSenha || '123').trim();
+            salvarFrota();
+            socket.emit('senhaResetadaSucesso', { login: chaveBusca });
+        }
     });
 
-    socket.on('loginMotorista', async (dados) => {
-        const loginEntrada = String(dados.login || '').trim();
-        const senhaDigitada = String(dados.senha || '').trim();
-        const numeroLimpo = loginEntrada.replace(/[^0-9]/g, '');
+    socket.on('loginMotorista', (dados) => {
+        const idStr = String(dados.login).replace('Carro.', '').replace(/[^0-9]/g, '');
+        const carro = frotaCadastrada[dados.login] || frotaCadastrada[`Carro.${idStr}`];
+        if (!carro || carro.senha !== dados.senha) {
+            socket.emit('loginErro', { mensagem: "Login ou senha incorretos." });
+            return;
+        }
 
-        console.log(`🔑 Tentativa de login -> Recebido: "${loginEntrada}" | Núm: "${numeroLimpo}" | Senha: "${senhaDigitada}"`);
+        motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id };
+        socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio });
 
-        try {
-            const queryRes = await db.query(
-                `SELECT * FROM motoristas 
-                 WHERE LOWER(login) = LOWER($1) 
-                    OR numero = $2 
-                    OR login = $2 
-                 LIMIT 1`,
-                [`Carro.${numeroLimpo}`, numeroLimpo]
-            );
-
-            if (queryRes.rows.length === 0) {
-                console.log(`❌ Login falhou: Carro.${numeroLimpo} não encontrado.`);
-                socket.emit('loginErro', { mensagem: `Veículo Carro.${numeroLimpo || loginEntrada} não cadastrado.` });
-                return;
-            }
-
-            const carroBanco = queryRes.rows[0];
-            const senhaBanco = String(carroBanco.senha_hash || '').trim();
-
-            if (senhaBanco !== senhaDigitada) {
-                console.log(`❌ Senha incorreta para o ${carroBanco.login}.`);
-                socket.emit('loginErro', { mensagem: "Senha incorreta. Verifique no painel Admin." });
-                return;
-            }
-
-            const idStr = String(carroBanco.numero || numeroLimpo);
-            const objetoMotorista = {
-                idTaxi: idStr,
-                numero: idStr,
-                placa: carroBanco.placa,
-                login: carroBanco.login,
-                nome: carroBanco.nome,
-                modelo: carroBanco.modelo,
-                cargo: carroBanco.cargo,
-                ehModerador: carroBanco.eh_moderador
-            };
-
-            motoristasConectados[idStr] = { 
-                idTaxi: idStr, 
-                nome: carroBanco.nome, 
-                status: "LIVRE", 
-                socketId: socket.id 
-            };
-
-            console.log(`✔ LOGIN AUTORIZADO: ${carroBanco.login} (${carroBanco.nome})`);
-            
-            socket.emit('loginSucesso', { carro: objetoMotorista, idTaxi: idStr, historicoAudio: historicoAudio });
-            await emitirSistemaGeral(io);
-
-        } catch (err) {
-            console.error("❌ Erro ao validar login:", err);
-            socket.emit('loginErro', { mensagem: "Erro no servidor ao validar o acesso." });
+        if (checarAniversarioApp()) {
+            socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
         }
     });
 
     socket.on('solicitarCanalPTT', (dados) => {
-        socket.broadcast.emit('canalOcupado', { idTaxi: dados.idTaxi, nome: dados.nome });
+        const idTransmissor = String(dados.idTaxi);
+        const ehAdmOuFiscal = (idTransmissor === 'ADM' || idTransmissor === 'Fiscal' || dados.ehModerador === true);
+
+        if (idEmTransmissaoPTT && idEmTransmissaoPTT !== idTransmissor && ehAdmOuFiscal) {
+            io.emit('forcarCortePTT', { idAtivo: idEmTransmissaoPTT });
+        }
+
+        idEmTransmissaoPTT = idTransmissor;
+        socket.broadcast.emit('canalOcupado', { idTaxi: idTransmissor, nome: dados.nome });
     });
 
     socket.on('liberarCanalPTT', () => {
+        idEmTransmissaoPTT = null;
         io.emit('canalLivre');
     });
 
-    socket.on('transmitirAudioPTT', async (dados) => {
+    socket.on('transmitirAudioPTT', (dados) => {
         let idIdentificacao = dados.idTaxi;
-        let nomeMotorista = "Fiscal / Central";
+        let nomeMotorista = dados.nomeMotorista || "Fiscal / Central";
         let modeloCarro = "Painel ADM";
         let cargoPerfil = "FISCAL";
         let ehModeradorPerfil = true;
 
-        const frotaCadastrada = await carregarFrotaDoBanco();
-
         if (dados.idTaxi && dados.idTaxi !== 'ADM' && dados.idTaxi !== 'Fiscal') {
             const login = `Carro.${dados.idTaxi}`;
             const carro = frotaCadastrada[login];
-            if (!carro) return;
-
-            if (carro.mutadoAte && Date.now() < carro.mutadoAte) {
-                socket.emit('loginErro', { mensagem: "Sua fala está temporariamente silenciada pela moderação." });
-                return;
+            if (carro) {
+                if (carro.mutadoAte && Date.now() < carro.mutadoAte) {
+                    socket.emit('loginErro', { mensagem: "Sua fala está temporariamente silenciada pela moderação." });
+                    return;
+                }
+                nomeMotorista = carro.nome;
+                modeloCarro = carro.modelo;
+                cargoPerfil = carro.cargo;
+                ehModeradorPerfil = Boolean(carro.ehModerador);
             }
-            nomeMotorista = carro.nome;
-            modeloCarro = carro.modelo;
-            cargoPerfil = carro.cargo;
-            ehModeradorPerfil = Boolean(carro.ehModerador);
         }
 
         const nomeArquivo = `audio_${idIdentificacao}_${Date.now()}.webm`;
@@ -516,88 +519,71 @@ io.on('connection', async (socket) => {
         if (dados.audioBuffer) {
             fs.writeFile(caminhoCompleto, Buffer.from(dados.audioBuffer), (err) => {
                 if (!err) {
-                    const relUrl = `/audios/${nomeArquivo}`;
-
                     const registroHistorico = {
-                        id: Date.now(), 
-                        timestamp: Date.now(), 
-                        idTaxi: String(idIdentificacao),
-                        nomeMotorista: nomeMotorista, 
-                        modelo: modeloCarro, 
-                        cargo: cargoPerfil,
-                        ehModerador: ehModeradorPerfil, 
-                        arquivo: nomeArquivo,
-                        audioUrl: relUrl, 
-                        duracao: dados.duracao || "0s",
-                        dataHora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                        id: Date.now(), timestamp: Date.now(), idTaxi: String(idIdentificacao),
+                        nomeMotorista: nomeMotorista, modelo: modeloCarro, cargo: cargoPerfil,
+                        ehModerador: ehModeradorPerfil, arquivo: nomeArquivo,
+                        audioUrl: `/audios/${nomeArquivo}`, duracao: dados.duracao || "0s",
+                        dataHora: new Date().toLocaleString('pt-BR')
                     };
 
                     historicoAudio.unshift(registroHistorico);
                     if (historicoAudio.length > 500) historicoAudio.pop();
 
+                    salvarHistoricoPTTNaNuvem();
+                    idEmTransmissaoPTT = null;
+
                     io.emit('receberAudioPTT', {
-                        idTaxi: String(idIdentificacao), 
-                        nomeMotorista: nomeMotorista, 
-                        cargo: cargoPerfil,
-                        ehModerador: ehModeradorPerfil, 
-                        audioUrl: relUrl,
-                        duracao: dados.duracao || "0s",
-                        historico: historicoAudio
+                        idTaxi: String(idIdentificacao), nomeMotorista: nomeMotorista, cargo: cargoPerfil,
+                        ehModerador: ehModeradorPerfil, audioUrl: `/audios/${nomeArquivo}`,
+                        duracao: dados.duracao || "0s", historico: historicoAudio
                     });
-                } else {
-                    console.error("Erro ao salvar áudio local no Render:", err);
+                    
+                    io.emit('canalLivre');
                 }
             });
         }
     });
 
-    socket.on('cadastrarAdm', async (dados) => {
-        const key = (dados.usuario || '').trim().toLowerCase();
-        if (!key || !dados.senha || !dados.nome) { return; }
-        try {
-            await db.query(
-                `INSERT INTO administradores (usuario, senha_hash, nome, cargo) VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (usuario) DO UPDATE SET senha_hash = $2, nome = $3, cargo = $4`,
-                [key, dados.senha.trim(), dados.nome.trim(), dados.cargo || 'FISCAL']
-            );
-            await emitirSistemaGeral(io);
-        } catch (e) {}
+    socket.on('alterarModoOperacao', (novoModo) => {
+        if (novoModo === 'AUTOMATICO') {
+            modoManualOverridden = false;
+            redistribuirVagas();
+        } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
+            modoOperacao = novoModo;
+            modoManualOverridden = true;
+            redistribuirVagas();
+        }
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
     });
 
-    socket.on('limparHistoricoPTT', () => {
-        try {
-            if (fs.existsSync(PASTA_AUDIOS)) {
-                fs.readdirSync(PASTA_AUDIOS).forEach(file => fs.unlinkSync(path.join(PASTA_AUDIOS, file)));
-            }
-        } catch (e) {}
-        historicoAudio = [];
-        emitirSistemaGeral(io);
-        io.emit('receberAudioPTT', { historico: [] });
+    socket.on('chamarCorrida', () => {
+        if (filaGeral.length === 0) return;
+        const motorista = filaGeral[0];
+        filaGeral.shift();
+        redistribuirVagas();
+
+        const chamadoFinal = { idTaxi: motorista.idTaxi, nome: motorista.nome, origem: 'Fila Geral (Painel Fiscal)' };
+        if (motoristasConectados[motorista.idTaxi]) {
+            motoristasConectados[motorista.idTaxi].status = "OCUPADO";
+            io.to(motoristasConectados[motorista.idTaxi].socketId).emit('forcarStatusOcupado');
+        }
+
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        io.emit('corridaAtribuida', chamadoFinal);
     });
 
-    socket.on('limparHistoricoRecusas', () => {
-        historicoRecusas = [];
-        emitirSistemaGeral(io);
-    });
-
-    socket.on('limparHistoricoCorridas', () => {
-        historicoCorridas = [];
-        emitirSistemaGeral(io);
-    });
-
-    socket.on('atualizarGPS', async (dados) => {
+    socket.on('atualizarGPS', (dados) => {
         const idTaxiStr = String(dados.idTaxi);
         const login = `Carro.${idTaxiStr}`;
-        const frotaCadastrada = await carregarFrotaDoBanco();
         const veiculo = frotaCadastrada[login];
 
         if (veiculo && veiculo.banidoAte && Date.now() < veiculo.banidoAte) return;
 
         if (veiculo && veiculo.bloqueioRecusa) {
             if (dados.simulacao === true) {
-                try {
-                    await db.query('UPDATE motoristas SET bloqueio_recusa = false WHERE login = $1', [login]);
-                } catch (e) {}
+                veiculo.bloqueioRecusa = false;
+                salvarFrota();
             }
         }
 
@@ -605,7 +591,6 @@ io.on('connection', async (socket) => {
 
         if (dados.status === "AUSENTE") {
             if (motoristasConectados[idTaxiStr]) motoristasConectados[idTaxiStr].status = "AUSENTE";
-            await emitirSistemaGeral(io);
             return; 
         }
 
@@ -617,7 +602,7 @@ io.on('connection', async (socket) => {
             if (indexFila !== -1) {
                 filaGeral.splice(indexFila, 1);
                 redistribuirVagas();
-                await emitirSistemaGeral(io);
+                io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
             }
             return;
         }
@@ -626,7 +611,7 @@ io.on('connection', async (socket) => {
         const distPA2 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA2.latitude, PONTOS_FISICOS.PA2.longitude);
         const distPA4 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA4.latitude, PONTOS_FISICOS.PA4.longitude);
 
-        let estaNoPonto = (distPH <= PONTOS_FISICOS.PH.raioMetros) || (distPA2 <= PONTOS_FISICOS.PA2.raioMetros) || (distPA4 <= PONTOS_FISICOS.PA4.raioMetros);
+        let estaNoPonto = (distPH <= PONTOS_FISICOS.PH.raioMetros) || (!pa2Fechado && distPA2 <= PONTOS_FISICOS.PA2.raioMetros) || (distPA4 <= PONTOS_FISICOS.PA4.raioMetros);
 
         const simulacaoForcada = dados.simulacao === true || (dados.latitude === PONTOS_FISICOS.PH.latitude && dados.longitude === PONTOS_FISICOS.PH.longitude);
         const naArea = simulacaoForcada || verificarDentroDaCerca([dados.latitude, dados.longitude], fronteiraPonto2216);
@@ -635,34 +620,214 @@ io.on('connection', async (socket) => {
             const novoCarroFila = {
                 idTaxi: idTaxiStr,
                 nome: dados.nome,
-                distanciaMetros: simulacaoForcada ? 0 : Math.min(Math.round(distPH), Math.round(distPA2), Math.round(distPA4)),
+                distanciaMetros: simulacaoForcada ? 0 : Math.min(Math.round(distPH), pa2Fechado ? 99999 : Math.round(distPA2), Math.round(distPA4)),
                 pontoFisicoReal: (distPH <= PONTOS_FISICOS.PH.raioMetros) ? 'PH' : 'OUTRO',
                 dataEntrada: new Date()
             };
 
             filaGeral.push(novoCarroFila);
             redistribuirVagas();
-            await emitirSistemaGeral(io);
+            io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
         }
     });
 
-    socket.on('disconnect', async () => {
+    socket.on('statusAusente', (dados) => {
+        const idTaxiStr = String(dados.idTaxi);
+        const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);
+        if (indexFila !== -1) {
+            filaGeral.splice(indexFila, 1);
+            redistribuirVagas();
+        }
+        if (motoristasConectados[idTaxiStr]) motoristasConectados[idTaxiStr].status = "AUSENTE";
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+    });
+
+    socket.on('aceitarCorridaMotorista', (dadosAceite) => {
+        confirmarEBaixarCorrida(dadosAceite.idChamada);
+    });
+
+    socket.on('recusarCorridaMotorista', (dadosRecusa) => {
+        const chamada = chamadasPendentes[dadosRecusa.idChamada];
+        if (!chamada || filaGeral.length === 0) return;
+
+        const motoristaRecusou = filaGeral[chamada.indiceTentativaAtual] || filaGeral[0];
+        const idTaxiRecusou = motoristaRecusou.idTaxi;
+        const loginRecusa = `Carro.${idTaxiRecusou}`;
+
+        const indexFila = filaGeral.findIndex(m => m.idTaxi === idTaxiRecusou);
+        if (indexFila !== -1) {
+            filaGeral.splice(indexFila, 1);
+            redistribuirVagas();
+        }
+
+        if (frotaCadastrada[loginRecusa]) {
+            frotaCadastrada[loginRecusa].bloqueioRecusa = true;
+            salvarFrota();
+        }
+
+        if (motoristasConectados[idTaxiRecusou] && motoristasConectados[idTaxiRecusou].socketId) {
+            io.to(motoristasConectados[idTaxiRecusou].socketId).emit('avisoRecusaBloqueio', { idTaxi: idTaxiRecusou });
+        }
+
+        historicoRecusas.unshift({
+            id: Date.now(), timestamp: Date.now(), idTaxi: idTaxiRecusou,
+            nomeMotorista: motoristaRecusou.nome, origemChamado: chamada.origem || "WhatsApp",
+            cliente: chamada.nomeCliente, dataHora: new Date().toLocaleString('pt-BR')
+        });
+        salvarHistoricoRecusas();
+
+        chamada.indiceTentativaAtual = 0; 
+        
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        dispararPonteiroFila(dadosRecusa.idChamada);
+    });
+
+    socket.on('cadastrarAdm', (dados) => {
+        const key = (dados.usuario || '').trim().toLowerCase();
+        if (!key || !dados.senha || !dados.nome) { return; }
+        usuariosAdmCadastrados[key] = { usuario: key, senha: dados.senha.trim(), nome: dados.nome.trim(), cargo: dados.cargo || 'FISCAL' };
+        salvarUsuariosAdm();
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+    });
+
+    socket.on('excluirAdm', (dados) => {
+        const key = (dados.usuario || '').trim().toLowerCase();
+        if (usuariosAdmCadastrados[key]) {
+            delete usuariosAdmCadastrados[key];
+            salvarUsuariosAdm();
+            io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        }
+    });
+
+    socket.on('limparHistoricoRecusas', () => {
+        historicoRecusas = [];
+        try { if (fs.existsSync(ARQUIVO_RECUSAS)) fs.unlinkSync(ARQUIVO_RECUSAS); } catch (e) {}
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+    });
+
+    socket.on('limparHistoricoPTT', () => {
+        try {
+            if (fs.existsSync(PASTA_AUDIOS)) {
+                fs.readdirSync(PASTA_AUDIOS).forEach(file => fs.unlinkSync(path.join(PASTA_AUDIOS, file)));
+            }
+            if (fs.existsSync(ARQUIVO_HISTORICO_PTT)) fs.unlinkSync(ARQUIVO_HISTORICO_PTT);
+        } catch (e) {}
+        historicoAudio = [];
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+        io.emit('receberAudioPTT', { historico: [] });
+    });
+
+    socket.on('limparHistoricoCorridas', () => {
+        historicoCorridas = [];
+        try { if (fs.existsSync(ARQUIVO_CORRIDAS)) fs.unlinkSync(ARQUIVO_CORRIDAS); } catch (e) {}
+        io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+    });
+
+    socket.on('disconnect', () => {
         for (const idTaxi in motoristasConectados) {
             if (motoristasConectados[idTaxi].socketId === socket.id) {
                 delete motoristasConectados[idTaxi];
                 break;
             }
         }
-        await emitirSistemaGeral(io);
     });
 });
 
-iniciarBotWhatsApp((dados) => {
-    if (filaGeral.length === 0) return false;
+function dispararPonteiroFila(idChamadaFixa) {
+    if (filaGeral.length === 0) return;
+    const chamada = chamadasPendentes[idChamadaFixa];
+    if (!chamada) return;
+
+    if (chamada.indiceTentativaAtual >= filaGeral.length) chamada.indiceTentativaAtual = 0;
+    const motorista = filaGeral[chamada.indiceTentativaAtual];
+    const idTaxiStr = String(motorista.idTaxi);
+
+    chamada.idTaxi = idTaxiStr;
+    chamada.nomeMotorista = motorista.nome;
+
+    const dadosMotorista = motoristasConectados[idTaxiStr];
+    if (dadosMotorista && dadosMotorista.socketId) {
+        io.to(dadosMotorista.socketId).emit('ofertaCorrida', { idChamada: idChamadaFixa, cliente: chamada.nomeCliente, local: chamada.origem });
+    }
+}
+
+function confirmarEBaixarCorrida(idChamada) {
+    const chamada = chamadasPendentes[idChamada];
+    if (!chamada) return;
+
+    const idTaxiStr = String(chamada.idTaxi);
+    const indexAtual = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);
+    if (indexAtual !== -1) {
+        filaGeral.splice(indexAtual, 1);
+        redistribuirVagas();
+    }
+
+    const veiculoObj = frotaCadastrada[`Carro.${idTaxiStr}`];
+    const dadosAtribuicao = {
+        idTaxi: idTaxiStr, 
+        modelo: veiculoObj ? veiculoObj.modelo : "Veículo",
+        placa: veiculoObj ? veiculoObj.placa : "ABC1D00", 
+        nome: chamada.nomeMotorista,
+        origem: chamada.origem || "WhatsApp", 
+        nomeCliente: chamada.nomeCliente,
+        lat: chamada.lat || null,
+        lon: chamada.lon || null
+    };
+
+    if (motoristasConectados[idTaxiStr]) {
+        motoristasConectados[idTaxiStr].status = "OCUPADO";
+        io.to(motoristasConectados[idTaxiStr].socketId).emit('forcarStatusOcupado');
+    }
+
+    historicoCorridas.unshift({
+        id: Date.now(), dataHora: new Date().toLocaleString('pt-BR'),
+        telefoneCliente: chamada.jidCliente ? chamada.jidCliente.split('@')[0] : "Não informado",
+        nomeCliente: chamada.nomeCliente, origem: chamada.origem || "WhatsApp",
+        idTaxi: idTaxiStr, nomeMotorista: chamada.nomeMotorista, placa: veiculoObj ? veiculoObj.placa : ""
+    });
+    salvarHistoricoCorridas();
+
+    if (chamada.jidCliente && chamada.sockWhatsApp) {
+        const tempoEstimado = chamada.origem === "G3 do Carrefour" ? "3 minutos" : "8 minutos";
+        
+        const mensagemFinal = `🚕 *TÁXI CONFIRMADO!*\n\n` +
+                            `👤 *Passageiro(a):* ${dadosAtribuicao.nomeCliente}\n` +
+                            `👨‍✈️ *Motorista:* ${dadosAtribuicao.nome}\n` +
+                            `🚘 *Veículo:* ${dadosAtribuicao.modelo}\n` +
+                            `📋 *Placa:* ${dadosAtribuicao.placa}\n\n` +
+                            `⏱️ *Previsão de chegada:* aprox. ${tempoEstimado}\n\n` +
+                            `⚠️ Aguarde no local *(se for condomínio, aguardar na portaria)*, o seu táxi está a caminho!`;
+
+        chamada.sockWhatsApp.sendMessage(chamada.jidCliente, { text: mensagemFinal }).catch(e => console.error("Erro ao enviar WhatsApp:", e));
+    }
+
+    liberarClienteWhatsApp(chamada.jidCliente);
+
+    io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
+    io.emit('corridaAtribuida', dadosAtribuicao);
+    delete chamadasPendentes[idChamada];
+}
+
+function solicitarCorridaViaWhatsApp(dados) {
+    if (filaGeral.length === 0) return false; 
+
     const idChamada = "CORRIDA_WA_" + Date.now();
-    chamadasPendentes[idChamada] = { idChamada, nomeCliente: dados.nomeCliente, jidCliente: dados.jidCliente, sockWhatsApp: dados.sockWhatsApp, indiceTentativaAtual: 0, origem: dados.origem || "WhatsApp" };
+    chamadasPendentes[idChamada] = { 
+        idChamada: idChamada, 
+        nomeCliente: dados.nomeCliente, 
+        jidCliente: dados.jidCliente, 
+        sockWhatsApp: dados.sockWhatsApp, 
+        indiceTentativaAtual: 0, 
+        origem: dados.origem || "WhatsApp",
+        lat: dados.lat || null,
+        lon: dados.lon || null
+    };
+    
+    dispararPonteiroFila(idChamada);
     return true;
-});
+}
+
+iniciarBotWhatsApp(solicitarCorridaViaWhatsApp);
 
 const PORTA = process.env.PORT || 3000;
-server.listen(PORTA, () => console.log(`🚖 Servidor Taxi Conecta pronto na porta ${PORTA}!`));
+server.listen(PORTA, () => console.log(`🚖 Servidor Ponto 2216 rodando na nuvem na porta ${PORTA} com Fila Inteligente, PTT Central e Controle de Eventos do Shopping!`));

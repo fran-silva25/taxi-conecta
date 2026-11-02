@@ -63,7 +63,6 @@
         body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; }
         .container { max-width: 1200px; width: 100%; margin: 0 auto; background: var(--bg-container); padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 2px solid var(--amarelo-ponto); min-height: 600px; box-sizing: border-box; }
         
-        /* BANNER COM BOTÕES NAS EXTREMIDADES DA MESMA LINHA */
         .banner-ponto-2216 { 
             background: #000000; 
             border: 2px solid #ffcc00; 
@@ -110,7 +109,6 @@
         .card { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--borda-card); margin-bottom: 15px; box-sizing: border-box; }
         .card h3 { margin-top: 0; font-size: 16px; color: var(--texto-principal); }
 
-        /* TABELAS ADAPTÁVEIS PARA TABLET E WINDOWS */
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: var(--bg-card); border-radius: 8px; overflow: hidden; min-width: 600px; }
         th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--borda-card); font-size: 13px; vertical-align: middle; white-space: nowrap; }
@@ -152,15 +150,16 @@
         .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
         .audio-item { background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
 
+        /* ESTADOS DO BOTÃO PTT DO FISCAL / CENTRAL */
         .btn-ptt-fiscal {
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             background: var(--amarelo-ponto);
             color: #000;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            border: 4px solid #d9a700;
+            border: 5px solid #d9a700;
             cursor: pointer;
             margin: 10px auto;
             display: flex;
@@ -169,18 +168,70 @@
             flex-direction: column;
             box-shadow: 0 4px 15px rgba(230, 184, 0, 0.4);
             user-select: none;
+            text-align: center;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
         }
         .btn-ptt-fiscal.transmitindo {
+            background: #007bff !important;
+            color: white !important;
+            border-color: #0056b3 !important;
+            box-shadow: 0 0 25px rgba(0, 123, 255, 0.8) !important;
+        }
+        .btn-ptt-fiscal.ouvindo {
             background: #dc2626 !important;
             color: white !important;
             border-color: #991b1b !important;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important;
+        }
+
+        /* TOGGLE SWITCH ESTILO PARA O PA2 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-body);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--borda-card);
+            margin-top: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 54px;
+            height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #64748b;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #dc2626; /* Vermelho indicando PA2 fechado/evento */
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- BANNER COM BOTÃO TEMA NA ESQUERDA E SAIR NA DIREITA -->
     <div class="banner-ponto-2216">
         <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
         <span class="texto-banner-ponto">PONTO 2216 - ADMIN / FISCAL</span>
@@ -230,6 +281,18 @@
                     <button onclick="alterarModo('BAIXA_FROTA')" style="flex: 1; background: #3b82f6; color: #fff;">Baixa Frota</button>
                 </div>
                 <p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="labelModoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
+
+                <!-- BOTÃO DE CONTROLE DO PA2 (EVENTOS DO SHOPPING) -->
+                <div class="switch-container">
+                    <div>
+                        <strong style="font-size: 14px; display: block;">🚧 Fechar PA2 temporariamente (Eventos / Feiras)</strong>
+                        <small style="color: var(--texto-secundario);" id="statusPa2Desc">Quando ativo, o PA2 é desativado e as vagas somam ao PA4.</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="checkPa2Fechado" onchange="mudarStatusPA2(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
 
             <div class="card">
@@ -309,7 +372,9 @@
         <div id="tabRadio" class="secao">
             <div class="card" style="text-align: center;">
                 <h3 style="color: var(--amarelo-ponto);">📻 Microfone PTT da Central / Telefone Fixo</h3>
-                <p style="font-size: 13px; color: var(--texto-secundario);">Segure o botão abaixo para anunciar corridas do telefone fixo para toda a frota conectada.</p>
+                <p style="font-size: 13px; color: var(--texto-secundario);">
+                    Segure para falar com a frota. Se um motorista estiver falando (botão vermelho), aperte para <strong>interromper</strong> e assumir o canal.
+                </p>
                 <button id="btnPTTFiscal" class="btn-ptt-fiscal">
                     <span>🎙️</span>
                     <span id="labelPTTFiscal" style="font-size: 11px; margin-top: 4px;">SEGURE<br>P/ FALAR</span>
@@ -430,6 +495,20 @@
     let tempoInicioFiscal = 0;
     let dadosCacheFrota = {};
     let dadosCacheAdms = {};
+    let estadoCanalCentral = 'LIVRE';
+
+    // DESTRAVAMENTO DE ÁUDIO AUTOMÁTICO EM SEGUNDO PLANO
+    let audioContextDestravado = false;
+    function destravarAudioAutomatica() {
+        if (!audioContextDestravado) {
+            const audioElement = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==");
+            audioElement.play().then(() => {
+                audioContextDestravado = true;
+            }).catch(() => {});
+        }
+    }
+    document.addEventListener('click', destravarAudioAutomatica, { once: true });
+    document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
 
     window.addEventListener('DOMContentLoaded', () => {
         const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
@@ -478,10 +557,16 @@
     }
 
     function executarLimpezaGeralSistema() {
-        if (confirm("⚠️ Deseja realmente executar a Limpeza Geral do sistema?")) {
+        if (confirm("⚠️ Deseja realmente executar a Limpeza Geral do sistema?\n\nIsso limpará as filas ativas, chamadas pendentes e histórico em memória.\nA FROTA CADASTRADA PERMANECERÁ PRESERVADA.")) {
             socket.emit('adminLimparSistemaGeral');
-            alert("✅ Sistema limpo com sucesso!");
+            alert("✅ Limpeza geral executada com sucesso!");
         }
+    }
+
+    // 🛑 FUNÇÃO PARA DISPARAR A ALTERAÇÃO DO PA2
+    function mudarStatusPA2(checkbox) {
+        const fechado = checkbox.checked;
+        socket.emit('alternarStatusPA2', fechado);
     }
 
     socket.on('alertaRecusaAdmin', (dados) => {
@@ -505,6 +590,20 @@
 
     socket.on('atualizarSistema', (dados) => {
         if (dados.modo) document.getElementById('labelModoAtual').innerText = dados.modo;
+        
+        // Sincroniza o botão de toggle do PA2 com o estado do servidor
+        if (typeof dados.pa2Fechado !== 'undefined') {
+            const chk = document.getElementById('checkPa2Fechado');
+            const desc = document.getElementById('statusPa2Desc');
+            if (chk) chk.checked = dados.pa2Fechado;
+            if (desc) {
+                desc.innerText = dados.pa2Fechado 
+                    ? "⚠️ PA2 FECHADO (Evento/Shopping). Vagas somadas ao PA4!" 
+                    : "Quando ativo, o PA2 é desativado e as vagas somam ao PA4.";
+                desc.style.color = dados.pa2Fechado ? "#dc2626" : "var(--texto-secundario)";
+            }
+        }
+
         if (dados.fila) renderizarFila(dados.fila);
         if (dados.frota) {
             dadosCacheFrota = dados.frota;
@@ -519,9 +618,53 @@
         if (dados.corridas) renderizarCorridas(dados.corridas);
     });
 
-    socket.on('receberAudioPTT', (dados) => {
-        if (dados.historico) renderizarAudioAdm(dados.historico);
+    // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
+    socket.on('canalOcupado', (dados) => {
+        if (dados.idTaxi !== 'Fiscal' && dados.idTaxi !== 'ADM') {
+            setEstadoPTTFiscal('OUVINDO', dados.nome);
+        }
     });
+
+    // CANAL LIVRE (RESTAURA O BOTÃO DO FISCAL)
+    socket.on('canalLivre', () => {
+        if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
+    });
+
+    // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA
+    socket.on('receberAudioPTT', (dados) => {
+        setEstadoPTTFiscal('STANDBY');
+        if (dados.historico) renderizarAudioAdm(dados.historico);
+
+        if (dados.audioUrl) {
+            destravarAudioAutomatica();
+            const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
+            const audio = new Audio(urlAudioFinal);
+            audio.play().catch(() => {});
+        }
+    });
+
+    // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
+    function setEstadoPTTFiscal(estado, nomeFalante = "") {
+        const btn = document.getElementById('btnPTTFiscal');
+        const lbl = document.getElementById('labelPTTFiscal');
+        if (!btn || !lbl) return;
+
+        if (estado === 'STANDBY') {
+            btn.className = 'btn-ptt-fiscal';
+            lbl.innerHTML = "SEGURE<br>P/ FALAR";
+            gravandoFiscal = false;
+            estadoCanalCentral = 'LIVRE';
+        } else if (estado === 'TRANSMITINDO') {
+            btn.className = 'btn-ptt-fiscal transmitindo';
+            lbl.innerText = "CENTRAL TRANSMITINDO...";
+            gravandoFiscal = true;
+        } else if (estado === 'OUVINDO') {
+            btn.className = 'btn-ptt-fiscal ouvindo';
+            const nomeStr = (nomeFalante || 'MOTORISTA').toUpperCase();
+            lbl.innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeStr}</span><br><span style="font-size:9px; color:#ffcc00;">(CLIQUE P/ CORTAR)</span>`;
+            estadoCanalCentral = 'OUVINDO';
+        }
+    }
 
     async function inicializarGravadorFiscal() {
         try {
@@ -541,6 +684,7 @@
                 reader.onloadend = () => {
                     socket.emit('transmitirAudioPTT', {
                         idTaxi: 'Fiscal',
+                        nomeMotorista: 'Central / Fiscal',
                         audioBuffer: reader.result,
                         duracao: duracao
                     });
@@ -551,39 +695,56 @@
         }
     }
 
-    const btnPTTFiscal = document.getElementById('btnPTTFiscal');
-    if (btnPTTFiscal) {
-        const iniciarTransmissaoFiscal = (e) => {
-            e.preventDefault();
-            if (gravandoFiscal || !mediaRecorderFiscal) return;
+    async function iniciarTransmissaoFiscal(e) {
+        if (e) e.preventDefault();
+        if (gravandoFiscal) return;
+
+        destravarAudioAutomatica();
+
+        // PRIORIDADE MÁXIMA DA CENTRAL: CORTA QUALQUER TRANSMISSÃO DE MOTORISTA EM ANDAMENTO
+        socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal', ehModerador: true });
+
+        if (!mediaRecorderFiscal) {
+            await inicializarGravadorFiscal();
+        }
+
+        try {
             gravandoFiscal = true;
             audioChunksFiscal = [];
             tempoInicioFiscal = Date.now();
-            try {
-                if (mediaRecorderFiscal.state === "inactive") mediaRecorderFiscal.start();
-            } catch (err) {}
-            btnPTTFiscal.classList.add('transmitindo');
-            document.getElementById('labelPTTFiscal').innerText = "TRANSMITINDO...";
-            socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal' });
-        };
-        const pararTransmissaoFiscal = (e) => {
-            e.preventDefault();
-            if (!gravandoFiscal) return;
+            if (mediaRecorderFiscal && (mediaRecorderFiscal.state === "inactive" || mediaRecorderFiscal.state === "paused")) {
+                mediaRecorderFiscal.start();
+            }
+            setEstadoPTTFiscal('TRANSMITINDO');
+        } catch (err) {
             gravandoFiscal = false;
-            try {
-                if (mediaRecorderFiscal.state === "recording") mediaRecorderFiscal.stop();
-            } catch (err) {}
-            btnPTTFiscal.classList.remove('transmitindo');
-            document.getElementById('labelPTTFiscal').innerHTML = "SEGURE<br>P/ FALAR";
-            socket.emit('liberarCanalPTT');
-        };
+            setEstadoPTTFiscal('STANDBY');
+        }
+    }
+
+    function pararTransmissaoFiscal(e) {
+        if (e) e.preventDefault();
+        if (!gravandoFiscal) return;
+        gravandoFiscal = false;
+        try {
+            if (mediaRecorderFiscal && mediaRecorderFiscal.state === "recording") {
+                mediaRecorderFiscal.stop();
+            }
+        } catch (err) {}
+        setEstadoPTTFiscal('STANDBY');
+        setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
+    }
+
+    const btnPTTFiscal = document.getElementById('btnPTTFiscal');
+    if (btnPTTFiscal) {
         btnPTTFiscal.addEventListener('mousedown', iniciarTransmissaoFiscal);
         btnPTTFiscal.addEventListener('mouseup', pararTransmissaoFiscal);
+        btnPTTFiscal.addEventListener('mouseleave', (e) => { if (gravandoFiscal) pararTransmissaoFiscal(e); });
         btnPTTFiscal.addEventListener('touchstart', iniciarTransmissaoFiscal, { passive: false });
         btnPTTFiscal.addEventListener('touchend', pararTransmissaoFiscal, { passive: false });
     }
 
-    // FUNÇÕES DE GERENCIAMENTO DA FROTA
+    // SALVAR / EDITAR MOTORISTA DA FROTA
     function salvarCarroFrota() {
         const idEdit = document.getElementById('editandoCarroId').value;
         const numero = document.getElementById('frotaNumero').value.trim();
@@ -599,33 +760,18 @@
             return;
         }
 
-        // SE TIVER ID (EDITAR)
-        if (idEdit) {
-            socket.emit('atualizarCarro', {
-                login: `Carro.${idEdit}`,
-                placa: placa,
-                nome: nome,
-                modelo: modelo || 'Padrão',
-                telefones: telefone,
-                ehModerador: ehModerador
-            });
-            alert(`✅ Veículo Carro.${idEdit} atualizado com sucesso!`);
-        } 
-        // SE NÃO TIVER ID (CADASTRAR NOVO)
-        else {
-            socket.emit('cadastrarCarro', {
-                numero: numero,
-                placa: placa,
-                nome: nome,
-                modelo: modelo || 'Padrão',
-                cargo: 'Comum',
-                telefones: telefone,
-                senha: senha || '123',
-                ehModerador: ehModerador
-            });
-            alert("✅ Novo veículo cadastrado com sucesso!");
-        }
+        socket.emit('salvarCarroFrota', {
+            idAntigo: idEdit,
+            numero: numero,
+            placa: placa,
+            nome: nome,
+            modelo: modelo || 'Padrão',
+            telefone: telefone,
+            senha: senha,
+            ehModerador: ehModerador
+        });
 
+        alert(`✅ Veículo Carro.${numero} salvo com sucesso!`);
         cancelarEdicaoFrota();
     }
 
@@ -659,20 +805,20 @@
 
     function resetarSenhaFrota(id) {
         const novaSenha = prompt(`Digite a nova senha para o Carro.${id}:`, "123");
-        if (novaSenha) {
-            socket.emit('resetarSenhaCarro', { login: `Carro.${id}`, novaSenha: novaSenha });
+        if (novaSenha && novaSenha.trim().length > 0) {
+            socket.emit('resetarSenhaFrota', { id: id, novaSenha: novaSenha.trim() });
             alert(`✅ Senha do Carro.${id} alterada com sucesso!`);
         }
     }
 
     function excluirFrota(id) {
         if (confirm(`Deseja realmente excluir o veículo Carro.${id} da frota?`)) {
-            socket.emit('excluirCarro', { login: `Carro.${id}` });
+            socket.emit('excluirFrota', { id: id });
             alert(`🗑️ Veículo Carro.${id} excluído.`);
         }
     }
 
-    // FUNÇÕES DE GERENCIAMENTO DE ADM / FISCAL
+    // SALVAR / EDITAR ADM / FISCAL
     function salvarAdmin() {
         const idEdit = document.getElementById('editandoAdmId').value;
         const usuario = document.getElementById('admUsuario').value.trim();
@@ -685,8 +831,7 @@
             return;
         }
 
-        socket.emit('salvarAdmin', {
-            idAntigo: idEdit,
+        socket.emit('cadastrarAdm', {
             usuario: usuario,
             senha: senha || '123',
             nome: nome,
@@ -721,8 +866,8 @@
 
     function resetarSenhaAdmin(usuario) {
         const novaSenha = prompt(`Digite a nova senha para o usuário ${usuario}:`, "123");
-        if (novaSenha) {
-            socket.emit('resetarSenhaAdmin', { usuario: usuario, novaSenha: novaSenha });
+        if (novaSenha && novaSenha.trim().length > 0) {
+            socket.emit('cadastrarAdm', { usuario: usuario, senha: novaSenha.trim(), nome: usuario, cargo: 'FISCAL' });
             alert(`✅ Senha do usuário ${usuario} alterada com sucesso!`);
         }
     }
@@ -799,19 +944,20 @@
         if (chaves.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo.</td></tr>`; return; }
         tbody.innerHTML = chaves.map(k => {
             const f = frota[k];
+            const numCarro = f.numero || f.login.replace('Carro.', '');
             const badgeFuncao = f.ehModerador ? '<span style="color:#9333ea; font-weight:bold;">⭐ Moderador</span>' : '<span>Motorista</span>';
             const tels = f.telefones ? f.telefones.join(',') : (f.telefone || '');
             return `
                 <tr>
-                    <td><strong>Carro.${f.numero}</strong></td>
-                    <td>${f.placa}</td>
-                    <td>${f.nome}</td>
+                    <td><strong>Carro.${numCarro}</strong></td>
+                    <td>${f.placa || '--'}</td>
+                    <td>${f.nome || '--'}</td>
                     <td>${badgeFuncao}</td>
                     <td>
                         <div class="acoes-tabela">
-                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${k}', '${f.placa}', '${f.nome}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
-                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${k}')">🔑 Senha</button>
-                            <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${k}')">🗑️ Excluir</button>
+                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${numCarro}', '${f.placa || ''}', '${f.nome || ''}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
+                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${numCarro}')">🔑 Senha</button>
+                            <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${numCarro}')">🗑️ Excluir</button>
                         </div>
                     </td>
                 </tr>
@@ -852,7 +998,7 @@
         div.innerHTML = historico.map(a => `
             <div class="audio-item">
                 <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px;">
-                    <span style="color: var(--amarelo-ponto);">${a.idTaxi === 'Fiscal' ? '🎧 Central / Fiscal' : 'Carro.' + a.idTaxi + ' (' + a.nomeMotorista + ')'}</span>
+                    <span style="color: var(--amarelo-ponto);">${a.idTaxi === 'Fiscal' || a.idTaxi === 'ADM' ? '🎧 Central / Fiscal' : 'Carro.' + a.idTaxi + ' (' + a.nomeMotorista + ')'}</span>
                     <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>
                 </div>
                 <audio controls src="${a.audioUrl.startsWith('http') ? a.audioUrl : SOCKET_URL + a.audioUrl}" style="width: 100%; height: 30px;"></audio>
@@ -862,7 +1008,7 @@
 
     function alterarModo(modo) { socket.emit('alterarModoOperacao', modo); }
     function chamarProximoManual() { socket.emit('chamarCorrida'); }
-    function limparHistoricoPTT() { if (confirm("Apagar áudios?")) socket.emit('limparHistoricoPTT'); }
+    function limparHistoricoPTT() { if (confirm("Apagar histórico de áudios?")) socket.emit('limparHistoricoPTT'); }
     function limparHistoricoRecusas() { if (confirm("Limpar recusas?")) socket.emit('limparHistoricoRecusas'); }
     function limparHistoricoCorridas() { if (confirm("Limpar histórico de corridas?")) socket.emit('limparHistoricoCorridas'); }
 </script>

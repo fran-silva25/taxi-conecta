@@ -62,7 +62,6 @@
 
         body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
         
-        /* ADAPTAÇÃO RESPONSIVA PARA WINDOWS, TABLET E CELULAR */
         .container { 
             width: 100%; 
             max-width: 460px; 
@@ -78,10 +77,10 @@
         }
 
         @media (min-width: 768px) {
-            .container { max-width: 650px; padding: 30px; } /* Tablets e Telas Médias */
+            .container { max-width: 650px; padding: 30px; }
         }
         @media (min-width: 1024px) {
-            .container { max-width: 750px; padding: 35px; } /* Windows / Desktops */
+            .container { max-width: 750px; padding: 35px; }
         }
         
         .banner-ponto-2216 { background: #000000; border: 2px solid #ffcc00; border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -125,9 +124,10 @@
         .texto-recusa-vermelho { color: #000; font-size: 20px; font-weight: bold; line-height: 1.4; margin-bottom: 10px; }
 
         .ptt-container { text-align: center; margin: 15px 0; }
-        .btn-ptt { width: 140px; height: 140px; border-radius: 50%; background: var(--amarelo-ponto); color: #000; font-size: 18px; font-weight: bold; border: 5px solid #d9a700; box-shadow: 0 6px 20px rgba(255, 204, 0, 0.3); cursor: pointer; user-select: none; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; -webkit-touch-callout: none; touch-action: manipulation; }
-        .btn-ptt.transmitindo { background: #dc2626 !important; color: white !important; border-color: #991b1b !important; box-shadow: 0 0 25px rgba(220, 38, 38, 0.8); }
-        .btn-ptt.ouvindo { background: #2563eb !important; color: #ffffff !important; border-color: #1d4ed8 !important; box-shadow: 0 0 20px rgba(37, 99, 235, 0.8) !important; pointer-events: none; }
+        .btn-ptt { width: 140px; height: 140px; border-radius: 50%; background: var(--amarelo-ponto); color: #000; font-size: 18px; font-weight: bold; border: 5px solid #d9a700; box-shadow: 0 6px 20px rgba(255, 204, 0, 0.3); cursor: pointer; user-select: none; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; -webkit-touch-callout: none; touch-action: manipulation; transition: background 0.2s, color 0.2s; }
+        
+        .btn-ptt.transmitindo { background: #007bff !important; color: white !important; border-color: #0056b3 !important; box-shadow: 0 0 25px rgba(0, 123, 255, 0.8) !important; }
+        .btn-ptt.ouvindo { background: #dc2626 !important; color: #ffffff !important; border-color: #991b1b !important; box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important; pointer-events: none; }
 
         .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
         .audio-item { position: relative; background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; text-align: left; }
@@ -334,6 +334,34 @@
     let modoPTTAtual = 'pressionar';
     let temaAtual = 'escuro';
 
+    // DESTRAVAMENTO DE ÁUDIO AUTOMÁTICO NA REDE
+    let audioContextDestravado = false;
+    function destravarAudioAutomatica() {
+        if (!audioContextDestravado) {
+            const audioElement = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==");
+            audioElement.play().then(() => {
+                audioContextDestravado = true;
+            }).catch(() => {});
+        }
+    }
+    document.addEventListener('click', destravarAudioAutomatica, { once: true });
+    document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
+
+    // REPRODUÇÃO DO FICHEIRO DE ÁUDIO PERSONALIZADO (alerta.mp3)
+    function tocarSomAlertaCorrida() {
+        try {
+            const audioCorrida = new Audio('alerta.mp3');
+            if (meuTaxi && meuTaxi.numero) {
+                const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
+                audioCorrida.volume = parseFloat(volSalvo) / 100;
+            }
+            audioCorrida.currentTime = 0;
+            audioCorrida.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));
+        } catch (e) {
+            console.error("Erro ao reproduzir ficheiro de alerta:", e);
+        }
+    }
+
     function aplicarTema(tema) {
         document.documentElement.setAttribute('data-tema', tema);
         const lbl = document.getElementById('labelTema');
@@ -372,7 +400,9 @@
         if (meuTaxi && meuTaxi.numero) {
             localStorage.setItem(`modoPTT_${meuTaxi.numero}`, modo);
         }
-        document.getElementById('labelPTT').innerText = modo === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+        if (!gravando && estadoCanal === 'LIVRE') {
+            document.getElementById('labelPTT').innerText = modo === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+        }
     }
 
     function limparPttMotorista() {
@@ -405,7 +435,6 @@
 
     function iniciarSocketApp() {
         try {
-            // Solicita permissão de áudio nativa no WebView do celular ao iniciar
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(() => console.log('Microfone autorizado!'))
@@ -486,8 +515,13 @@
             }
         });
 
+        // CHEGADA DE OFERTA DE CORRIDA -> TOCA alerta.mp3 E VIBRA
         socket.on('ofertaCorrida', (dados) => {
             if (!meuTaxi) return;
+
+            tocarSomAlertaCorrida();
+            if ("vibrate" in navigator) navigator.vibrate([300, 100, 300, 100, 500]);
+
             idChamadaAtual = dados.idChamada;
             const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
             document.getElementById('ofertaCliente').innerText = nomePassageiro;
@@ -515,8 +549,11 @@
             document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";
         });
 
+        // CORRIDA ATRIBUÍDA -> TOCA SOM
         socket.on('corridaAtribuida', (dados) => {
             if (meuTaxi && String(dados.idTaxi) === String(meuTaxi.numero)) {
+                tocarSomAlertaCorrida();
+
                 const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
                 document.getElementById('viagemCliente').innerText = nomePassageiro;
                 document.getElementById('viagemOrigem').innerText = dados.origem || 'Não informado';
@@ -557,15 +594,19 @@
             }
         });
 
+        // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
         socket.on('canalOcupado', (dados) => {
             if (!meuTaxi || String(dados.idTaxi) === String(meuTaxi.numero)) return;
             estadoCanal = 'OCUPADO';
             const btn = document.getElementById('btnPTT');
             const lbl = document.getElementById('labelPTT');
+            btn.classList.remove('transmitindo');
             btn.classList.add('ouvindo');
-            lbl.innerHTML = `RECEBENDO<br>TRANSMISSÃO`;
+            const nomeFalante = (dados.nome || 'RÁDIO').toUpperCase();
+            lbl.innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeFalante}</span>`;
         });
 
+        // CANAL LIVRE (RESTAURA O BOTÃO AO PADRÃO)
         socket.on('canalLivre', () => {
             estadoCanal = 'LIVRE';
             const btn = document.getElementById('btnPTT');
@@ -574,21 +615,58 @@
             document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";
         });
 
+        // CORTE DE TRANSMISSÃO PELA CENTRAL/FISCAL
+        socket.on('forcarCortePTT', (dados) => {
+            if (meuTaxi && (String(dados.idAtivo) === String(meuTaxi.numero) || gravando)) {
+                gravando = false;
+                try {
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                    }
+                } catch (e) {}
+                const btn = document.getElementById('btnPTT');
+                btn.classList.remove('transmitindo');
+                btn.classList.remove('ouvindo');
+                document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+            }
+        });
+
+        // RECEBIMENTO DE ÁUDIO -> REPRODUÇÃO AUTOMÁTICA EM TEMPO REAL
         socket.on('receberAudioPTT', (dados) => {
             if (!meuTaxi || !meuTaxi.numero) return;
             const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';
             if (!jaLimpou && dados.historico) renderizarHistoricoAudio(dados.historico);
+
+            const btn = document.getElementById('btnPTT');
+            btn.classList.remove('transmitindo');
+
             if (dados.audioUrl && statusAtual === "LIVRE" && String(dados.idTaxi) !== String(meuTaxi.numero)) {
+                destravarAudioAutomatica();
                 const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
                 const audio = new Audio(urlAudioFinal);
                 const strVol = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
                 audio.volume = parseFloat(strVol) / 100;
-                audio.onplay = () => { document.getElementById('btnPTT').classList.add('ouvindo'); };
+                
+                btn.classList.add('ouvindo');
+                const nomeFalante = (dados.nomeMotorista || dados.idTaxi || 'Central').toUpperCase();
+                document.getElementById('labelPTT').innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeFalante}</span>`;
+
                 audio.onended = () => {
-                    document.getElementById('btnPTT').classList.remove('ouvindo');
+                    btn.classList.remove('ouvindo');
+                    document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
                     socket.emit('liberarCanalPTT');
                 };
-                audio.play().catch(() => { document.getElementById('btnPTT').classList.remove('ouvindo'); });
+                audio.onerror = () => {
+                    btn.classList.remove('ouvindo');
+                    document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+                };
+
+                audio.play().catch(() => {
+                    btn.classList.remove('ouvindo');
+                    document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";
+                });
+            } else {
+                btn.classList.remove('ouvindo');
             }
         });
     }
@@ -718,6 +796,7 @@
                     if (meuTaxi && socket) {
                         socket.emit('transmitirAudioPTT', { 
                             idTaxi: meuTaxi.numero, 
+                            nomeMotorista: meuTaxi.nome,
                             audioBuffer: reader.result, 
                             duracao: duracao 
                         });
@@ -736,6 +815,7 @@
         if (e) e.preventDefault();
         if (meuTaxiEstaMutado) { alert("🔇 Você está silenciado pela Moderação."); return; }
         if (statusAtual === "OCUPADO" || statusAtual === "EM CORRIDA") { alert("🔇 Rádio desativado durante corridas."); return; }
+        if (estadoCanal === 'OCUPADO') return;
         if (gravando || !meuTaxi) return;
 
         if (!mediaRecorder) {
@@ -750,8 +830,11 @@
             if (mediaRecorder && (mediaRecorder.state === "inactive" || mediaRecorder.state === "paused")) {
                 mediaRecorder.start();
             }
-            document.getElementById('btnPTT').classList.add('transmitindo');
-            document.getElementById('labelPTT').innerHTML = "GRAVANDO...<br><span style='font-size:10px'>(Solte p/ Enviar)</span>";
+            
+            const btn = document.getElementById('btnPTT');
+            btn.classList.add('transmitindo');
+            document.getElementById('labelPTT').innerHTML = "FALANDO...<br><span style='font-size:10px'>(Solte p/ Enviar)</span>";
+            
             socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome });
         } catch (err) {
             gravando = false;
@@ -764,7 +847,9 @@
         if (!gravando) return;
         gravando = false;
         try { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); } catch (err) {}
-        document.getElementById('btnPTT').classList.remove('transmitindo');
+        
+        const btn = document.getElementById('btnPTT');
+        btn.classList.remove('transmitindo');
         document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";
         setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
     }
