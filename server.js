@@ -285,12 +285,16 @@ function redistribuirVagas() {
 
 setInterval(() => {
     redistribuirVagas();
-    io.emit('atualizarSistema', { 
-        fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, 
-        usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, 
-        recusas: historicoRecusas, corridas: historicoCorridas,
-        emTransmissaoPTT: idEmTransmissaoPTT 
-    });
+    io.emit('atualizarSistema', {
+    modo: modoAtual, // <-- Garante que esta linha está incluída aqui
+    pa2Fechado: pa2Fechado,
+    fila: filaGeral,
+    frota: frotaCadastrada,
+    usuariosAdm: usuariosAdm,
+    historico: historicoAudio,
+    recusas: historicoRecusas,
+    corridas: historicoCorridas
+});
 }, 30 * 1000);
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
