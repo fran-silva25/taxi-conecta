@@ -286,7 +286,7 @@ function redistribuirVagas() {
 setInterval(() => {
     redistribuirVagas();
     io.emit('atualizarSistema', {
-    modo: modoAtual, // <-- Garante que esta linha está incluída aqui
+    modo: modoAtual,
     pa2Fechado: pa2Fechado,
     fila: filaGeral,
     frota: frotaCadastrada,
