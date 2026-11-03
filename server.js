@@ -184,7 +184,14 @@ async function salvarCarroNoBanco(carro) {
         console.error("Erro ao salvar carro no banco:", e);
     }
 }
-
+async function excluirCarroDoBanco(numero) {
+    try {
+        await db.query('DELETE FROM motoristas WHERE numero = $1', [numero]);
+        console.log(`✅ Carro ${numero} excluído do banco com sucesso.`);
+    } catch (e) {
+        console.error("❌ Erro ao excluir carro do banco:", e);
+    }
+}
 // Carregamento assíncrono do Banco de Dados para Administradores
 async function carregarAdmsDoBanco() {
     try {
