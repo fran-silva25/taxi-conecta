@@ -1015,7 +1015,7 @@
         `).join('');
     }
 
-    function alterarModo(modo) { socket.emit('alterarModoOperacao', novoModo); }
+    function alterarModo(modo) { socket.emit('alterarModoOperacao', Modo); }
     function chamarProximoManual() { socket.emit('chamarCorrida'); }
     function limparHistoricoPTT() { if (confirm("Apagar histórico de áudios?")) socket.emit('limparHistoricoPTT'); }
     function limparHistoricoRecusas() { if (confirm("Limpar recusas?")) socket.emit('limparHistoricoRecusas'); }
