@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const db = require('./db');
 
 // Importando as funções e a cerca virtual do bot do WhatsApp
 const { iniciarBotWhatsApp, liberarClienteWhatsApp, verificarDentroDaCerca, fronteiraPonto2216, obterQrCodeAtual } = require('./bot_whatsapp');
@@ -29,8 +30,6 @@ if (!fs.existsSync(PASTA_SALVOS_MODERACAO)) {
 }
 
 const ARQUIVO_RECUSAS = path.join(__dirname, 'historico_recusas.json');
-const ARQUIVO_FROTA = path.join(__dirname, 'frota_cadastrada.json');
-const ARQUIVO_USUARIOS_ADM = path.join(__dirname, 'usuarios_adm.json');
 const ARQUIVO_HISTORICO_PTT = path.join(__dirname, 'historico_ptt.json');
 const ARQUIVO_CORRIDAS = path.join(__dirname, 'historico_corridas.json');
 
@@ -120,17 +119,34 @@ function salvarHistoricoCorridas() {
     } catch (e) {}
 }
 
-function carregarFrota() {
+// Carregamento assíncrono do Banco de Dados para Frota
+async function carregarFrotaDoBanco() {
     try {
-        if (fs.existsSync(ARQUIVO_FROTA)) {
-            const dados = fs.readFileSync(ARQUIVO_FROTA, 'utf8');
-            const frotaLida = JSON.parse(dados);
-            if (frotaLida && typeof frotaLida === 'object' && Object.keys(frotaLida).length > 0) {
-                return frotaLida;
-            }
+        const res = await db.query('SELECT * FROM motoristas');
+        const frotaObj = {};
+        if (res.rows.length > 0) {
+            res.rows.forEach(row => {
+                frotaObj[row.login || `Carro.${row.numero}`] = {
+                    numero: row.numero,
+                    placa: row.placa,
+                    login: row.login || `Carro.${row.numero}`,
+                    nome: row.nome,
+                    modelo: row.modelo,
+                    cargo: row.cargo || "Comum",
+                    telefones: row.telefones ? (Array.isArray(row.telefones) ? row.telefones : [row.telefones]) : [],
+                    senha: row.senha || "123",
+                    ehModerador: Boolean(row.eh_moderador),
+                    statusRadio: row.status_radio || "ONLINE",
+                    mutadoAte: row.mutado_ate ? Number(row.mutado_ate) : null,
+                    banidoAte: row.banido_ate ? Number(row.banido_ate) : null,
+                    bloqueioRecusa: Boolean(row.bloqueio_recusa)
+                };
+            });
+            return frotaObj;
         }
-    } catch (e) {}
-    
+    } catch (e) {
+        console.error("Erro ao carregar motoristas do banco:", e);
+    }
     return {
         "Carro.99": {
             numero: "99", placa: "ABC1D00", login: "Carro.99",
@@ -141,37 +157,90 @@ function carregarFrota() {
     };
 }
 
-function salvarFrota() {
+async function salvarCarroNoBanco(carro) {
     try {
-        if (frotaCadastrada && typeof frotaCadastrada === 'object' && Object.keys(frotaCadastrada).length > 0) {
-            fs.writeFileSync(ARQUIVO_FROTA, JSON.stringify(frotaCadastrada, null, 2), 'utf8');
-        }
-    } catch (e) {}
+        const query = `
+            INSERT INTO motoristas (numero, placa, login, nome, modelo, cargo, telefones, senha, eh_moderador, status_radio, mutado_ate, banido_ate, bloqueio_recusa)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ON CONFLICT (numero) DO UPDATE SET
+                placa = EXCLUDED.placa,
+                nome = EXCLUDED.nome,
+                modelo = EXCLUDED.modelo,
+                cargo = EXCLUDED.cargo,
+                telefones = EXCLUDED.telefones,
+                senha = EXCLUDED.senha,
+                eh_moderador = EXCLUDED.eh_moderador,
+                status_radio = EXCLUDED.status_radio,
+                mutado_ate = EXCLUDED.mutado_ate,
+                banido_ate = EXCLUDED.banido_ate,
+                bloqueio_recusa = EXCLUDED.bloqueio_recusa;
+        `;
+        await db.query(query, [
+            carro.numero, carro.placa, carro.login, carro.nome, carro.modelo,
+            carro.cargo, carro.telefones, carro.senha, carro.ehModerador,
+            carro.statusRadio, carro.mutadoAte, carro.banidoAte, carro.bloqueioRecusa
+        ]);
+    } catch (e) {
+        console.error("Erro ao salvar carro no banco:", e);
+    }
 }
 
-function carregarUsuariosAdm() {
+// Carregamento assíncrono do Banco de Dados para Administradores
+async function carregarAdmsDoBanco() {
     try {
-        if (fs.existsSync(ARQUIVO_USUARIOS_ADM)) {
-            const dados = fs.readFileSync(ARQUIVO_USUARIOS_ADM, 'utf8');
-            return JSON.parse(dados);
+        const res = await db.query('SELECT * FROM administradores');
+        const admsObj = {};
+        if (res.rows.length > 0) {
+            res.rows.forEach(row => {
+                const key = (row.usuario || '').trim().toLowerCase();
+                if (key) {
+                    admsObj[key] = {
+                        usuario: row.usuario,
+                        senha: row.senha,
+                        cargo: row.cargo || 'FISCAL',
+                        nome: row.nome || 'Administrador'
+                    };
+                }
+            });
+            return admsObj;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error("Erro ao carregar administradores do banco:", e);
+    }
     return {
         "adm": { usuario: "adm", senha: "123", cargo: "ADM", nome: "Administrador Geral" },
         "fiscal": { usuario: "fiscal", senha: "123", cargo: "FISCAL", nome: "Fiscal de Ponto" }
     };
 }
 
-function salvarUsuariosAdm() {
+async function salvarAdmNoBanco(adm) {
     try {
-        fs.writeFileSync(ARQUIVO_USUARIOS_ADM, JSON.stringify(usuariosAdmCadastrados, null, 2), 'utf8');
-    } catch (e) {}
+        const query = `
+            INSERT INTO administradores (usuario, senha, nome, cargo)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (usuario) DO UPDATE SET
+                senha = EXCLUDED.senha,
+                nome = EXCLUDED.nome,
+                cargo = EXCLUDED.cargo;
+        `;
+        await db.query(query, [adm.usuario, adm.senha, adm.nome, adm.cargo]);
+    } catch (e) {
+        console.error("Erro ao salvar administrador no banco:", e);
+    }
+}
+
+async function excluirAdmDoBanco(usuarioKey) {
+    try {
+        await db.query('DELETE FROM administradores WHERE LOWER(usuario) = LOWER($1)', [usuarioKey]);
+    } catch (e) {
+        console.error("Erro ao excluir administrador do banco:", e);
+    }
 }
 
 let historicoRecusas = carregarHistoricoRecusas();
-let frotaCadastrada = carregarFrota();
-let usuariosAdmCadastrados = carregarUsuariosAdm();
-let historicoCorridas = carregarHistoricoCorridas(); 
+let historicoCorridas = carregarHistoricoCorridas();
+let frotaCadastrada = {};
+let usuariosAdmCadastrados = {};
 
 const PONTOS_FISICOS = {
     PH: { nome: "Ponto PH (Subida Arnaldo Rosa / Abel Ferreira)", capacidade: 15, latitude: -23.580278, longitude: -46.561389, raioMetros: 40 },
@@ -246,7 +315,6 @@ function redistribuirVagas() {
     }
 
     let indiceAtribuicao = 0;
-    
     const capacidadePA4Real = pa2Fechado ? (PONTOS_FISICOS.PA4.capacidade + 4) : PONTOS_FISICOS.PA4.capacidade;
     const vagasPA4 = Math.min(capacidadePA4Real, totalCarros - indiceAtribuicao);
     for (let i = 0; i < vagasPA4; i++) { 
@@ -335,15 +403,15 @@ io.on('connection', (socket) => {
         conectados: listaConectadosArray, emTransmissaoPTT: idEmTransmissaoPTT
     });
 
-    socket.on('adminLimparSistemaGeral', () => {
+    socket.on('adminLimparSistemaGeral', async () => {
         filaGeral = [];
         chamadasPendentes = {};
         idEmTransmissaoPTT = null;
 
         for (let chave in frotaCadastrada) {
             frotaCadastrada[chave].bloqueioRecusa = false;
+            await salvarCarroNoBanco(frotaCadastrada[chave]);
         }
-        salvarFrota();
 
         for (let idTaxi in motoristasConectados) {
             motoristasConectados[idTaxi].status = "LIVRE";
@@ -386,9 +454,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('cadastrarCarro', (dados) => {
+    socket.on('cadastrarCarro', async (dados) => {
         const loginGerado = `Carro.${dados.numero}`;
-        frotaCadastrada[loginGerado] = {
+        const novoCarro = {
             numero: dados.numero,
             placa: (dados.placa || '').trim().toUpperCase(),
             login: loginGerado,
@@ -403,17 +471,22 @@ io.on('connection', (socket) => {
             banidoAte: null,
             bloqueioRecusa: false
         };
-        salvarFrota();
+        frotaCadastrada[loginGerado] = novoCarro;
+        await salvarCarroNoBanco(novoCarro);
+
         io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
         socket.emit('cadastroSucesso', { login: loginGerado });
     });
 
-    socket.on('salvarCarroFrota', (dados) => {
+    socket.on('salvarCarroFrota', async (dados) => {
         const numCarro = dados.numero.trim();
         const loginGerado = `Carro.${numCarro}`;
 
         if (dados.idAntigo && String(dados.idAntigo) !== String(numCarro)) {
             delete frotaCadastrada[`Carro.${dados.idAntigo}`];
+            try {
+                await db.query('DELETE FROM motoristas WHERE numero = $1', [dados.idAntigo]);
+            } catch (e) {}
         }
 
         let senhaFinal = dados.senha ? dados.senha.trim() : null;
@@ -433,7 +506,7 @@ io.on('connection', (socket) => {
             listaTelefones = frotaCadastrada[loginGerado].telefones;
         }
 
-        frotaCadastrada[loginGerado] = {
+        const carroAtualizado = {
             numero: numCarro,
             placa: (dados.placa || '').trim().toUpperCase(),
             login: loginGerado,
@@ -449,7 +522,9 @@ io.on('connection', (socket) => {
             bloqueioRecusa: false
         };
 
-        salvarFrota();
+        frotaCadastrada[loginGerado] = carroAtualizado;
+        await salvarCarroNoBanco(carroAtualizado);
+
         io.emit('atualizarSistema', { 
             fila: filaGeral, 
             modo: modoOperacao, 
@@ -462,12 +537,12 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('resetarSenhaFrota', (dados) => {
+    socket.on('resetarSenhaFrota', async (dados) => {
         const numLimpo = String(dados.id || dados.login || '').replace(/[^0-9]/g, '');
         const chaveBusca = `Carro.${numLimpo}`;
         if (frotaCadastrada[chaveBusca]) {
             frotaCadastrada[chaveBusca].senha = String(dados.novaSenha || '123').trim();
-            salvarFrota();
+            await salvarCarroNoBanco(frotaCadastrada[chaveBusca]);
             socket.emit('senhaResetadaSucesso', { login: chaveBusca });
         }
     });
@@ -569,27 +644,27 @@ io.on('connection', (socket) => {
     });
 
     socket.on('alterarModoOperacao', (modoRecebido) => {
-    const novoModo = modoRecebido;
-    if (novoModo === 'AUTOMATICO') {
-        modoManualOverridden = false;
-        redistribuirVagas();
-    } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
-        modoOperacao = novoModo;
-        modoManualOverridden = true;
-        redistribuirVagas();
-    }
-    console.log(`[MODO] Modo de operação alterado para: ${modoOperacao}`);
-    io.emit('atualizarSistema', {
-        fila: filaGeral,
-        modo: modoOperacao,
-        pa2Fechado: pa2Fechado,
-        frota: frotaCadastrada,
-        usuariosAdm: usuariosAdmCadastrados,
-        historico: historicoAudio,
-        recusas: historicoRecusas,
-        corridas: historicoCorridas
+        const novoModo = modoRecebido;
+        if (novoModo === 'AUTOMATICO') {
+            modoManualOverridden = false;
+            redistribuirVagas();
+        } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
+            modoOperacao = novoModo;
+            modoManualOverridden = true;
+            redistribuirVagas();
+        }
+        console.log(`[MODO] Modo de operação alterado para: ${modoOperacao}`);
+        io.emit('atualizarSistema', {
+            fila: filaGeral,
+            modo: modoOperacao,
+            pa2Fechado: pa2Fechado,
+            frota: frotaCadastrada,
+            usuariosAdm: usuariosAdmCadastrados,
+            historico: historicoAudio,
+            recusas: historicoRecusas,
+            corridas: historicoCorridas
+        });
     });
-});
 
     socket.on('chamarCorrida', () => {
         if (filaGeral.length === 0) return;
@@ -607,7 +682,7 @@ io.on('connection', (socket) => {
         io.emit('corridaAtribuida', chamadoFinal);
     });
 
-    socket.on('atualizarGPS', (dados) => {
+    socket.on('atualizarGPS', async (dados) => {
         const idTaxiStr = String(dados.idTaxi);
         const login = `Carro.${idTaxiStr}`;
         const veiculo = frotaCadastrada[login];
@@ -617,7 +692,7 @@ io.on('connection', (socket) => {
         if (veiculo && veiculo.bloqueioRecusa) {
             if (dados.simulacao === true) {
                 veiculo.bloqueioRecusa = false;
-                salvarFrota();
+                await salvarCarroNoBanco(veiculo);
             }
         }
 
@@ -680,7 +755,7 @@ io.on('connection', (socket) => {
         confirmarEBaixarCorrida(dadosAceite.idChamada);
     });
 
-    socket.on('recusarCorridaMotorista', (dadosRecusa) => {
+    socket.on('recusarCorridaMotorista', async (dadosRecusa) => {
         const chamada = chamadasPendentes[dadosRecusa.idChamada];
         if (!chamada || filaGeral.length === 0) return;
 
@@ -696,7 +771,7 @@ io.on('connection', (socket) => {
 
         if (frotaCadastrada[loginRecusa]) {
             frotaCadastrada[loginRecusa].bloqueioRecusa = true;
-            salvarFrota();
+            await salvarCarroNoBanco(frotaCadastrada[loginRecusa]);
         }
 
         if (motoristasConectados[idTaxiRecusou] && motoristasConectados[idTaxiRecusou].socketId) {
@@ -716,19 +791,20 @@ io.on('connection', (socket) => {
         dispararPonteiroFila(dadosRecusa.idChamada);
     });
 
-    socket.on('cadastrarAdm', (dados) => {
+    socket.on('cadastrarAdm', async (dados) => {
         const key = (dados.usuario || '').trim().toLowerCase();
         if (!key || !dados.senha || !dados.nome) { return; }
-        usuariosAdmCadastrados[key] = { usuario: key, senha: dados.senha.trim(), nome: dados.nome.trim(), cargo: dados.cargo || 'FISCAL' };
-        salvarUsuariosAdm();
+        const novoAdm = { usuario: key, senha: dados.senha.trim(), nome: dados.nome.trim(), cargo: dados.cargo || 'FISCAL' };
+        usuariosAdmCadastrados[key] = novoAdm;
+        await salvarAdmNoBanco(novoAdm);
         io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
     });
 
-    socket.on('excluirAdm', (dados) => {
+    socket.on('excluirAdm', async (dados) => {
         const key = (dados.usuario || '').trim().toLowerCase();
         if (usuariosAdmCadastrados[key]) {
             delete usuariosAdmCadastrados[key];
-            salvarUsuariosAdm();
+            await excluirAdmDoBanco(key);
             io.emit('atualizarSistema', { fila: filaGeral, modo: modoOperacao, pa2Fechado: pa2Fechado, frota: frotaCadastrada, usuariosAdm: usuariosAdmCadastrados, historico: historicoAudio, recusas: historicoRecusas, corridas: historicoCorridas });
         }
     });
@@ -823,7 +899,6 @@ function confirmarEBaixarCorrida(idChamada) {
 
     if (chamada.jidCliente && chamada.sockWhatsApp) {
         const tempoEstimado = chamada.origem === "G3 do Carrefour" ? "3 minutos" : "8 minutos";
-        
         const mensagemFinal = `🚕 *TÁXI CONFIRMADO!*\n\n` +
                             `👤 *Passageiro(a):* ${dadosAtribuicao.nomeCliente}\n` +
                             `👨‍✈️ *Motorista:* ${dadosAtribuicao.nome}\n` +
@@ -863,5 +938,13 @@ function solicitarCorridaViaWhatsApp(dados) {
 
 iniciarBotWhatsApp(solicitarCorridaViaWhatsApp);
 
-const PORTA = process.env.PORT || 3000;
-server.listen(PORTA, () => console.log(`🚖 Servidor Ponto 2216 rodando na nuvem na porta ${PORTA} com Fila Inteligente, PTT Central e Controle de Eventos do Shopping!`));
+// Inicialização Assíncrona do Servidor com Dados do Banco do Render
+async function iniciarServidor() {
+    frotaCadastrada = await carregarFrotaDoBanco();
+    usuariosAdmCadastrados = await carregarAdmsDoBanco();
+
+    const PORTA = process.env.PORT || 3000;
+    server.listen(PORTA, () => console.log(`🚖 Servidor Ponto 2216 rodando na nuvem na porta ${PORTA} com Base de Dados do Render conectada!`));
+}
+
+iniciarServidor();
