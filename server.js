@@ -168,7 +168,7 @@ async function salvarCarroNoBanco(carro) {
                 modelo = EXCLUDED.modelo,
                 cargo = EXCLUDED.cargo,
                 telefones = EXCLUDED.telefones,
-                senha = EXCLUDED.senha,
+                senha = EXCLUDED.senha_hash,
                 eh_moderador = EXCLUDED.eh_moderador,
                 status_radio = EXCLUDED.status_radio,
                 mutado_ate = EXCLUDED.mutado_ate,
@@ -177,7 +177,7 @@ async function salvarCarroNoBanco(carro) {
         `;
         await db.query(query, [
             carro.numero, carro.placa, carro.login, carro.nome, carro.modelo,
-            carro.cargo, carro.telefones, carro.senha, carro.ehModerador,
+            carro.cargo, carro.telefones, carro.senha_hash, carro.ehModerador,
             carro.statusRadio, carro.mutadoAte, carro.banidoAte, carro.bloqueioRecusa
         ]);
     } catch (e) {
