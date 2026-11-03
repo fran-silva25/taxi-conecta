@@ -282,7 +282,7 @@ function redistribuirVagas() {
 setInterval(() => {
     redistribuirVagas();
     io.emit('atualizarSistema', {
-        modo: modoOperacao, // Corrigido de modoAtual para modoOperacao
+        modo: modoOperacao,
         pa2Fechado: pa2Fechado,
         fila: filaGeral,
         frota: frotaCadastrada,
@@ -569,26 +569,24 @@ io.on('connection', (socket) => {
     });
 
     socket.on('alterarModoOperacao', (novoModo) => {
-        const modosValidos = ['AUTOMATICO', 'SHOPPING_COMPLETO', 'SO_PH', 'BAIXA_FROTA'];
-        if (modosValidos.includes(novoModo)) {
+        if (novoModo === 'AUTOMATICO') {
+            modoManualOverridden = false;
+            redistribuirVagas();
+        } else if (["SO_PH", "MANHA_SHOPPING", "SHOPPING_COMPLETO", "BAIXA_FROTA"].includes(novoModo)) {
             modoOperacao = novoModo;
-            console.log(`⚙️ [MODO] Modo de operação alterado para: ${modoOperacao}`);
-            
-            if (typeof redistribuirVagas === 'function') {
-                redistribuirVagas();
-            }
-
-            io.emit('atualizarSistema', {
-                fila: filaGeral,
-                modo: modoOperacao,
-                pa2Fechado: pa2Fechado,
-                frota: frotaCadastrada,
-                usuariosAdm: usuariosAdmCadastrados,
-                historico: historicoAudio,
-                recusas: historicoRecusas,
-                corridas: historicoCorridas
-            });
+            modoManualOverridden = true;
+            redistribuirVagas();
         }
+        io.emit('atualizarSistema', {
+            fila: filaGeral,
+            modo: modoOperacao,
+            pa2Fechado: pa2Fechado,
+            frota: frotaCadastrada,
+            usuariosAdm: usuariosAdmCadastrados,
+            historico: historicoAudio,
+            recusas: historicoRecusas,
+            corridas: historicoCorridas
+        });
     });
 
     socket.on('chamarCorrida', () => {
