@@ -125,7 +125,6 @@ function carregarFrota() {
         if (fs.existsSync(ARQUIVO_FROTA)) {
             const dados = fs.readFileSync(ARQUIVO_FROTA, 'utf8');
             const frotaLida = JSON.parse(dados);
-            // Só retorna se houver dados reais cadastrados, evitando zerar com ficheiros vazios
             if (frotaLida && typeof frotaLida === 'object' && Object.keys(frotaLida).length > 0) {
                 return frotaLida;
             }
@@ -144,7 +143,6 @@ function carregarFrota() {
 
 function salvarFrota() {
     try {
-        // Só grava se o objeto não estiver vazio, prevenindo sobrescrições acidentais
         if (frotaCadastrada && typeof frotaCadastrada === 'object' && Object.keys(frotaCadastrada).length > 0) {
             fs.writeFileSync(ARQUIVO_FROTA, JSON.stringify(frotaCadastrada, null, 2), 'utf8');
         }
@@ -183,7 +181,7 @@ const PONTOS_FISICOS = {
 
 let modoOperacao = "AUTOMATICO";
 let modoManualOverridden = false;
-let pa2Fechado = false; // 🛑 Flag para fechar o PA2 temporariamente (Eventos do Shopping)
+let pa2Fechado = false;
 let filaGeral = [];
 let motoristasConectados = {};
 let chamadasPendentes = {};
@@ -249,7 +247,6 @@ function redistribuirVagas() {
 
     let indiceAtribuicao = 0;
     
-    // Se o PA2 estiver fechado por evento, absorvemos +3 ou +4 vagas extras no PA4
     const capacidadePA4Real = pa2Fechado ? (PONTOS_FISICOS.PA4.capacidade + 4) : PONTOS_FISICOS.PA4.capacidade;
     const vagasPA4 = Math.min(capacidadePA4Real, totalCarros - indiceAtribuicao);
     for (let i = 0; i < vagasPA4; i++) { 
@@ -257,7 +254,6 @@ function redistribuirVagas() {
         indiceAtribuicao++; 
     }
 
-    // Se o PA2 estiver fechado, pulamos a atribuição dele inteiramente
     let vagasPA2 = 0;
     if (!pa2Fechado) {
         const mesAtual = new Date().getMonth() + 1;
@@ -286,15 +282,15 @@ function redistribuirVagas() {
 setInterval(() => {
     redistribuirVagas();
     io.emit('atualizarSistema', {
-    modo: modoAtual,
-    pa2Fechado: pa2Fechado,
-    fila: filaGeral,
-    frota: frotaCadastrada,
-    usuariosAdm: usuariosAdm,
-    historico: historicoAudio,
-    recusas: historicoRecusas,
-    corridas: historicoCorridas
-});
+        modo: modoOperacao, // Corrigido de modoAtual para modoOperacao
+        pa2Fechado: pa2Fechado,
+        fila: filaGeral,
+        frota: frotaCadastrada,
+        usuariosAdm: usuariosAdmCadastrados,
+        historico: historicoAudio,
+        recusas: historicoRecusas,
+        corridas: historicoCorridas
+    });
 }, 30 * 1000);
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));
@@ -364,7 +360,6 @@ io.on('connection', (socket) => {
         io.emit('canalLivre');
     });
 
-    // 🛑 CONTROLE DO BOTÃO DE FECHAMENTO DO PA2 (EVENTOS DO SHOPPING)
     socket.on('alternarStatusPA2', (statusFechado) => {
         pa2Fechado = Boolean(statusFechado);
         redistribuirVagas();
@@ -417,21 +412,18 @@ io.on('connection', (socket) => {
         const numCarro = dados.numero.trim();
         const loginGerado = `Carro.${numCarro}`;
 
-        // Se houver um ID antigo e o número mudou, remove o antigo
         if (dados.idAntigo && String(dados.idAntigo) !== String(numCarro)) {
             delete frotaCadastrada[`Carro.${dados.idAntigo}`];
         }
 
-        // Mantém a senha anterior caso venha em branco na edição
         let senhaFinal = dados.senha ? dados.senha.trim() : null;
         if (!senhaFinal && frotaCadastrada[loginGerado]) {
             senhaFinal = frotaCadastrada[loginGerado].senha;
         }
         if (!senhaFinal) {
-            senhaFinal = "123"; // Senha padrão de segurança
+            senhaFinal = "123";
         }
 
-        // Normaliza o campo telefone para garantir compatibilidade com array ou string
         let listaTelefones = [];
         if (Array.isArray(dados.telefone)) {
             listaTelefones = dados.telefone;
@@ -481,10 +473,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('loginMotorista', (dados) => {
-        // Limpa qualquer vestígio de 'Carro.' ou espaços para obter apenas o número limpo (ex: "36")
         const idStr = String(dados.login || '').replace(/[^0-9]/g, '').trim();
-        
-        // Procura em todas as variações possíveis no objeto da frota
         const carro = Object.values(frotaCadastrada).find(c => String(c.numero).trim() === idStr);
 
         if (!carro) {
@@ -579,19 +568,16 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ⚙️ ALTERAR MODO DE OPERAÇÃO DO SHOPPING
     socket.on('alterarModoOperacao', (novoModo) => {
         const modosValidos = ['AUTOMATICO', 'SHOPPING_COMPLETO', 'SO_PH', 'BAIXA_FROTA'];
         if (modosValidos.includes(novoModo)) {
             modoOperacao = novoModo;
             console.log(`⚙️ [MODO] Modo de operação alterado para: ${modoOperacao}`);
             
-            // Executa a regra de negócio para reorganizar a fila com o novo modo
             if (typeof redistribuirVagas === 'function') {
                 redistribuirVagas();
             }
 
-            // Envia o estado atualizado para todos os painéis e motoristas conectados
             io.emit('atualizarSistema', {
                 fila: filaGeral,
                 modo: modoOperacao,
@@ -604,6 +590,7 @@ io.on('connection', (socket) => {
             });
         }
     });
+
     socket.on('chamarCorrida', () => {
         if (filaGeral.length === 0) return;
         const motorista = filaGeral[0];
