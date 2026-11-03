@@ -1,7 +1,9 @@
-// bot_whatsapp.js
+// bot_whatsapp.js (Versão com Sessão Local em Pasta - Mais Estável)
 
-const { default: makeWASocket, initAuthCreds, DisconnectReason, proto } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, proto } = require('@whiskeysockets/baileys');
 const pino = require('pino');
+const fs = require('fs');
+const path = require('path');
 const db = require('./db');
 
 let qrCodeAtual = null;
@@ -36,95 +38,6 @@ const fronteiraPonto2216 = [
     [-23.56311073387646, -46.57598833766969],  
     [-23.554839771997806, -46.57627508705842]   
 ];
-
-// Adaptador de Autenticação PostgreSQL para o Baileys
-async function usePostgresAuthState() {
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS whatsapp_sessions (
-            key VARCHAR(255) PRIMARY KEY,
-            value TEXT
-        );
-    `);
-
-    const writeData = async (data, key) => {
-        try {
-            const JSONData = JSON.stringify(data, (_, replacer) => 
-                replacer instanceof Uint8Array ? Buffer.from(replacer).toString('base64') : replacer
-            );
-            await db.query(
-                `INSERT INTO whatsapp_sessions (key, value) VALUES ($1, $2) 
-                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-                [key, JSONData]
-            );
-        } catch (error) {
-            console.error(`Erro ao gravar dados de auth (${key}):`, error);
-        }
-    };
-
-    const readData = async (key) => {
-        try {
-            const result = await db.query(`SELECT value FROM whatsapp_sessions WHERE key = $1`, [key]);
-            if (result.rows.length === 0) return null;
-            return JSON.parse(result.rows[0].value, (_, replacer) => {
-                if (typeof replacer === 'string') {
-                    try {
-                        return Buffer.from(replacer, 'base64');
-                    } catch (e) {}
-                }
-                return replacer;
-            });
-        } catch (error) {
-            console.error(`Erro ao ler dados de auth (${key}):`, error);
-            return null;
-        }
-    };
-
-    const removeData = async (key) => {
-        try {
-            await db.query(`DELETE FROM whatsapp_sessions WHERE key = $1`, [key]);
-        } catch (error) {
-            console.error(`Erro ao remover dados de auth (${key}):`, error);
-        }
-    };
-
-    const creds = (await readData('creds')) || initAuthCreds();
-
-    return {
-        state: {
-            creds,
-            keys: {
-                get: async (type, ids) => {
-                    const data = {};
-                    for (const id of ids) {
-                        const key = `${type}-${id}`;
-                        let value = await readData(key);
-                        if (type === 'app-state-sync-key' && value) {
-                            value = proto.Message.AppStateSyncKeyData.fromObject(value);
-                        }
-                        data[id] = value;
-                    }
-                    return data;
-                },
-                set: async (data) => {
-                    const tasks = [];
-                    for (const category of Object.keys(data)) {
-                        for (const id of Object.keys(data[category])) {
-                            const value = data[category][id];
-                            const key = `${category}-${id}`;
-                            if (value) {
-                                tasks.push(writeData(value, key));
-                            } else {
-                                tasks.push(removeData(key));
-                            }
-                        }
-                    }
-                    await Promise.all(tasks);
-                }
-            }
-        },
-        saveCreds: () => writeData(state.creds, 'creds')
-    };
-}
 
 function verificarDentroDaCerca(pontoLatLon, poligonoCerca) {
     let lat = pontoLatLon[0], lon = pontoLatLon[1];
@@ -197,7 +110,8 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
         reconectando = true;
 
         try {
-            const { state, saveCreds } = await usePostgresAuthState();
+            const pastaSessao = path.join(__dirname, 'session_whatsapp');
+            const { state, saveCreds } = await useMultiFileAuthState(pastaSessao);
 
             sock = makeWASocket({
                 logger: pino({ level: 'silent' }),
@@ -233,9 +147,11 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                     const ehDesconexaoDefinitiva = (statusCode === DisconnectReason.loggedOut || statusCode === 401);
 
                     if (ehDesconexaoDefinitiva) {
-                        console.log("🧹 Aparelho desconectado ou sessão inválida (401). Limpando sessão do banco...");
+                        console.log("🧹 Aparelho desconectado ou sessão inválida (401). Limpando pasta de sessão local...");
                         try {
-                            await db.query("DELETE FROM whatsapp_sessions");
+                            if (fs.existsSync(pastaSessao)) {
+                                fs.rmSync(pastaSessao, { recursive: true, force: true });
+                            }
                         } catch (e) {}
                     } else {
                         console.log("🔄 Tentando reconectar mantendo a sessão salva...");
@@ -407,7 +323,7 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
                         if (localizacaoRecebida && localizacaoRecebida.degreesLatitude && localizacaoRecebida.degreesLongitude) {
                             const lat = localizacaoRecebida.degreesLatitude;
-                            const lon = localizacaoRecebida.degreesLongitude;
+                            const lon = localizacaoRecebids.degreesLongitude;
 
                             await enviarMsgSegura(`📍 Identificando o endereço da sua localização...`);
                             
