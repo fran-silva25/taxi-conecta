@@ -589,9 +589,8 @@
     }
 
     socket.on('atualizarSistema', (dados) => {
-        // Atualiza o modo de operação exibido na tela utilizando o ID correto (labelModoAtual)
         if (dados.modo) {
-            const elementoModo = document.getElementById('labelModoAtual');
+            const elementoModo = document.getElementById('modoOperacaoAtual');
             if (elementoModo) {
                 elementoModo.innerText = dados.modo;
             }
