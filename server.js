@@ -196,7 +196,7 @@ async function carregarAdmsDoBanco() {
                 if (key) {
                     admsObj[key] = {
                         usuario: row.usuario,
-                        senha: row.senha,
+                        senha: row.senha_hash || row.senha,
                         cargo: row.cargo || 'FISCAL',
                         nome: row.nome || 'Administrador'
                     };
