@@ -124,9 +124,14 @@ function carregarFrota() {
     try {
         if (fs.existsSync(ARQUIVO_FROTA)) {
             const dados = fs.readFileSync(ARQUIVO_FROTA, 'utf8');
-            return JSON.parse(dados);
+            const frotaLida = JSON.parse(dados);
+            // Só retorna se houver dados reais cadastrados, evitando zerar com ficheiros vazios
+            if (frotaLida && typeof frotaLida === 'object' && Object.keys(frotaLida).length > 0) {
+                return frotaLida;
+            }
         }
     } catch (e) {}
+    
     return {
         "Carro.99": {
             numero: "99", placa: "ABC1D00", login: "Carro.99",
@@ -139,7 +144,10 @@ function carregarFrota() {
 
 function salvarFrota() {
     try {
-        fs.writeFileSync(ARQUIVO_FROTA, JSON.stringify(frotaCadastrada, null, 2), 'utf8');
+        // Só grava se o objeto não estiver vazio, prevenindo sobrescrições acidentais
+        if (frotaCadastrada && typeof frotaCadastrada === 'object' && Object.keys(frotaCadastrada).length > 0) {
+            fs.writeFileSync(ARQUIVO_FROTA, JSON.stringify(frotaCadastrada, null, 2), 'utf8');
+        }
     } catch (e) {}
 }
 

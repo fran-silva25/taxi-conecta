@@ -133,40 +133,39 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
                 if (qr) {
                     qrCodeAtual = qr;
+                    reconectando = false;
                     console.log("📱 NOVO QR CODE GERADO PARA O WHATSAPP!");
                     console.log("👉 Acesse no seu navegador: https://taxi-conecta-api.onrender.com/qr");
                 }
 
                 if (connection === 'close') {
-    qrCodeAtual = null;
-    const statusCode = lastDisconnect?.error?.output?.statusCode;
-    const ehDesconexaoDefinitiva = statusCode === DisconnectReason.loggedOut;
+                    qrCodeAtual = null;
+                    reconectando = false;
+                    
+                    const statusCode = lastDisconnect?.error?.output?.statusCode;
+                    console.log(`🔴 Conexão fechada. Código de status: ${statusCode || 'Desconhecido'}`);
 
-    console.log(`🔴 Conexão fechada. Código de status: ${statusCode || 'Desconhecido'}`);
+                    // Se for logout explícito ou erro de unauthorized (401), limpa a sessão para gerar novo QR Code
+                    const ehDesconexaoDefinitiva = (statusCode === DisconnectReason.loggedOut || statusCode === 401);
 
-    // SÓ APAGA A PASTA SE HOUVER LOGOUT EXPLICITO PELO CELULAR
-    if (ehDesconexaoDefinitiva) {
-        console.log("🧹 Aparelho desconectado. Limpando sessão...");
-        try {
-            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
-        } catch (e) {}
-    } else {
-        console.log("🔄 Tentando reconectar mantendo a sessão salva...");
-    }
+                    if (ehDesconexaoDefinitiva) {
+                        console.log("🧹 Aparelho desconectado ou sessão inválida (401). Limpando sessão...");
+                        try {
+                            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
+                        } catch (e) {}
+                    } else {
+                        console.log("🔄 Tentando reconectar mantendo a sessão salva...");
+                    }
 
-    setTimeout(() => conectarWhatsApp(), 5000);
-}
-                if (connection === 'close') {
-        const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-        console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
-        if (shouldReconnect) {
-            setTimeout(() => conectarWhatsApp(), 5000);
-        }
-    } else if (connection === 'open') {
-        qrCodeAtual = null;
-        reconectando = false;
-        console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
-    }
+                    setTimeout(() => {
+                        conectarWhatsApp();
+                    }, 5000);
+
+                } else if (connection === 'open') {
+                    qrCodeAtual = null;
+                    reconectando = false;
+                    console.log("🟢 WhatsApp do Ponto 2216 CONECTADO COM SUCESSO!");
+                }
             });
 
             sock.ev.on('messages.upsert', async (m) => {
