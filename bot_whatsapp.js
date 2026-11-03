@@ -1,12 +1,9 @@
 // bot_whatsapp.js
 
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, initAuthCreds, DisconnectReason, proto } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const fs = require('fs');
-const path = require('path');
+const db = require('./db');
 
-const PASTA_SESSAO = path.join(__dirname, 'sessao_whatsapp');
-const estadosClientes = {};
 let qrCodeAtual = null;
 let sock = null;
 let reconectando = false;
@@ -37,8 +34,97 @@ const fronteiraPonto2216 = [
     [-23.572485029276983, -46.57161063370136], 
     [-23.569085829390207, -46.573407595182005],
     [-23.56311073387646, -46.57598833766969],  
-    [-23.554839771997806, -46.57627508705842]  
+    [-23.554839771997806, -46.57627508705842]   
 ];
+
+// Adaptador de Autenticação PostgreSQL para o Baileys
+async function usePostgresAuthState() {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+            key VARCHAR(255) PRIMARY KEY,
+            value TEXT
+        );
+    `);
+
+    const writeData = async (data, key) => {
+        try {
+            const JSONData = JSON.stringify(data, (_, replacer) => 
+                replacer instanceof Uint8Array ? Buffer.from(replacer).toString('base64') : replacer
+            );
+            await db.query(
+                `INSERT INTO whatsapp_sessions (key, value) VALUES ($1, $2) 
+                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+                [key, JSONData]
+            );
+        } catch (error) {
+            console.error(`Erro ao gravar dados de auth (${key}):`, error);
+        }
+    };
+
+    const readData = async (key) => {
+        try {
+            const result = await db.query(`SELECT value FROM whatsapp_sessions WHERE key = $1`, [key]);
+            if (result.rows.length === 0) return null;
+            return JSON.parse(result.rows[0].value, (_, replacer) => {
+                if (typeof replacer === 'string') {
+                    try {
+                        return Buffer.from(replacer, 'base64');
+                    } catch (e) {}
+                }
+                return replacer;
+            });
+        } catch (error) {
+            console.error(`Erro ao ler dados de auth (${key}):`, error);
+            return null;
+        }
+    };
+
+    const removeData = async (key) => {
+        try {
+            await db.query(`DELETE FROM whatsapp_sessions WHERE key = $1`, [key]);
+        } catch (error) {
+            console.error(`Erro ao remover dados de auth (${key}):`, error);
+        }
+    };
+
+    const creds = (await readData('creds')) || initAuthCreds();
+
+    return {
+        state: {
+            creds,
+            keys: {
+                get: async (type, ids) => {
+                    const data = {};
+                    for (const id of ids) {
+                        const key = `${type}-${id}`;
+                        let value = await readData(key);
+                        if (type === 'app-state-sync-key' && value) {
+                            value = proto.Message.AppStateSyncKeyData.fromObject(value);
+                        }
+                        data[id] = value;
+                    }
+                    return data;
+                },
+                set: async (data) => {
+                    const tasks = [];
+                    for (const category of Object.keys(data)) {
+                        for (const id of Object.keys(data[category])) {
+                            const value = data[category][id];
+                            const key = `${category}-${id}`;
+                            if (value) {
+                                tasks.push(writeData(value, key));
+                            } else {
+                                tasks.push(removeData(key));
+                            }
+                        }
+                    }
+                    await Promise.all(tasks);
+                }
+            }
+        },
+        saveCreds: () => writeData(state.creds, 'creds')
+    };
+}
 
 function verificarDentroDaCerca(pontoLatLon, poligonoCerca) {
     let lat = pontoLatLon[0], lon = pontoLatLon[1];
@@ -56,7 +142,6 @@ function verificarDentroDaCerca(pontoLatLon, poligonoCerca) {
     return dentro;
 }
 
-// Geocodificação Direta (Endereço Digitado)
 async function buscarCoordenadasPorEndereco(enderecoTexto) {
     try {
         const query = encodeURIComponent(`${enderecoTexto}, São Paulo, SP, Brasil`);
@@ -72,7 +157,6 @@ async function buscarCoordenadasPorEndereco(enderecoTexto) {
     }
 }
 
-// Geocodificação Reversa Aprimorada (Pino GPS do WhatsApp -> Rua, Número e Bairro)
 async function buscarEnderecoPorCoordenadas(lat, lon) {
     try {
         const resposta = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
@@ -94,6 +178,8 @@ async function buscarEnderecoPorCoordenadas(lat, lon) {
     }
 }
 
+const estadosClientes = {};
+
 function liberarClienteWhatsApp(jidCliente) {
     if (jidCliente && estadosClientes[jidCliente]) {
         delete estadosClientes[jidCliente];
@@ -106,13 +192,12 @@ function obterQrCodeAtual() {
 }
 
 function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
-
     async function conectarWhatsApp() {
         if (reconectando) return;
         reconectando = true;
 
         try {
-            const { state, saveCreds } = await useMultiFileAuthState(PASTA_SESSAO);
+            const { state, saveCreds } = await usePostgresAuthState();
 
             sock = makeWASocket({
                 logger: pino({ level: 'silent' }),
@@ -128,7 +213,7 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
             sock.ev.on('creds.update', saveCreds);
 
-            sock.ev.on('connection.update', (update) => {
+            sock.ev.on('connection.update', async (update) => {
                 const { connection, lastDisconnect, qr } = update;
 
                 if (qr) {
@@ -145,13 +230,12 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                     const statusCode = lastDisconnect?.error?.output?.statusCode;
                     console.log(`🔴 Conexão fechada. Código de status: ${statusCode || 'Desconhecido'}`);
 
-                    // Se for logout explícito ou erro de unauthorized (401), limpa a sessão para gerar novo QR Code
                     const ehDesconexaoDefinitiva = (statusCode === DisconnectReason.loggedOut || statusCode === 401);
 
                     if (ehDesconexaoDefinitiva) {
-                        console.log("🧹 Aparelho desconectado ou sessão inválida (401). Limpando sessão...");
+                        console.log("🧹 Aparelho desconectado ou sessão inválida (401). Limpando sessão do banco...");
                         try {
-                            fs.rmSync(PASTA_SESSAO, { recursive: true, force: true });
+                            await db.query("DELETE FROM whatsapp_sessions");
                         } catch (e) {}
                     } else {
                         console.log("🔄 Tentando reconectar mantendo a sessão salva...");
@@ -210,7 +294,6 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                         return;
                     }
 
-                    // 1. INÍCIO
                     if (estadoAtual === 'INICIAL' || ehComandoReset) {
                         estadosClientes[jid] = { estado: 'AGUARDANDO_NOME' };
                         
@@ -223,7 +306,6 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                         return;
                     }
 
-                    // 2. RECEBE O NOME/APTO
                     if (estadoAtual === 'AGUARDANDO_NOME') {
                         if (textoRecebido.length < 2) {
                             await enviarMsgSegura(`⚠️ Por favor, digite um nome válido junto com o Bloco/Apto para que o motorista possa te localizar.`);
@@ -297,7 +379,6 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                         return;
                     }
 
-                    // 3. LÓGICA DE LOCALIZAÇÃO (Com GPS ou Endereço Digitado)
                     if (estadoAtual === 'AGUARDANDO_LOCALIZACAO') {
                         let nomeClienteSalvo = clienteObj.nomeCliente || 'Passageiro WhatsApp';
 
@@ -324,7 +405,6 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                             }
                         };
 
-                        // TRATAMENTO DO PINO DE GPS DO WHATSAPP
                         if (localizacaoRecebida && localizacaoRecebida.degreesLatitude && localizacaoRecebida.degreesLongitude) {
                             const lat = localizacaoRecebida.degreesLatitude;
                             const lon = localizacaoRecebida.degreesLongitude;
@@ -336,7 +416,6 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
                             return;
                         }
 
-                        // TRATAMENTO DO ENDEREÇO DIGITADO EM TEXTO
                         if (textoRecebido.length > 5) {
                             await enviarMsgSegura(`🔍 Buscando o endereço: *${textoRecebido}*...`);
                             const coords = await buscarCoordenadasPorEndereco(textoRecebido);
