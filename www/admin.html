@@ -280,7 +280,7 @@
                     <button onclick="alterarModo('SO_PH')" style="flex: 1; background: #eab308; color: #000;">Apenas Ponto PH</button>
                     <button onclick="alterarModo('BAIXA_FROTA')" style="flex: 1; background: #3b82f6; color: #fff;">Baixa Frota</button>
                 </div>
-                <p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="labelModoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
+                <<p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="modoOperacaoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
 
                 <!-- BOTÃO DE CONTROLE DO PA2 (EVENTOS DO SHOPPING) -->
                 <div class="switch-container">
@@ -589,8 +589,14 @@
     }
 
     socket.on('atualizarSistema', (dados) => {
-        if (dados.modo) document.getElementById('labelModoAtual').innerText = dados.modo;
-        
+        // Atualiza o modo de operação exibido na tela utilizando o ID correto (labelModoAtual)
+        if (dados.modo) {
+            const elementoModo = document.getElementById('labelModoAtual');
+            if (elementoModo) {
+                elementoModo.innerText = dados.modo;
+            }
+        }
+
         // Sincroniza o botão de toggle do PA2 com o estado do servidor
         if (typeof dados.pa2Fechado !== 'undefined') {
             const chk = document.getElementById('checkPa2Fechado');
@@ -603,7 +609,6 @@
                 desc.style.color = dados.pa2Fechado ? "#dc2626" : "var(--texto-secundario)";
             }
         }
-
         if (dados.fila) renderizarFila(dados.fila);
         if (dados.frota) {
             dadosCacheFrota = dados.frota;
