@@ -477,19 +477,17 @@ io.on('connection', (socket) => {
     });
 
     socket.on('loginMotorista', (dados) => {
-        const idStr = String(dados.login || '').replace('Carro.', '').trim();
-        const chaveBusca1 = `Carro.${idStr}`;
-        const chaveBusca2 = idStr;
-
-        // Procura o carro em qualquer variação da chave
-        const carro = frotaCadastrada[chaveBusca1] || frotaCadastrada[chaveBusca2] || Object.values(frotaCadastrada).find(c => String(c.numero) === idStr);
+        // Limpa qualquer vestígio de 'Carro.' ou espaços para obter apenas o número limpo (ex: "36")
+        const idStr = String(dados.login || '').replace(/[^0-9]/g, '').trim();
+        
+        // Procura em todas as variações possíveis no objeto da frota
+        const carro = Object.values(frotaCadastrada).find(c => String(c.numero).trim() === idStr);
 
         if (!carro) {
-            socket.emit('loginErro', { mensagem: "Login (número do carro) não cadastrado." });
+            socket.emit('loginErro', { mensagem: `Login (Carro ${idStr}) não encontrado na base.` });
             return;
         }
 
-        // Compara a senha informada com a senha guardada (com fallback para '123' se estiver vazia)
         const senhaCadastrada = carro.senha ? String(carro.senha).trim() : "123";
         const senhaInformada = dados.senha ? String(dados.senha).trim() : "";
 
