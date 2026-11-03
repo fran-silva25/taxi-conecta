@@ -590,10 +590,15 @@
 
     socket.on('atualizarSistema', (dados) => {
         if (dados.modo) {
-            const elementoModo = document.getElementById('modoOperacaoAtual');
-            if (elementoModo) {
-                elementoModo.innerText = dados.modo;
-            }
+            socket.on('atualizarSistema', (dados) => {
+    // Atualiza o texto do modo atual na tela
+    if (dados.modo) {
+        const el = document.getElementById('modoOperacaoAtual');
+        if (el) el.innerText = dados.modo;
+    }
+    // ... restante código de atualização da fila e painel
+});
+   
         }
 
         // Sincroniza o botão de toggle do PA2 com o estado do servidor
