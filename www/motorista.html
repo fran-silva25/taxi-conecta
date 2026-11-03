@@ -175,7 +175,7 @@
         <span style="font-weight: bold; color: var(--amarelo-ponto);">App Motorista</span>
         <div style="display: flex; gap: 6px;">
             <button class="btn-acao-topo" onclick="abrirConfiguracoes()">⚙️ Config</button>
-            <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
+            <button class="btn-acao-topo" onclick="alternarTema()">🌗 <span id="labelTema">Tema</span></button>
             <button id="btnSairApp" class="btn-sair" onclick="fazerLogout()">🚪 Sair</button>
         </div>
     </div>
@@ -207,7 +207,7 @@
 
         <!-- OFERTA DE CORRIDA -->
         <div id="modalOferta" class="alerta-chamada escondido">
-            <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🛎️ NOVA CORRIDA DISPONÍVEL!</h2>
+            <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🚖️ NOVA CORRIDA DISPONÍVEL!</h2>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="ofertaCliente">--</span></p>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Origem:</strong> <span id="ofertaLocal">--</span></p>
             
@@ -219,13 +219,13 @@
 
         <!-- CARTÃO DE VIAGEM ATIVA -->
         <div id="cartaoViagemAtiva" class="alerta-chamada escondido" style="background: #f0fdf4 !important; border-color: #16a34a !important; animation: none;">
-            <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚖 CORRIDA EM ANDAMENTO</h2>
+            <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚘 CORRIDA EM ANDAMENTO</h2>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="viagemCliente">--</span></p>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Endereço de Embarque:</strong> <br><span id="viagemOrigem" style="font-weight: bold; color: #000;">--</span></p>
             
             <div id="boxBotoesNavegacao" class="escondido" style="margin-top: 12px; display: flex; gap: 8px;">
                 <button id="btnAbrirMaps" class="btn-nav-maps" style="flex: 1;">🗺️ Google Maps</button>
-                <button id="btnAbrirWaze" class="btn-nav-waze" style="flex: 1;">🚙 Waze</button>
+                <button id="btnAbrirWaze" class="btn-nav-waze" style="flex: 1;">🚗 Waze</button>
             </div>
 
             <div style="margin-top: 15px;">
@@ -334,6 +334,10 @@
     let modoPTTAtual = 'pressionar';
     let temaAtual = 'escuro';
 
+    // OBJETO DE ÁUDIO GLOBAL CONFIGURADO EM LOOP CONTÍNUO PARA A CORRIDA
+    let audioCorrida = new Audio('alerta.mp3');
+    audioCorrida.loop = true; // Loop ativado até o motorista aceitar ou recusar
+
     // DESTRAVAMENTO DE ÁUDIO AUTOMÁTICO NA REDE
     let audioContextDestravado = false;
     function destravarAudioAutomatica() {
@@ -347,18 +351,37 @@
     document.addEventListener('click', destravarAudioAutomatica, { once: true });
     document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
 
-    // REPRODUÇÃO DO FICHEIRO DE ÁUDIO PERSONALIZADO (alerta.mp3)
+    // REPRODUÇÃO DO ALARME EM LOOP E SOBREPOSIÇÃO DE TELA
     function tocarSomAlertaCorrida() {
         try {
-            const audioCorrida = new Audio('alerta.mp3');
             if (meuTaxi && meuTaxi.numero) {
                 const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
                 audioCorrida.volume = parseFloat(volSalvo) / 100;
+            } else {
+                audioCorrida.volume = 1.0;
             }
             audioCorrida.currentTime = 0;
             audioCorrida.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));
+            
+            // Força foco na janela para sobrepor outros apps se possível
+            if (window.focus) {
+                window.focus();
+            }
         } catch (e) {
             console.error("Erro ao reproduzir ficheiro de alerta:", e);
+        }
+    }
+
+    // PARAR O ALARME SONORO E VIBRAÇÃO
+    function pararSomAlertaCorrida() {
+        try {
+            audioCorrida.pause();
+            audioCorrida.currentTime = 0;
+            if ("vibrate" in navigator) {
+                navigator.vibrate(0);
+            }
+        } catch (e) {
+            console.error("Erro ao parar o som de alerta:", e);
         }
     }
 
@@ -391,7 +414,7 @@
         }
         const vol = val / 100;
         document.querySelectorAll('audio').forEach(a => {
-            a.volume = vol;
+            if (a !== audioCorrida) a.volume = vol;
         });
     }
 
@@ -437,8 +460,8 @@
         try {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(() => console.log('Microfone autorizado!'))
-                    .catch(err => console.log('Aguardando liberação de microfone:', err));
+                .then(() => console.log('Microfone autorizado!'))
+                .catch(err => console.log('Aguardando liberação de microfone:', err));
             }
 
             socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
@@ -460,7 +483,7 @@
     function configurarEventosSocket() {
         socket.on('loginErro', (dados) => { 
             alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas.")); 
-            window.location.href = "index.html";
+            window.location.href = "index.html"; 
         });
 
         socket.on('loginSucesso', (dados) => {
@@ -515,12 +538,12 @@
             }
         });
 
-        // CHEGADA DE OFERTA DE CORRIDA -> TOCA alerta.mp3 E VIBRA
+        // CHEGADA DE OFERTA DE CORRIDA -> TOCA ALARME EM LOOP E VIBRA
         socket.on('ofertaCorrida', (dados) => {
             if (!meuTaxi) return;
 
             tocarSomAlertaCorrida();
-            if ("vibrate" in navigator) navigator.vibrate([300, 100, 300, 100, 500]);
+            if ("vibrate" in navigator) navigator.vibrate([400, 200, 400, 200, 600]);
 
             idChamadaAtual = dados.idChamada;
             const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
@@ -530,6 +553,7 @@
         });
 
         socket.on('avisoRecusaBloqueio', () => {
+            pararSomAlertaCorrida();
             document.getElementById('modalOferta').classList.add('escondido');
             const modalRecusa = document.getElementById('modalBloqueioRecusa');
             modalRecusa.classList.remove('escondido');
@@ -537,6 +561,7 @@
         });
 
         socket.on('forcarStatusOcupado', () => {
+            pararSomAlertaCorrida();
             statusAtual = "OCUPADO";
             simulandoChegadaNoPonto = false;
             document.getElementById('labelStatus').innerText = "EM CORRIDA";
@@ -549,10 +574,10 @@
             document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";
         });
 
-        // CORRIDA ATRIBUÍDA -> TOCA SOM
+        // CORRIDA ATRIBUÍDA -> PARA ALARME E ABRE NAVEGAÇÃO
         socket.on('corridaAtribuida', (dados) => {
             if (meuTaxi && String(dados.idTaxi) === String(meuTaxi.numero)) {
-                tocarSomAlertaCorrida();
+                pararSomAlertaCorrida();
 
                 const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
                 document.getElementById('viagemCliente').innerText = nomePassageiro;
@@ -594,7 +619,6 @@
             }
         });
 
-        // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
         socket.on('canalOcupado', (dados) => {
             if (!meuTaxi || String(dados.idTaxi) === String(meuTaxi.numero)) return;
             estadoCanal = 'OCUPADO';
@@ -606,7 +630,6 @@
             lbl.innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeFalante}</span>`;
         });
 
-        // CANAL LIVRE (RESTAURA O BOTÃO AO PADRÃO)
         socket.on('canalLivre', () => {
             estadoCanal = 'LIVRE';
             const btn = document.getElementById('btnPTT');
@@ -615,7 +638,6 @@
             document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";
         });
 
-        // CORTE DE TRANSMISSÃO PELA CENTRAL/FISCAL
         socket.on('forcarCortePTT', (dados) => {
             if (meuTaxi && (String(dados.idAtivo) === String(meuTaxi.numero) || gravando)) {
                 gravando = false;
@@ -631,7 +653,6 @@
             }
         });
 
-        // RECEBIMENTO DE ÁUDIO -> REPRODUÇÃO AUTOMÁTICA EM TEMPO REAL
         socket.on('receberAudioPTT', (dados) => {
             if (!meuTaxi || !meuTaxi.numero) return;
             const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';
@@ -898,12 +919,14 @@
 
     function aceitarCorrida() {
         if (!idChamadaAtual || !socket) return;
+        pararSomAlertaCorrida();
         socket.emit('aceitarCorridaMotorista', { idChamada: idChamadaAtual });
         document.getElementById('modalOferta').classList.add('escondido');
     }
 
     function recusarCorrida() {
         if (!idChamadaAtual || !socket) return;
+        pararSomAlertaCorrida();
         socket.emit('recusarCorridaMotorista', { idChamada: idChamadaAtual });
         document.getElementById('modalOferta').classList.add('escondido');
         idChamadaAtual = null;
@@ -917,5 +940,6 @@
         iniciarSocketApp();
     });
 </script>
+
 </body>
 </html>
