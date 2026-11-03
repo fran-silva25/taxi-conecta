@@ -124,6 +124,7 @@ async function carregarFrotaDoBanco() {
         const frotaObj = {};  
         if (res.rows.length > 0) {  
             res.rows.forEach(row => {  
+                const senhaLimpa = row.senha !== null && row.senha !== undefined && String(row.senha).trim() !== "" ? String(row.senha).trim() : "123";  
                 frotaObj[row.login || `Carro.${row.numero}`] = {  
                     numero: row.numero,  
                     placa: row.placa,  
@@ -132,7 +133,7 @@ async function carregarFrotaDoBanco() {
                     modelo: row.modelo,  
                     cargo: row.cargo || "Comum",  
                     telefones: row.telefones ? (Array.isArray(row.telefones) ? row.telefones : [row.telefones]) : [],  
-                    senha: row.senha || "123",  
+                    senha: senhaLimpa,  
                     ehModerador: Boolean(row.eh_moderador),  
                     statusRadio: row.status_radio || "ONLINE",  
                     mutadoAte: row.mutado_ate ? Number(row.mutado_ate) : null,  
@@ -203,7 +204,7 @@ async function carregarAdmsDoBanco() {
                 if (key) {  
                     admsObj[key] = {  
                         usuario: row.usuario,  
-                        senha: row.senha_hash || row.senha,  
+                        senha: String(row.senha || row.senha_hash || '123').trim(),  
                         cargo: row.cargo || 'FISCAL',  
                         nome: row.nome || 'Administrador'  
                     };  
@@ -230,7 +231,7 @@ async function salvarAdmNoBanco(adm) {
             nome = EXCLUDED.nome,  
             cargo = EXCLUDED.cargo;  
         `;  
-        await db.query(query, [adm.usuario, adm.senha, adm.nome, adm.cargo]);  
+        await db.query(query, [adm.usuario, String(adm.senha).trim(), adm.nome, adm.cargo]);  
     } catch (e) {  
         console.error("Erro ao salvar administrador no banco:", e);  
     }  
@@ -463,6 +464,8 @@ io.on('connection', (socket) => {
   
     socket.on('cadastrarCarro', async (dados) => {  
         const loginGerado = `Carro.${dados.numero}`;  
+        const senhaDefinida = dados.senha !== null && dados.senha !== undefined && String(dados.senha).trim() !== "" ? String(dados.senha).trim() : "123";  
+
         const novoCarro = {  
             numero: dados.numero,  
             placa: (dados.placa || '').trim().toUpperCase(),  
@@ -471,7 +474,7 @@ io.on('connection', (socket) => {
             modelo: dados.modelo,  
             cargo: dados.cargo || "Comum",  
             telefones: dados.telefones,  
-            senha: dados.senha,  
+            senha: senhaDefinida,  
             ehModerador: Boolean(dados.ehModerador),  
             statusRadio: "ONLINE",  
             mutadoAte: null,  
@@ -496,7 +499,7 @@ io.on('connection', (socket) => {
             } catch (e) {}  
         }  
   
-        let senhaFinal = dados.senha ? dados.senha.trim() : null;  
+        let senhaFinal = dados.senha !== null && dados.senha !== undefined && String(dados.senha).trim() !== "" ? String(dados.senha).trim() : null;  
         if (!senhaFinal && frotaCadastrada[loginGerado]) {  
             senhaFinal = frotaCadastrada[loginGerado].senha;  
         }  
@@ -548,7 +551,8 @@ io.on('connection', (socket) => {
         const numLimpo = String(dados.id || dados.login || '').replace(/[^0-9]/g, '');  
         const chaveBusca = `Carro.${numLimpo}`;  
         if (frotaCadastrada[chaveBusca]) {  
-            frotaCadastrada[chaveBusca].senha = String(dados.novaSenha || '123').trim();  
+            const novaSenhaLimpa = dados.novaSenha !== null && dados.novaSenha !== undefined && String(dados.novaSenha).trim() !== "" ? String(dados.novaSenha).trim() : "123";  
+            frotaCadastrada[chaveBusca].senha = novaSenhaLimpa;  
             await salvarCarroNoBanco(frotaCadastrada[chaveBusca]);  
             socket.emit('senhaResetadaSucesso', { login: chaveBusca });  
         }  
@@ -563,8 +567,8 @@ io.on('connection', (socket) => {
             return;  
         }  
   
-        const senhaCadastrada = carro.senha ? String(carro.senha).trim() : "123";  
-        const senhaInformada = dados.senha ? String(dados.senha).trim() : "";  
+        const senhaCadastrada = carro.senha !== null && carro.senha !== undefined ? String(carro.senha).trim() : "123";  
+        const senhaInformada = dados.senha !== null && dados.senha !== undefined ? String(dados.senha).trim() : "";  
   
         if (senhaCadastrada !== senhaInformada) {  
             socket.emit('loginErro', { mensagem: "Senha incorreta." });  
