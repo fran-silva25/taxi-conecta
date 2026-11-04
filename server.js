@@ -447,19 +447,24 @@ io.on('connection', (socket) => {
         });   
     });   
   
-    socket.on('loginAdm', (dados) => {   
-        const usuarioKey = dados.usuario.trim().toLowerCase();   
-        const userObj = usuariosAdmCadastrados[usuarioKey];   
-  
-        if (!userObj || userObj.senha !== dados.senha) {   
-            socket.emit('loginErro', { mensagem: "Credenciais administrativas incorretas." });   
-            return;   
-        }   
-        socket.emit('loginAdmSucesso', { usuario: userObj, historicoAudio: historicoAudio });   
-  
-        if (checarAniversarioApp()) {   
-            socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚕" });   
-        }   
+    socket.on('loginAdmin', (dados) => {
+        console.log("Recebido loginAdmin no server:", dados);
+        const usuario = dados.usuario ? dados.usuario.trim().toLowerCase() : "";
+        const senha = dados.senha ? dados.senha.trim() : "";
+
+        // Verifique se o seu objeto de adms cadastrados confere com isso:
+        const admCadastrado = usuariosAdmCadastrados[usuario];
+
+        if (admCadastrado && admCadastrado.senha === senha) {
+            console.log("Login ADM bem-sucedido para:", usuario);
+            socket.emit('loginAdmSucesso', { 
+                nome: admCadastrado.nome || 'Administrador', 
+                cargo: admCadastrado.cargo || 'ADM' 
+            });
+        } else {
+            console.log("Falha no login ADM para:", usuario);
+            socket.emit('loginErro', { mensagem: "Credenciais administrativas incorretas." });
+        }
     });   
   
     socket.on('cadastrarCarro', async (dados) => {   
