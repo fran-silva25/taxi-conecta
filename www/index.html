@@ -136,14 +136,18 @@
                     alert(err.mensagem || "Senha ou usuário administrativo incorreto.");
                 });
 
-            } else {
-                // É Motorista: Formata o número do carro e consulta a frota
-                let carroFormatado = valorInput;
-                if (!carroFormatado.toLowerCase().startsWith('carro.')) {
-                    carroFormatado = `Carro.${carroFormatado}`;
-                }
+} else {  
+        // É Motorista: Formata o carro e garante o envio correto da senha informada  
+        let carroFormatado = valorInput;  
+        if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
+            carroFormatado = `Carro.${carroFormatado}`;  
+        }  
+        
+        const senhaEnviada = senhaInput ? senhaInput.trim() : "";
+        console.log("A enviar login motorista -> Carro:", carroFormatado, "| Senha:", senhaEnviada);
 
-                socket.emit('loginMotorista', { login: carroFormatado, senha: senhaInput });
+        socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
+    }
 
                 socket.once('loginSucesso', (dadosMotorista) => {
                     localStorage.setItem('taxi_carro', carroFormatado);
