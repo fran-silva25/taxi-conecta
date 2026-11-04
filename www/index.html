@@ -25,25 +25,29 @@
 </head>
 <body class="flex flex-col min-h-screen justify-between items-center p-4">
 
-    <!-- SPLASH SCREEN / TELA DE CARREGAMENTO INICIAL -->
+    <!-- SPLASH SCREEN / TELA DE CARREGAMENTO INICIAL COM O BANNER.PNG -->
     <div id="splashScreen" class="fixed inset-0 bg-white dark:bg-zinc-900 flex flex-col justify-between items-center z-50 p-6 transition-opacity duration-500">
-        <div></div>
+        
+        <!-- BANNER DA PASTA WWW (banner.png) -->
+        <div class="w-full max-w-xs flex items-center justify-center p-2">
+            <img src="banner.png" alt="Ponto 2216" class="w-full h-auto object-contain" onerror="this.style.display='none'">
+        </div>
 
-        <div class="flex flex-col items-center text-center space-y-6">
-            <div class="w-32 h-32 flex items-center justify-center p-2">
+        <div class="flex flex-col items-center text-center space-y-4">
+            <div class="w-28 h-28 flex items-center justify-center p-2">
                 <img src="taxi-animado.webp" alt="Taxi Conecta" class="w-full h-full object-contain" onerror="this.style.display='none'">
             </div>
 
             <div>
                 <h1 class="text-2xl font-bold tracking-wide">Taxi Conecta</h1>
-                <p class="text-sm text-gray-500 mt-1">Ponto de Táxi 2216 - Shopping Anália Franco e Carrefour</p>
+                <p class="text-xs text-gray-500 mt-1">Ponto de Táxi 2216 - Shopping Anália Franco e Carrefour</p>
             </div>
 
-            <div class="w-72">
-                <p id="statusSplashMessage" class="text-sm font-medium text-gray-600 dark:text-gray-400 min-h-[2rem]">
+            <div class="w-72 mt-2">
+                <p id="statusSplashMessage" class="text-xs font-medium text-gray-600 dark:text-gray-400 min-h-[1.5rem]">
                     Iniciando o sistema...
                 </p>
-                <div class="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
                     <div class="bg-amber-500 h-full rounded-full animate-pulse w-3/4"></div>
                 </div>
             </div>
@@ -58,6 +62,12 @@
     <!-- TELA DE LOGIN INTELIGENTE -->
     <div id="loginContainer" class="w-full max-w-sm flex-1 flex flex-col justify-center items-center hidden py-8">
         <div class="w-full bg-white dark:bg-zinc-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-700">
+            
+            <!-- MINI BANNER NO TOPO DO LOGIN -->
+            <div class="w-full flex items-center justify-center mb-6">
+                <img src="banner.png" alt="Ponto 2216" class="max-h-12 object-contain" onerror="this.style.display='none'">
+            </div>
+
             <div class="text-center mb-6">
                 <h2 class="text-xl font-bold">Acesso ao Sistema</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Digite sua Credencial ou Nº do Carro</p>
@@ -112,27 +122,29 @@
             const valorInput = document.getElementById('userInput').value.trim();  
             const senhaInput = document.getElementById('passInput').value.trim();  
 
-            // Identifica inteligentemente se é ADM/Fiscal
             const isAdm = isNaN(valorInput) || valorInput.includes('.') || valorInput.toLowerCase().startsWith('admin');
 
             if (isAdm) {
                 console.log("Enviando login admin -> Usuário:", valorInput);
                 socket.emit('loginAdmin', { usuario: valorInput, senha: senhaInput });
 
-                // Trata as duas variações possíveis do evento de sucesso do servidor
-                socket.once('loginAdmSucesso', (dadosAdm) => {
-                    processarSucessoAdmin(valorInput, dadosAdm);
-                });
-                socket.once('loginAdminSucesso', (dadosAdm) => {
-                    processarSucessoAdmin(valorInput, dadosAdm);
-                });
+                const tratarSucesso = (dadosAdm) => {
+                    localStorage.setItem('taxi_admin', valorInput);
+                    if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
+                    if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
+                    localStorage.removeItem('taxi_carro');
+                    window.location.href = "admin.html"; // Se o seu painel for admin.html, mantenha. Se for painel-admin.html, ajuste aqui.
+                };
+
+                socket.once('loginAdmSucesso', tratarSucesso);
+                socket.once('loginAdminSucesso', tratarSucesso);
+                socket.once('loginAdminOk', tratarSucesso);
 
                 socket.once('loginErro', (err) => {
                     alert(err.mensagem || "Credencial ou senha de Administrador incorreta.");
                 });
 
             } else {  
-                // É Motorista: Formata o número do carro corretamente
                 let carroFormatado = valorInput;  
                 if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
                     carroFormatado = `Carro.${carroFormatado}`;  
@@ -152,14 +164,6 @@
                     alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
                 });
             }
-        }
-
-        function processarSucessoAdmin(usuario, dadosAdm) {
-            localStorage.setItem('taxi_admin', usuario);
-            if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
-            if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
-            localStorage.removeItem('taxi_carro');
-            window.location.href = "admin.html"; // Mude para painel-admin.html se for o nome exato na sua pasta
         }
 
         window.onload = () => {
