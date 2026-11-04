@@ -62,16 +62,16 @@
   
         body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }  
           
-        .container {   
-            width: 100%;   
-            max-width: 460px;   
-            background: var(--bg-container);   
-            padding: 20px;   
-            border-radius: 16px;   
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);   
-            position: relative;   
-            min-height: 560px;   
-            border: 2px solid var(--amarelo-ponto);   
+        .container {  
+            width: 100%;  
+            max-width: 460px;  
+            background: var(--bg-container);  
+            padding: 20px;  
+            border-radius: 16px;  
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);  
+            position: relative;  
+            min-height: 560px;  
+            border: 2px solid var(--amarelo-ponto);  
             box-sizing: border-box;  
             transition: max-width 0.3s ease;  
         }  
@@ -334,7 +334,8 @@
     let modoPTTAtual = 'pressionar';  
     let temaAtual = 'escuro';  
   
-    let audioCorrida = new Audio('./alerta.mp3');  
+    // CORREÇÃO APLICADA: Utiliza window.location.origin para garantir o caminho exato do asset na nuvem e no app
+    let audioCorrida = new Audio(window.location.protocol === 'file:' ? 'alerta.mp3' : window.location.origin + '/alerta.mp3');  
     audioCorrida.loop = true;  
   
     let audioContextDestravado = false;  
@@ -476,9 +477,9 @@
     }  
   
     function configurarEventosSocket() {  
-        socket.on('loginErro', (dados) => {   
-            alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas."));   
-            window.location.href = "index.html";   
+        socket.on('loginErro', (dados) => {  
+            alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas."));  
+            window.location.href = "index.html";  
         });  
   
         socket.on('loginSucesso', (dados) => {  
