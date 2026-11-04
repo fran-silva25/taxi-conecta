@@ -25,38 +25,30 @@
 </head>
 <body class="flex flex-col min-h-screen justify-between items-center p-4">
 
-    <!-- SPLASH SCREEN / TELA DE CARREGAMENTO INICIAL COM BANNER NO TOPO -->
+    <!-- SPLASH SCREEN / TELA DE CARREGAMENTO INICIAL -->
     <div id="splashScreen" class="fixed inset-0 bg-white dark:bg-zinc-900 flex flex-col justify-between items-center z-50 p-6 transition-opacity duration-500">
-        
-        <!-- BANNER INSTITUCIONAL NO TOPO -->
-        <div class="w-full max-w-xs bg-black border-2 border-amber-400 rounded-xl py-3 px-4 flex items-center justify-center gap-2 shadow-lg">
-            <span class="text-amber-400 text-lg font-bold">✦</span>
-            <span class="text-white text-sm font-black tracking-wider uppercase">Ponto 2216 - PH</span>
-            <span class="text-amber-400 text-lg font-bold">✦</span>
-        </div>
+        <div></div>
 
-        <!-- CONTEÚDO CENTRAL (ANIMAÇÃO E STATUS) -->
-        <div class="flex flex-col items-center text-center space-y-4">
+        <div class="flex flex-col items-center text-center space-y-6">
             <div class="w-32 h-32 flex items-center justify-center p-2">
                 <img src="taxi-animado.webp" alt="Taxi Conecta" class="w-full h-full object-contain" onerror="this.style.display='none'">
             </div>
 
             <div>
                 <h1 class="text-2xl font-bold tracking-wide">Taxi Conecta</h1>
-                <p class="text-xs text-gray-500 mt-1">Gestão Inteligente de Frotas</p>
+                <p class="text-sm text-gray-500 mt-1">Ponto de Táxi 2216 - PH</p>
             </div>
 
-            <div class="w-72 mt-2">
-                <p id="statusSplashMessage" class="text-xs font-medium text-gray-600 dark:text-gray-400 min-h-[1.5rem]">
+            <div class="w-72">
+                <p id="statusSplashMessage" class="text-sm font-medium text-gray-600 dark:text-gray-400 min-h-[2rem]">
                     Iniciando o sistema...
                 </p>
-                <div class="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div class="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full mt-3 overflow-hidden">
                     <div class="bg-amber-500 h-full rounded-full animate-pulse w-3/4"></div>
                 </div>
             </div>
         </div>
 
-        <!-- RODAPÉ DA SPLASH -->
         <div class="w-full flex justify-between items-center text-xs text-gray-400 px-2 pb-2">
             <span>v1.1</span>
             <span class="font-medium">By Franklin Silva</span>
@@ -66,14 +58,6 @@
     <!-- TELA DE LOGIN INTELIGENTE -->
     <div id="loginContainer" class="w-full max-w-sm flex-1 flex flex-col justify-center items-center hidden py-8">
         <div class="w-full bg-white dark:bg-zinc-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-700">
-            
-            <!-- MINI BANNER NO TOPO DO LOGIN PARA MANTER A IDENTIDADE -->
-            <div class="bg-black border border-amber-400 rounded-lg py-2 px-3 flex items-center justify-center gap-2 mb-6 shadow">
-                <span class="text-amber-400 text-xs">✦</span>
-                <span class="text-white text-xs font-black tracking-wider uppercase">Ponto 2216 - PH</span>
-                <span class="text-amber-400 text-xs">✦</span>
-            </div>
-
             <div class="text-center mb-6">
                 <h2 class="text-xl font-bold">Acesso ao Sistema</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Digite sua Credencial ou Nº do Carro</p>
@@ -128,13 +112,15 @@
             const valorInput = document.getElementById('userInput').value.trim();  
             const senhaInput = document.getElementById('passInput').value.trim();  
 
+            // Identifica inteligentemente se é ADM/Fiscal
             const isAdm = isNaN(valorInput) || valorInput.includes('.') || valorInput.toLowerCase().startsWith('admin');
 
             if (isAdm) {
-                console.log("Enviando login admin -> Credencial:", valorInput);
-                socket.emit('loginAdmin', { login: valorInput, senha: senhaInput });
+                console.log("Enviando login admin -> Usuário:", valorInput);
+                // Alinhado exatamente com o server.js ({ usuario, senha })
+                socket.emit('loginAdmin', { usuario: valorInput, senha: senhaInput });
 
-                socket.once('loginAdminSucesso', (dadosAdm) => {
+                socket.once('loginAdmSucesso', (dadosAdm) => {
                     localStorage.setItem('taxi_admin', valorInput);
                     if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
                     if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
@@ -142,11 +128,13 @@
                     window.location.href = "admin.html";
                 });
 
-                socket.once('loginAdminErro', (err) => {
+                // Alinhado para capturar o evento de erro real do server.js (loginErro)
+                socket.once('loginErro', (err) => {
                     alert(err.mensagem || "Credencial ou senha de Administrador incorreta.");
                 });
 
             } else {  
+                // É Motorista: Formata o número do carro corretamente
                 let carroFormatado = valorInput;  
                 if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
                     carroFormatado = `Carro.${carroFormatado}`;  
