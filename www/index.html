@@ -90,11 +90,10 @@
     <!-- Socket.io para consultar o servidor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const SOCKET_URL = "https://taxi-conecta-api.onrender.com"; // Ou o IP da sua rede se estiver testando local com o PC
+        const SOCKET_URL = "https://taxi-conecta-api.onrender.com"; 
         const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
 
         async function runSplashScreen() {
-            const msg = document.getElementById('statusSplashMessage');
             const splash = document.getElementById('splashScreen');
             const loginContainer = document.getElementById('loginContainer');
             
@@ -108,50 +107,45 @@
         }
 
         function fazerLoginUniversal(event) {  
-    event.preventDefault();  
-      
-    const inputs = document.querySelectorAll('#loginForm input');  
-    const valorInput = inputs[0].value.trim();  
-    const senhaInput = inputs[1].value.trim();  
-      
-    // Declara a variável aqui para ficar visível em toda a função
-    let carroFormatado = valorInput;  
+            event.preventDefault();  
+              
+            const inputs = document.querySelectorAll('#loginForm input');  
+            const valorInput = inputs[0].value.trim();  
+            const senhaInput = inputs[1].value.trim();  
+              
+            let carroFormatado = valorInput;  
 
-    if (/* ... validação de admin ... */) {
-        // Fluxo de Admin
-    } else {  
-        // É Motorista: Formata o carro
-        if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
-            carroFormatado = `Carro.${carroFormatado}`;  
-        }  
-        
-        const senhaEnviada = senhaInput ? senhaInput.trim() : "";
-        console.log("A enviar login motorista -> Carro:", carroFormatado, "| Senha:", senhaEnviada);
+            if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
+                carroFormatado = `Carro.${carroFormatado}`;  
+            }  
+                
+            const senhaEnviada = senhaInput ? senhaInput.trim() : "";
+            console.log("A enviar login motorista -> Carro:", carroFormatado, "| Senha:", senhaEnviada);
 
-        socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
-    }
+            // Envia o evento de login para o servidor
+            socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
 
-    // Se houver uso de carroFormatado aqui em baixo (linha 153), agora ele já existe!
-    if (carroFormatado) {
-        localStorage.setItem('taxi_carro_tentativa', carroFormatado);
-    }
-}
-
-                socket.once('loginSucesso', (dadosMotorista) => {
-                    localStorage.setItem('taxi_carro', carroFormatado);
-                    localStorage.removeItem('taxi_admin');
-                    window.location.href = "motorista.html";
-                });
-
-                socket.once('loginErro', (err) => {
-                    alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
-                });
+            if (carroFormatado) {
+                localStorage.setItem('taxi_carro_tentativa', carroFormatado);
             }
+
+            // Respostas do servidor tratadas no escopo correto
+            socket.once('loginSucesso', (dadosMotorista) => {
+                localStorage.setItem('taxi_carro', carroFormatado);
+                localStorage.removeItem('taxi_admin');
+                window.location.href = "motorista.html";
+            });
+
+            socket.once('loginErro', (err) => {
+                alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
+            });
+        }
 
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('logout') === 'true') {
-                document.getElementById('splashScreen').remove();
+                const splash = document.getElementById('splashScreen');
+                if (splash) splash.remove();
                 document.getElementById('loginContainer').classList.remove('hidden');
             } else {
                 runSplashScreen();
