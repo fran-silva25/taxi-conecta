@@ -118,42 +118,42 @@ function salvarHistoricoCorridas() {
 }  
   
 // Carregamento assíncrono do Banco de Dados para Frota  
-async function carregarFrotaDoBanco() {  
-    try {  
-        const res = await db.query('SELECT * FROM motoristas');  
-        const frotaObj = {};  
-        if (res.rows.length > 0) {  
-            res.rows.forEach(row => {  
-                const senhaLimpa = row.senha !== null && row.senha !== undefined && String(row.senha).trim() !== "" ? String(row.senha).trim() : "123";  
-                frotaObj[row.login || `Carro.${row.numero}`] = {  
-                    numero: row.numero,  
-                    placa: row.placa,  
-                    login: row.login || `Carro.${row.numero}`,  
-                    nome: row.nome,  
-                    modelo: row.modelo,  
-                    cargo: row.cargo || "Comum",  
-                    telefones: row.telefones ? (Array.isArray(row.telefones) ? row.telefones : [row.telefones]) : [],  
-                    senha: senhaLimpa,  
-                    ehModerador: Boolean(row.eh_moderador),  
-                    statusRadio: row.status_radio || "ONLINE",  
-                    mutadoAte: row.mutado_ate ? Number(row.mutado_ate) : null,  
-                    banidoAte: row.banido_ate ? Number(row.banido_ate) : null,  
-                    bloqueioRecusa: Boolean(row.bloqueio_recusa)  
-                };  
-            });  
-            return frotaObj;  
-        }  
-    } catch (e) {  
-        console.error("Erro ao carregar motoristas do banco:", e);  
-    }  
-    return {  
-        "Carro.99": {  
-            numero: "99", placa: "ABC1D00", login: "Carro.99",  
-            nome: "Admin Teste", modelo: "Fiat Grand Siena", cargo: "Comum",  
-            telefones: ["11900000000"], senha: "123", ehModerador: true,  
-            statusRadio: "ONLINE", mutadoAte: null, banidoAte: null, bloqueioRecusa: false  
-        }  
-    };  
+async function carregarFrotaDoBanco() {
+    try {
+        const res = await db.query('SELECT * FROM motoristas');
+        const frotaObj = {};
+        if (res.rows.length > 0) {
+            res.rows.forEach(row => {
+                const senhaLimpa = row.senha !== null && row.senha !== undefined && String(row.senha).trim() !== "" ? String(row.senha).trim() : "123";
+                frotaObj[row.login || `Carro.${row.numero}`] = {
+                    numero: row.numero,
+                    placa: row.placa,
+                    login: row.login || `Carro.${row.numero}`,
+                    nome: row.nome,
+                    modelo: row.modelo,
+                    cargo: row.cargo || "Comum",
+                    telefones: row.telefones ? (Array.isArray(row.telefones) ? row.telefones : [row.telefones]) : [],
+                    senha: senhaLimpa,
+                    ehModerador: Boolean(row.eh_moderador),
+                    statusRadio: row.status_radio || "ONLINE",
+                    mutadoAte: row.mutado_ate ? Number(row.mutado_ate) : null,
+                    banidoAte: row.banido_ate ? Number(row.banido_ate) : null,
+                    bloqueioRecusa: Boolean(row.bloqueio_recusa)
+                };
+            });
+            return frotaObj;
+        }
+    } catch (e) {
+        console.error("Erro ao carregar motoristas do banco:", e);
+    }
+    return {
+        "Carro.99": {
+            numero: "99", placa: "ABC1D00", login: "Carro.99",
+            nome: "Admin Teste", modelo: "Fiat Grand Siena", cargo: "Comum",
+            telefones: ["11900000000"], senha: "123", ehModerador: true,
+            statusRadio: "ONLINE", mutadoAte: null, banidoAte: null, bloqueioRecusa: false
+        }
+    };
 }  
   
 async function salvarCarroNoBanco(carro) {   
@@ -567,10 +567,11 @@ io.on('connection', (socket) => {
             return;  
         }  
   
-        const senhaCadastrada = carro.senha !== null && carro.senha !== undefined ? String(carro.senha).trim() : "123";  
-        const senhaInformada = dados.senha !== null && dados.senha !== undefined ? String(dados.senha).trim() : "";  
+        const senhaCadastrada = (carro.senha !== null && carro.senha !== undefined && String(carro.senha).trim() !== "") ? String(carro.senha).trim() : "123";  
+        const senhaInformada = (dados.senha !== null && dados.senha !== undefined) ? String(dados.senha).trim() : "";  
   
         if (senhaCadastrada !== senhaInformada) {  
+            console.log(`[LOGIN ERRO] Carro ${idStr}: Senha informada (${senhaInformada}) difere da cadastrada.`);
             socket.emit('loginErro', { mensagem: "Senha incorreta." });  
             return;  
         }  
@@ -581,7 +582,7 @@ io.on('connection', (socket) => {
         if (checarAniversarioApp()) {  
             socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚕" });  
         }  
-    });  
+    });
   
     socket.on('solicitarCanalPTT', (dados) => {  
         const idTransmissor = String(dados.idTaxi);  
