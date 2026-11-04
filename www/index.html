@@ -36,7 +36,7 @@
 
             <div>
                 <h1 class="text-2xl font-bold tracking-wide">Taxi Conecta</h1>
-                <p class="text-sm text-gray-500 mt-1">Ponto de Táxi 2216 - PH</p>
+                <p class="text-sm text-gray-500 mt-1">Ponto de Táxi 2216 - Shopping Anália Franco e Carrefour</p>
             </div>
 
             <div class="w-72">
@@ -117,18 +117,16 @@
 
             if (isAdm) {
                 console.log("Enviando login admin -> Usuário:", valorInput);
-                // Alinhado exatamente com o server.js ({ usuario, senha })
                 socket.emit('loginAdmin', { usuario: valorInput, senha: senhaInput });
 
+                // Trata as duas variações possíveis do evento de sucesso do servidor
                 socket.once('loginAdmSucesso', (dadosAdm) => {
-                    localStorage.setItem('taxi_admin', valorInput);
-                    if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
-                    if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
-                    localStorage.removeItem('taxi_carro');
-                    window.location.href = "admin.html";
+                    processarSucessoAdmin(valorInput, dadosAdm);
+                });
+                socket.once('loginAdminSucesso', (dadosAdm) => {
+                    processarSucessoAdmin(valorInput, dadosAdm);
                 });
 
-                // Alinhado para capturar o evento de erro real do server.js (loginErro)
                 socket.once('loginErro', (err) => {
                     alert(err.mensagem || "Credencial ou senha de Administrador incorreta.");
                 });
@@ -154,6 +152,14 @@
                     alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
                 });
             }
+        }
+
+        function processarSucessoAdmin(usuario, dadosAdm) {
+            localStorage.setItem('taxi_admin', usuario);
+            if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
+            if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
+            localStorage.removeItem('taxi_carro');
+            window.location.href = "admin.html"; // Mude para painel-admin.html se for o nome exato na sua pasta
         }
 
         window.onload = () => {
