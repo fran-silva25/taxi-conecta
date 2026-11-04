@@ -112,33 +112,47 @@
             const inputs = document.querySelectorAll('#loginForm input');  
             const valorInput = inputs[0].value.trim();  
             const senhaInput = inputs[1].value.trim();  
-              
-            let carroFormatado = valorInput;  
-
-            if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
-                carroFormatado = `Carro.${carroFormatado}`;  
-            }  
-                
             const senhaEnviada = senhaInput ? senhaInput.trim() : "";
-            console.log("A enviar login motorista -> Carro:", carroFormatado, "| Senha:", senhaEnviada);
 
-            // Envia o evento de login para o servidor
-            socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
+            // Verifica se é um login de Administrador / Fiscal (contém letras ou ponto, ex: fran.sps)
+            const isAdm = isNaN(valorInput) || valorInput.includes('.') || valorInput.toLowerCase().startsWith('admin');
 
-            if (carroFormatado) {
+            if (isAdm) {
+                console.log("A enviar login admin -> Credencial:", valorInput);
+                socket.emit('loginAdmin', { login: valorInput, senha: senhaEnviada });
+
+                socket.once('loginAdminSucesso', () => {
+                    localStorage.setItem('taxi_admin', valorInput);
+                    localStorage.removeItem('taxi_carro');
+                    window.location.href = "admin.html";
+                });
+
+                socket.once('loginAdminErro', (err) => {
+                    alert(err.mensagem || "Credencial ou senha de Administrador incorreta.");
+                });
+
+            } else {  
+                // É Motorista: Formata o número do carro corretamente
+                let carroFormatado = valorInput;  
+                if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
+                    carroFormatado = `Carro.${carroFormatado}`;  
+                }  
+                
+                console.log("A enviar login motorista -> Carro:", carroFormatado, "| Senha:", senhaEnviada);
+                socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
+
                 localStorage.setItem('taxi_carro_tentativa', carroFormatado);
+
+                socket.once('loginSucesso', (dadosMotorista) => {
+                    localStorage.setItem('taxi_carro', carroFormatado);
+                    localStorage.removeItem('taxi_admin');
+                    window.location.href = "motorista.html";
+                });
+
+                socket.once('loginErro', (err) => {
+                    alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
+                });
             }
-
-            // Respostas do servidor tratadas no escopo correto
-            socket.once('loginSucesso', (dadosMotorista) => {
-                localStorage.setItem('taxi_carro', carroFormatado);
-                localStorage.removeItem('taxi_admin');
-                window.location.href = "motorista.html";
-            });
-
-            socket.once('loginErro', (err) => {
-                alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
-            });
         }
 
         window.onload = () => {
