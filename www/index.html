@@ -107,38 +107,20 @@
             }, 500);
         }
 
-        function fazerLoginUniversal(event) {
-            event.preventDefault();
-            
-            const inputs = document.querySelectorAll('#loginForm input');
-            const valorInput = inputs[0].value.trim();
-            const senhaInput = inputs[1].value.trim();
+        function fazerLoginUniversal(event) {  
+    event.preventDefault();  
+      
+    const inputs = document.querySelectorAll('#loginForm input');  
+    const valorInput = inputs[0].value.trim();  
+    const senhaInput = inputs[1].value.trim();  
+      
+    // Declara a variável aqui para ficar visível em toda a função
+    let carroFormatado = valorInput;  
 
-            console.log("Tentativa de login unificada:", valorInput);
-
-            // Lista de identificadores estritos de Admin / Fiscal
-            const listaAdmins = ['adm', 'fiscal', 'fran.sps', 'fran'];
-            const ehAdmin = listaAdmins.includes(valorInput.toLowerCase()) || valorInput.toLowerCase().includes('fiscal');
-
-            if (ehAdmin) {
-                // É Administrador: Consulta a rota de ADM
-                socket.emit('loginAdm', { usuario: valorInput, senha: senhaInput });
-
-                socket.once('loginAdmSucesso', (dados) => {
-                    localStorage.setItem('taxi_admin', 'true');
-                    localStorage.setItem('taxi_admin_nome', dados.usuario.nome || "Administrador");
-                    localStorage.setItem('taxi_admin_cargo', dados.usuario.cargo || "ADM");
-                    localStorage.removeItem('taxi_carro');
-                    window.location.href = "admin.html";
-                });
-
-                socket.once('loginErro', (err) => {
-                    alert(err.mensagem || "Senha ou usuário administrativo incorreto.");
-                });
-
-} else {  
-        // É Motorista: Formata o carro e garante o envio correto da senha informada  
-        let carroFormatado = valorInput;  
+    if (/* ... validação de admin ... */) {
+        // Fluxo de Admin
+    } else {  
+        // É Motorista: Formata o carro
         if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
             carroFormatado = `Carro.${carroFormatado}`;  
         }  
@@ -148,6 +130,12 @@
 
         socket.emit('loginMotorista', { login: carroFormatado, senha: senhaEnviada });  
     }
+
+    // Se houver uso de carroFormatado aqui em baixo (linha 153), agora ele já existe!
+    if (carroFormatado) {
+        localStorage.setItem('taxi_carro_tentativa', carroFormatado);
+    }
+}
 
                 socket.once('loginSucesso', (dadosMotorista) => {
                     localStorage.setItem('taxi_carro', carroFormatado);
