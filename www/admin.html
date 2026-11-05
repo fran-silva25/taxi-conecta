@@ -980,40 +980,40 @@ input:checked + .slider:before {
         }).join('');
     }
 
-    function renderizarFrota(frota) {
-        const tbody = document.getElementById('tabelaFrota');
-        const chaves = Object.keys(frota);
-        
-        // Atualiza o título com a contagem total de carros cadastrados
-        const tituloFrotaEl = document.querySelector('#tabFrota .card h3:last-of-type');
-        if (tituloFrotaEl) {
-            tituloFrotaEl.innerHTML = `🚐 Veículos Cadastrados (${chaves.length})`;
+    function renderizarFila(fila) {
+        const tbody = document.getElementById('tabelaFilaGeral');
+        if (!fila || fila.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo na fila.</td></tr>`;
+            return;
         }
+        
+        const agora = Date.now();
+        tbody.innerHTML = fila.map((c, idx) => {
+            let tempoDecorridoStr = "Agora mesmo";
+            if (c.timestampEntradaFila) {
+                const diffMs = agora - c.timestampEntradaFila;
+                const diffMin = Math.floor(diffMs / 60000);
+                if (diffMin < 1) {
+                    tempoDecorridoStr = "Há menos de 1 min";
+                } else if (diffMin < 60) {
+                    tempoDecorridoStr = `${diffMin} min`;
+                } else {
+                    const horas = Math.floor(diffMin / 60);
+                    const mins = diffMin % 60;
+                    tempoDecorridoStr = `${horas}h ${mins}m`;
+                }
+            } else if (c.tempoNaFila) {
+                tempoDecorridoStr = c.tempoNaFila;
+            }
 
-        if (chaves.length === 0) { 
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo.</td></tr>`; 
-            return; 
-        }
-        
-        tbody.innerHTML = chaves.map(k => {
-            const f = frota[k];
-            const numCarro = f.numero || f.login.replace('Carro.', '');
-            const badgeFuncao = f.ehModerador ? '<span style="color:#9333ea; font-weight:bold;">⭐ Moderador</span>' : '<span>Motorista</span>';
-            const tels = f.telefones ? f.telefones.join(',') : (f.telefone || '');
             return `
-            <tr>
-                <td><strong>Carro.${numCarro}</strong></td>
-                <td>${f.placa || '--'}</td>
-                <td>${f.nome || '--'}</td>
-                <td>${badgeFuncao}</td>
-                <td>
-                    <div class="acoes-tabela">
-                        <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${numCarro}', '${f.placa || ''}', '${f.nome || ''}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
-                        <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${numCarro}')">🔑 Senha</button>
-                        <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${numCarro}')">🗑️ Excluir</button>
-                    </div>
-                </td>
-            </tr>
+                <tr>
+                    <td><strong>${idx + 1}º</strong></td>
+                    <td>Carro.${c.idTaxi}</td>
+                    <td>${c.nome}</td>
+                    <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${c.setor || 'Aguardando'}</span></td>
+                    <td><span style="color: var(--amarelo-ponto); font-weight: bold;">${tempoDecorridoStr}</span></td>
+                </tr>
             `;
         }).join('');
     }
