@@ -411,7 +411,14 @@ io.on('connection', (socket) => {
         conectados: listaConectadosArray, emTransmissaoPTT: idEmTransmissaoPTT   
     });   
   
-    socket.on('adminLimparSistemaGeral', async () => {   
+    // Validação estrita: apenas Administradores ('ADM') podem executar o refresh/limpeza geral
+    socket.on('adminLimparSistemaGeral', async (dadosUsuario) => {   
+        const cargoUser = dadosUsuario && dadosUsuario.cargo ? String(dadosUsuario.cargo).toUpperCase() : '';   
+        if (cargoUser !== 'ADM') {   
+            socket.emit('loginErro', { mensagem: 'Acesso negado: Apenas administradores podem executar a limpeza geral do sistema.' });   
+            return;   
+        }   
+
         filaGeral = [];   
         chamadasPendentes = {};   
         idEmTransmissaoPTT = null;   
@@ -454,6 +461,7 @@ io.on('connection', (socket) => {
   
         if (admCadastrado && admCadastrado.senha === senha) {   
             socket.emit('loginAdmSucesso', {   
+                usuario: admCadastrado.usuario,   
                 nome: admCadastrado.nome || 'Administrador',   
                 cargo: admCadastrado.cargo || 'ADM'   
             });   

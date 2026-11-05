@@ -231,7 +231,7 @@
 
 <div class="container">
     <div class="banner-ponto-2216">
-        <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
+        <button class="btn-acao-topo" onclick="alternarTema()">🌗 <span id="labelTema">Tema</span></button>
         <span class="texto-banner-ponto">PONTO 2216 - ADMIN / FISCAL</span>
         <button id="btnSairAdm" class="btn-sair" onclick="fazerLogoutAdm()">🚪 Sair</button>
     </div>
@@ -255,13 +255,14 @@
                 <span id="badgeCargoLogado" style="background: #000; border: 1px solid var(--amarelo-ponto); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: var(--amarelo-ponto); margin-left: 8px;">ADM</span>
             </div>
             <div>
-                <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
+                <!-- Botão de Refresh / Limpeza Geral (Oculto automaticamente para Fiscais) -->
+                <button id="btnRefreshGeralSistema" class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
             </div>
         </div>
 
         <div class="tabs">
             <button class="tab-btn ativo" onclick="mudarTab('fila')">🚦 Fila ao Vivo</button>
-            <button class="tab-btn" onclick="mudarTab('frota')">🚖 Frota / Motoristas</button>
+            <button class="tab-btn" onclick="mudarTab('frota')">🚐 Frota / Motoristas</button>
             <button class="tab-btn" onclick="mudarTab('radio')">📻 Rádio PTT</button>
             <button class="tab-btn" onclick="mudarTab('corridas')">📖 Histórico</button>
             <button class="tab-btn" onclick="mudarTab('recusas')">📜 Recusas</button>
@@ -294,8 +295,8 @@
 
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">🚗 Fila Geral de Veículos no Ponto</h3>
-                    <button onclick="chamarProximoManual()" style="background: #16a34a; color: white;">🛎️ Chamar Próximo da Fila</button>
+                    <h3 style="margin: 0;">🗗 Fila Geral de Veículos no Ponto</h3>
+                    <button onclick="chamarProximoManual()" style="background: #16a34a; color: white;">⏭️ Chamar Próximo da Fila</button>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -345,7 +346,7 @@
                 </div>
             </div>
             <div class="card">
-                <h3>🚖 Veículos Cadastrados na Frota</h3>
+                <h3>🚐 Veículos Cadastrados na Frota</h3>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -392,7 +393,7 @@
         <div id="tabCorridas" class="secao">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">🚖 Histórico de Corridas Atendidas</h3>
+                    <h3 style="margin: 0;">🚐 Histórico de Corridas Atendidas</h3>
                     <button id="btnLimparCorridas" class="btn-excluir" onclick="limparHistoricoCorridas()">🗑️ Limpar Histórico</button>
                 </div>
                 <div class="table-responsive">
@@ -509,10 +510,20 @@
     window.addEventListener('DOMContentLoaded', () => {
         const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
         const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
+        
         const elNome = document.getElementById('nomeUsuarioLogado');
         const elCargo = document.getElementById('badgeCargoLogado');
         if (elNome) elNome.innerText = nomeSalvo;
         if (elCargo) elCargo.innerText = cargoSalvo;
+
+        // VERIFICAÇÃO DE CARGO: Ocultar botão de Refresh Geral se for FISCAL
+        const btnRefreshGeral = document.getElementById('btnRefreshGeralSistema');
+        if (cargoSalvo.toUpperCase() === 'FISCAL') {
+            if (btnRefreshGeral) btnRefreshGeral.style.display = 'none';
+        } else {
+            if (btnRefreshGeral) btnRefreshGeral.style.display = 'flex';
+        }
+
         inicializarGravadorFiscal();
     });
 
@@ -553,6 +564,12 @@
     }
 
     function executarLimpezaGeralSistema() {
+        const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
+        if (cargoSalvo.toUpperCase() === 'FISCAL') {
+            alert("Acesso negado: Fiscais não possuem permissão para executar a Limpeza Geral.");
+            return;
+        }
+
         if (confirm("⚠️ Deseja realmente executar a Limpeza Geral do sistema?\n\nIsso limpará as filas ativas, chamadas pendentes e histórico em memória.\nA FROTA CADASTRADA PERMANECERÁ PRESERVADA.")) {
             socket.emit('adminLimparSistemaGeral');
             alert("✅ Limpeza geral executada com sucesso!");
@@ -583,7 +600,6 @@
         }
     }
 
-    // Ouvinte único e limpo corrigido (sem duplicação aninhada)
     socket.on('atualizarSistema', (dados) => {
         if (dados.modo) {
             const el = document.getElementById('modoOperacaoAtual');
@@ -878,12 +894,12 @@
             const nomePassageiro = r.cliente || r.passageiro || r.nomeCliente || r.nomePassageiro || 'Passageiro';
             const origemDestino = (r.origem || r.local || 'Ponto') + (r.destino ? ' ➔ ' + r.destino : '');
             return `
-                <tr>
-                    <td>${r.dataHora || '--'}</td>
-                    <td><strong style="color:var(--amarelo-ponto);">Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
-                    <td>${nomePassageiro}</td>
-                    <td>${origemDestino}</td>
-                </tr>
+            <tr>
+                <td>${r.dataHora || '--'}</td>
+                <td><strong style="color:var(--amarelo-ponto);">Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
+                <td>${nomePassageiro}</td>
+                <td>${origemDestino}</td>
+            </tr>
             `;
         }).join('');
     }
@@ -897,15 +913,15 @@
         tbody.innerHTML = recusas.map(r => {
             const nomePassageiro = r.cliente || r.passageiro || r.nomeCliente || r.nomePassageiro || 'Passageiro';
             return `
-                <tr>
-                    <td>${r.dataHora || '--'}</td>
-                    <td><strong>Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
-                    <td>${nomePassageiro}</td>
-                    <td>${r.origemChamado || r.origem || r.local || 'WhatsApp'}</td>
-                    <td style="text-align: center;">
-                        <button onclick="fiscalLiberarMotoristaPorRecusa('${r.idTaxi}')" style="background: #16a34a; color: #ffffff; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">✅ Liberar</button>
-                    </td>
-                </tr>
+            <tr>
+                <td>${r.dataHora || '--'}</td>
+                <td><strong>Carro.${r.idTaxi}</strong> (${r.nomeMotorista || 'Motorista'})</td>
+                <td>${nomePassageiro}</td>
+                <td>${r.origemChamado || r.origem || r.local || 'WhatsApp'}</td>
+                <td style="text-align: center;">
+                    <button onclick="fiscalLiberarMotoristaPorRecusa('${r.idTaxi}')" style="background: #16a34a; color: #ffffff; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">✅ Liberar</button>
+                </td>
+            </tr>
             `;
         }).join('');
     }
@@ -937,19 +953,19 @@
             const badgeFuncao = f.ehModerador ? '<span style="color:#9333ea; font-weight:bold;">⭐ Moderador</span>' : '<span>Motorista</span>';
             const tels = f.telefones ? f.telefones.join(',') : (f.telefone || '');
             return `
-                <tr>
-                    <td><strong>Carro.${numCarro}</strong></td>
-                    <td>${f.placa || '--'}</td>
-                    <td>${f.nome || '--'}</td>
-                    <td>${badgeFuncao}</td>
-                    <td>
-                        <div class="acoes-tabela">
-                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${numCarro}', '${f.placa || ''}', '${f.nome || ''}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
-                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${numCarro}')">🔑 Senha</button>
-                            <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${numCarro}')">🗑️ Excluir</button>
-                        </div>
-                    </td>
-                </tr>
+            <tr>
+                <td><strong>Carro.${numCarro}</strong></td>
+                <td>${f.placa || '--'}</td>
+                <td>${f.nome || '--'}</td>
+                <td>${badgeFuncao}</td>
+                <td>
+                    <div class="acoes-tabela">
+                        <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoFrota('${numCarro}', '${f.placa || ''}', '${f.nome || ''}', '${f.modelo || ''}', '${tels}', ${f.ehModerador || false})">✏️ Editar</button>
+                        <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaFrota('${numCarro}')">🔑 Senha</button>
+                        <button class="btn-acao-tabela btn-excluir" onclick="excluirFrota('${numCarro}')">🗑️ Excluir</button>
+                    </div>
+                </td>
+            </tr>
             `;
         }).join('');
     }
@@ -962,18 +978,18 @@
         tbody.innerHTML = chaves.map(k => {
             const a = adms[k];
             return `
-                <tr>
-                    <td><strong>${a.usuario || k}</strong></td>
-                    <td>${a.nome}</td>
-                    <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${a.cargo || 'FISCAL'}</span></td>
-                    <td>
-                        <div class="acoes-tabela">
-                            <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoAdmin('${a.usuario || k}', '${a.nome}', '${a.cargo}')">✏️ Editar</button>
-                            <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaAdmin('${a.usuario || k}')">🔑 Senha</button>
-                            <button class="btn-acao-tabela btn-excluir" onclick="excluirAdmin('${a.usuario || k}')">🗑️ Excluir</button>
-                        </div>
-                    </td>
-                </tr>
+            <tr>
+                <td><strong>${a.usuario || k}</strong></td>
+                <td>${a.nome}</td>
+                <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${a.cargo || 'FISCAL'}</span></td>
+                <td>
+                    <div class="acoes-tabela">
+                        <button class="btn-acao-tabela btn-editar" onclick="prepararEdicaoAdmin('${a.usuario || k}', '${a.nome}', '${a.cargo}')">✏️ Editar</button>
+                        <button class="btn-acao-tabela btn-senha" onclick="resetarSenhaAdmin('${a.usuario || k}')">🔑 Senha</button>
+                        <button class="btn-acao-tabela btn-excluir" onclick="excluirAdmin('${a.usuario || k}')">🗑️ Excluir</button>
+                    </div>
+                </td>
+            </tr>
             `;
         }).join('');
     }
