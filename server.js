@@ -594,7 +594,46 @@ io.on('connection', (socket) => {
         if (checarAniversarioApp()) {
             socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
         }
-    });   
+    }); 
+    // Cole logo após a rota de login do motorista:
+
+    socket.on('logoutMotorista', (dados) => {
+        const idTaxi = String(dados.idTaxi || '').trim();
+        if (idTaxi) {
+            delete motoristasConectados[idTaxi];
+            
+            const indexFila = filaGeral.findIndex(c => String(c.idTaxi) === idTaxi);
+            if (indexFila !== -1) {
+                filaGeral.splice(indexFila, 1);
+            }
+            
+            atualizarFilaEEmitir();
+            io.emit('frotaAtualizada', motoristasConectados);
+        }
+    });
+    
+    socket.on('disconnect', () => {
+        let carroDesconectado = null;
+        
+        for (const [idTaxi, dados] of Object.entries(motoristasConectados)) {
+            if (dados.socketId === socket.id) {
+                carroDesconectado = idTaxi;
+                break;
+            }
+        }
+
+        if (carroDesconectado) {
+            delete motoristasConectados[carroDesconectado];
+
+            const indexFila = filaGeral.findIndex(c => String(c.idTaxi) === carroDesconectado);
+            if (indexFila !== -1) {
+                filaGeral.splice(indexFila, 1);
+            }
+
+            atualizarFilaEEmitir();
+            io.emit('frotaAtualizada', motoristasConectados);
+        }
+    });
     // Evento PTT com suporte completo a Moderadores, Fiscais e ADMs
     socket.on('solicitarCanalPTT', (dados) => {   
         const idTransmissor = String(dados.idTaxi);   

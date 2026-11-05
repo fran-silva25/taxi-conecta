@@ -140,9 +140,31 @@
         .overlay-bloqueio-total { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(220, 38, 38, 0.98); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; color: white; }
         .modal-aviso-mudo { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .caixa-mudo { background: #1e1e1e; border: 3px solid #dc2626; border-radius: 12px; padding: 25px; text-align: center; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+
+        /* NOVA CAMADA DE OVERLAY MODAL BLOQUEANTE PARA CORRIDAS */
+        #overlayBloqueioCorrida {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #overlayBloqueioCorrida.ativo {
+            display: flex;
+        }
     </style>
 </head>
 <body>
+
+<!-- Camada invisível/escura que bloqueia interações fora do modal de corrida ativa ou oferta -->
+<div id="overlayBloqueioCorrida"></div>
 
 <div id="telaBloqueioTotal" class="overlay-bloqueio-total escondido">
     <div style="font-size: 70px; margin-bottom: 10px;">🚫</div>
@@ -204,7 +226,7 @@
             <button class="btn-red" onclick="fecharAvisoRecusa()" style="max-width: 220px; padding: 15px; font-size: 18px; background: #000 !important; color: #ffcc00 !important; border: 2px solid #ffcc00;">ESTOU CIENTE / AGUARDANDO GPS</button>
         </div>
 
-        <div id="modalOferta" class="alerta-chamada escondido">
+        <div id="modalOferta" class="alerta-chamada escondido" style="position: relative; z-index: 9500;">
             <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🛎️ NOVA CORRIDA DISPONÍVEL!</h2>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="ofertaCliente">--</span></p>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Origem:</strong> <span id="ofertaLocal">--</span></p>
@@ -215,7 +237,7 @@
             </div>
         </div>
 
-        <div id="cartaoViagemAtiva" class="alerta-chamada escondido" style="background: #f0fdf4 !important; border-color: #16a34a !important; animation: none;">
+        <div id="cartaoViagemAtiva" class="alerta-chamada escondido" style="background: #f0fdf4 !important; border-color: #16a34a !important; animation: none; position: relative; z-index: 9500;">
             <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚖 CORRIDA EM ANDAMENTO</h2>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="viagemCliente">--</span></p>
             <p style="font-size: 15px; margin: 6px 0;"><strong>Endereço de Embarque:</strong> <br><span id="viagemOrigem" style="font-weight: bold; color: #000;">--</span></p>
@@ -515,11 +537,15 @@
             const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';
             document.getElementById('ofertaCliente').innerText = nomePassageiro;
             document.getElementById('ofertaLocal').innerText = dados.local || dados.origem || 'Local não informado';
+            
+            // EXIBE A OFERTA E ATIVA O BLOQUEIO TOTAL DA TELA DE FUNDO
             document.getElementById('modalOferta').classList.remove('escondido');
+            document.getElementById('overlayBloqueioCorrida').classList.add('ativo');
         });
 
         socket.on('avisoRecusaBloqueio', () => {
             document.getElementById('modalOferta').classList.add('escondido');
+            document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');
             const modalRecusa = document.getElementById('modalBloqueioRecusa');
             modalRecusa.classList.remove('escondido');
             modalRecusa.setAttribute('data-travado', 'true');
@@ -535,6 +561,7 @@
             document.getElementById('btnAusente').classList.add('escondido');
             document.getElementById('modalOferta').classList.add('escondido');
             document.getElementById('modalBloqueioRecusa').classList.add('escondido');
+            document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');
             document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";
         });
 
@@ -558,7 +585,11 @@
                     boxNav.classList.add('escondido');
                 }
 
+                // OCULTA OFERTA, EXIBE O CARTÃO DE VIAGEM E MANTÉM O BLOQUEIO ATIVO ATÉ O "OK" FINAL
+                document.getElementById('modalOferta').classList.add('escondido');
                 document.getElementById('cartaoViagemAtiva').classList.remove('escondido');
+                document.getElementById('overlayBloqueioCorrida').classList.add('ativo');
+
                 if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
             }
         });
@@ -884,6 +915,7 @@
         if (!idChamadaAtual || !socket) return;
         socket.emit('aceitarCorridaMotorista', { idChamada: idChamadaAtual });
         document.getElementById('modalOferta').classList.add('escondido');
+        // Mantém o overlay de bloqueio ativo até o motorista conferir o endereço e clicar em OK (Ciente)
     }
 
     function recusarCorrida() {
@@ -891,10 +923,16 @@
         socket.emit('recusarCorridaMotorista', { idChamada: idChamadaAtual });
         document.getElementById('modalOferta').classList.add('escondido');
         idChamadaAtual = null;
+        
+        // Liberta o ecrã ao recusar
+        document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');
     }
 
     function fecharCartaoViagem() {
         document.getElementById('cartaoViagemAtiva').classList.add('escondido');
+        
+        // Liberta totalmente o ecrã só quando o motorista clica no OK final
+        document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
