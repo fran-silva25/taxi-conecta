@@ -947,21 +947,54 @@ input:checked + .slider:before {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo na fila.</td></tr>`;
             return;
         }
-        tbody.innerHTML = fila.map((c, idx) => `
-            <tr>
-                <td><strong>${idx + 1}º</strong></td>
-                <td>Carro.${c.idTaxi}</td>
-                <td>${c.nome}</td>
-                <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${c.setor || 'Aguardando'}</span></td>
-                <td>${c.distanciaMetros ? c.distanciaMetros + 'm' : 'No Ponto'}</td>
-            </tr>
-        `).join('');
+        
+        const agora = Date.now();
+        tbody.innerHTML = fila.map((c, idx) => {
+            // Calcula o tempo decorrido na fila com base no timestamp de entrada
+            let tempoDecorridoStr = "Agora mesmo";
+            if (c.timestampEntradaFila) {
+                const diffMs = agora - c.timestampEntradaFila;
+                const diffMin = Math.floor(diffMs / 60000);
+                if (diffMin < 1) {
+                    tempoDecorridoStr = "Há menos de 1 min";
+                } else if (diffMin < 60) {
+                    tempoDecorridoStr = `${diffMin} min`;
+                } else {
+                    const horas = Math.floor(diffMin / 60);
+                    const mins = diffMin % 60;
+                    tempoDecorridoStr = `${horas}h ${mins}m`;
+                }
+            } else if (c.tempoNaFila) {
+                tempoDecorridoStr = c.tempoNaFila;
+            }
+
+            return `
+                <tr>
+                    <td><strong>${idx + 1}º</strong></td>
+                    <td>Carro.${c.idTaxi}</td>
+                    <td>${c.nome}</td>
+                    <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${c.setor || 'Aguardando'}</span></td>
+                    <td><span style="color: var(--amarelo-ponto); font-weight: bold;">${tempoDecorridoStr}</span></td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function renderizarFrota(frota) {
         const tbody = document.getElementById('tabelaFrota');
         const chaves = Object.keys(frota);
-        if (chaves.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo.</td></tr>`; return; }
+        
+        // Atualiza o título com a contagem total de carros cadastrados
+        const tituloFrotaEl = document.querySelector('#tabFrota .card h3:last-of-type');
+        if (tituloFrotaEl) {
+            tituloFrotaEl.innerHTML = `🚐 Veículos Cadastrados (${chaves.length})`;
+        }
+
+        if (chaves.length === 0) { 
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo.</td></tr>`; 
+            return; 
+        }
+        
         tbody.innerHTML = chaves.map(k => {
             const f = frota[k];
             const numCarro = f.numero || f.login.replace('Carro.', '');

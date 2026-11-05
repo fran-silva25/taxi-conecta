@@ -565,31 +565,36 @@ io.on('connection', (socket) => {
         }   
     });   
   
-    socket.on('loginMotorista', (dados) => {   
-        const idStr = String(dados.login || '').replace(/[^0-9]/g, '').trim();   
-        const carro = Object.values(frotaCadastrada).find(c => String(c.numero).trim() === idStr);   
+    socket.on('loginMotorista', (dados) => {
+        const idStr = String(dados.login || '').replace(/[^0-9]/g, '').trim();
+        const carro = Object.values(frotaCadastrada).find(c => String(c.numero).trim() === idStr);
   
-        if (!carro) {   
-            socket.emit('loginErro', { mensagem: `Login (Carro ${idStr}) não encontrado na base.` });   
-            return;   
-        }   
+        if (!carro) {
+            socket.emit('loginErro', { mensagem: `Login (Carro ${idStr}) não encontrado na base.` });
+            return;
+        }
   
-        const senhaCadastrada = (carro.senha !== null && carro.senha !== undefined && String(carro.senha).trim() !== "") ? String(carro.senha).trim() : "123";   
-        const senhaInformada = (dados.senha !== null && dados.senha !== undefined) ? String(dados.senha).trim() : "";   
+        // VALIDAÇÃO ANTI-DUPLICIDADE: Se o carro já estiver logado noutrom aparelho, bloqueia e avisa
+        if (motoristasConectados[idStr]) {
+            socket.emit('loginErro', { mensagem: `Acesso negado: O Carro.${idStr} já está conectado em outro dispositivo!` });
+            return;
+        }
+
+        const senhaCadastrada = (carro.senha !== null && carro.senha !== undefined && String(carro.senha).trim() !== "") ? String(carro.senha).trim() : "123";
+        const senhaInformada = (dados.senha !== null && dados.senha !== undefined) ? String(dados.senha).trim() : "";
   
-        if (senhaCadastrada !== senhaInformada) {   
-            socket.emit('loginErro', { mensagem: "Senha incorreta." });   
-            return;   
-        }   
+        if (senhaCadastrada !== senhaInformada) {
+            socket.emit('loginErro', { mensagem: "Senha incorreta." });
+            return;
+        }
   
-        motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id };   
-        socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio });   
+        motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id, timestampLogin: Date.now() };
+        socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio });
   
-        if (checarAniversarioApp()) {   
-            socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });   
-        }   
+        if (checarAniversarioApp()) {
+            socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚖" });
+        }
     });   
-   
     // Evento PTT com suporte completo a Moderadores, Fiscais e ADMs
     socket.on('solicitarCanalPTT', (dados) => {   
         const idTransmissor = String(dados.idTaxi);   
