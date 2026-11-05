@@ -150,7 +150,6 @@
         .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
         .audio-item { background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
 
-        /* ESTADOS DO BOTÃO PTT DO FISCAL / CENTRAL */
         .btn-ptt-fiscal {
             width: 130px;
             height: 130px;
@@ -184,7 +183,6 @@
             box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important;
         }
 
-        /* TOGGLE SWITCH ESTILO PARA O PA2 */
         .switch-container {
             display: flex;
             align-items: center;
@@ -222,7 +220,7 @@
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: #dc2626; /* Vermelho indicando PA2 fechado/evento */
+            background-color: #dc2626;
         }
         input:checked + .slider:before {
             transform: translateX(26px);
@@ -282,7 +280,6 @@
                 </div>
                 <p style="font-size: 13px; color: var(--texto-secundario); margin: 0;">Modo Atual: <strong id="modoOperacaoAtual" style="color: var(--amarelo-ponto);">SO_PH</strong></p>
 
-                <!-- BOTÃO DE CONTROLE DO PA2 (EVENTOS DO SHOPPING) -->
                 <div class="switch-container">
                     <div>
                         <strong style="font-size: 14px; display: block;">🚧 Fechar PA2 temporariamente (Eventos / Feiras)</strong>
@@ -339,7 +336,7 @@
                 <div style="margin: 10px 0; background: var(--bg-body); padding: 10px; border-radius: 6px; border: 1px solid var(--borda-card);">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: bold; color: var(--amarelo-ponto);">
                         <input type="checkbox" id="frotaEhModerador" style="width: auto; margin: 0;">
-                        ⭐ Marcar este motorista como MODERADOR
+                        ⭐ Marcar este motorista como MODERADOR (Com poderes de bloqueio/silenciamento via PTT)
                     </label>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 5px;">
@@ -497,7 +494,6 @@
     let dadosCacheAdms = {};
     let estadoCanalCentral = 'LIVRE';
 
-    // DESTRAVAMENTO DE ÁUDIO AUTOMÁTICO EM SEGUNDO PLANO
     let audioContextDestravado = false;
     function destravarAudioAutomatica() {
         if (!audioContextDestravado) {
@@ -563,7 +559,6 @@
         }
     }
 
-    // 🛑 FUNÇÃO PARA DISPARAR A ALTERAÇÃO DO PA2
     function mudarStatusPA2(checkbox) {
         const fechado = checkbox.checked;
         socket.emit('alternarStatusPA2', fechado);
@@ -588,20 +583,13 @@
         }
     }
 
+    // Ouvinte único e limpo corrigido (sem duplicação aninhada)
     socket.on('atualizarSistema', (dados) => {
         if (dados.modo) {
-            socket.on('atualizarSistema', (dados) => {
-    // Atualiza o texto do modo atual na tela
-    if (dados.modo) {
-        const el = document.getElementById('modoOperacaoAtual');
-        if (el) el.innerText = dados.modo;
-    }
-    // ... restante código de atualização da fila e painel
-});
-   
+            const el = document.getElementById('modoOperacaoAtual');
+            if (el) el.innerText = dados.modo;
         }
 
-        // Sincroniza o botão de toggle do PA2 com o estado do servidor
         if (typeof dados.pa2Fechado !== 'undefined') {
             const chk = document.getElementById('checkPa2Fechado');
             const desc = document.getElementById('statusPa2Desc');
@@ -627,19 +615,16 @@
         if (dados.corridas) renderizarCorridas(dados.corridas);
     });
 
-    // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
     socket.on('canalOcupado', (dados) => {
         if (dados.idTaxi !== 'Fiscal' && dados.idTaxi !== 'ADM') {
             setEstadoPTTFiscal('OUVINDO', dados.nome);
         }
     });
 
-    // CANAL LIVRE (RESTAURA O BOTÃO DO FISCAL)
     socket.on('canalLivre', () => {
         if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
     });
 
-    // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA
     socket.on('receberAudioPTT', (dados) => {
         setEstadoPTTFiscal('STANDBY');
         if (dados.historico) renderizarAudioAdm(dados.historico);
@@ -652,7 +637,6 @@
         }
     });
 
-    // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
     function setEstadoPTTFiscal(estado, nomeFalante = "") {
         const btn = document.getElementById('btnPTTFiscal');
         const lbl = document.getElementById('labelPTTFiscal');
@@ -709,8 +693,6 @@
         if (gravandoFiscal) return;
 
         destravarAudioAutomatica();
-
-        // PRIORIDADE MÁXIMA DA CENTRAL: CORTA QUALQUER TRANSMISSÃO DE MOTORISTA EM ANDAMENTO
         socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal', ehModerador: true });
 
         if (!mediaRecorderFiscal) {
@@ -753,7 +735,6 @@
         btnPTTFiscal.addEventListener('touchend', pararTransmissaoFiscal, { passive: false });
     }
 
-    // SALVAR / EDITAR MOTORISTA DA FROTA
     function salvarCarroFrota() {
         const idEdit = document.getElementById('editandoCarroId').value;
         const numero = document.getElementById('frotaNumero').value.trim();
@@ -827,7 +808,6 @@
         }
     }
 
-    // SALVAR / EDITAR ADM / FISCAL
     function salvarAdmin() {
         const idEdit = document.getElementById('editandoAdmId').value;
         const usuario = document.getElementById('admUsuario').value.trim();
