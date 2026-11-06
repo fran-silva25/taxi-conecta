@@ -405,7 +405,7 @@ app.get('/qr', (req, res) => {
   const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=350x350`;   
   res.send(`   
     <html>   
-      <head><title>QR Code - Ponto 2216 v1.8.1</title></head>   
+      <head><title>QR Code - Ponto 2216 v${VERSAO_SISTEMA}</title></head>   
       <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#121212; color:white; margin:0;">   
         <h2>Escaneie com o seu WhatsApp</h2>   
         <div style="background:white; padding:15px; border-radius:12px; margin:20px 0;">   
@@ -460,7 +460,8 @@ io.on('connection', (socket) => {
       socket.emit('loginAdmSucesso', {   
         usuario: admCadastrado.usuario,   
         nome: admCadastrado.nome || 'Administrador',   
-        cargo: admCadastrado.cargo || 'ADM'   
+        cargo: admCadastrado.cargo || 'ADM',
+        versao: VERSAO_SISTEMA
       });   
     } else {   
       socket.emit('loginErro', { mensagem: "Credenciais administrativas incorretas." });   
@@ -998,6 +999,21 @@ async function iniciarServidor() {
   frotaCadastrada = await carregarFrotaDoBanco();   
   usuariosAdmCadastrados = await carregarAdmsDoBanco();   
   
+  // Sincronização automática da versão no package.json
+  try {
+    const caminhoPackage = path.join(__dirname, 'package.json');
+    if (fs.existsSync(caminhoPackage)) {
+      const pkg = JSON.parse(fs.readFileSync(caminhoPackage, 'utf8'));
+      if (pkg.version !== VERSAO_SISTEMA) {
+        pkg.version = VERSAO_SISTEMA;
+        fs.writeFileSync(caminhoPackage, JSON.stringify(pkg, null, 2), 'utf8');
+        console.log(`📦 package.json atualizado automaticamente para v${VERSAO_SISTEMA}`);
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao sincronizar versão no package.json:", e);
+  }
+
   const PORTA = process.env.PORT || 3000;   
   server.listen(PORTA, () => console.log(`🚕 Servidor Ponto 2216 (v${VERSAO_SISTEMA}) rodando na nuvem na porta ${PORTA} com Base de Dados do Render conectada!`));   
 }   
