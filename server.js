@@ -19,7 +19,7 @@ const io = new Server(server, {
   maxHttpBufferSize: 10 * 1024 * 1024   
 });   
   
-const VERSAO_SISTEMA = "1.8";
+const VERSAO_SISTEMA = "1.8.1";
 
 const PASTA_AUDIOS = path.join(__dirname, 'audios_historico');   
 if (!fs.existsSync(PASTA_AUDIOS)) {   
@@ -264,6 +264,7 @@ let pa2Fechado = false;
 let filaGeral = [];   
 let motoristasConectados = {};   
 let chamadasPendentes = {};   
+let filaEsperaWhatsApp = []; // FILA DE SOLICITAÇÕES DO WHATSAPP (FIFO)
 let idEmTransmissaoPTT = null;   
   
 function obterListaConectados() {
@@ -404,7 +405,7 @@ app.get('/qr', (req, res) => {
   const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=350x350`;   
   res.send(`   
     <html>   
-      <head><title>QR Code - Ponto 2216 v1.8</title></head>   
+      <head><title>QR Code - Ponto 2216 v1.8.1</title></head>   
       <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; background:#121212; color:white; margin:0;">   
         <h2>Escaneie com o seu WhatsApp</h2>   
         <div style="background:white; padding:15px; border-radius:12px; margin:20px 0;">   
@@ -427,6 +428,7 @@ io.on('connection', (socket) => {
   
     filaGeral = [];   
     chamadasPendentes = {};   
+    filaEsperaWhatsApp = [];
     idEmTransmissaoPTT = null;   
   
     for (let chave in frotaCadastrada) {   
@@ -773,10 +775,9 @@ io.on('connection', (socket) => {
   
   socket.on('recusarCorridaMotorista', async (dadosRecusa) => {   
     const chamada = chamadasPendentes[dadosRecusa.idChamada];   
-    if (!chamada || filaGeral.length === 0) return;   
+    if (!chamada) return;   
   
-    const motoristaRecusou = filaGeral[chamada.indiceTentativaAtual] || filaGeral[0];   
-    const idTaxiRecusou = motoristaRecusou.idTaxi;   
+    const idTaxiRecusou = chamada.idTaxi;   
     const loginRecusa = `Carro.${idTaxiRecusou}`;   
   
     const indexFila = filaGeral.findIndex(m => m.idTaxi === idTaxiRecusou);   
@@ -796,12 +797,13 @@ io.on('connection', (socket) => {
   
     historicoRecusas.unshift({   
       id: Date.now(), timestamp: Date.now(), idTaxi: idTaxiRecusou,   
-      nomeMotorista: motoristaRecusou.nome, origemChamado: chamada.origem || "WhatsApp",   
+      nomeMotorista: chamada.nomeMotorista || "Motorista", origemChamado: chamada.origem || "WhatsApp",   
       cliente: chamada.nomeCliente, dataHora: new Date().toLocaleString('pt-BR')   
     });   
     salvarHistoricoRecusas();   
   
-    chamada.indiceTentativaAtual = 0;   
+    // Avança o ponteiro para o próximo carro da fila
+    chamada.indiceTentativaAtual++;   
     emitirAtualizacaoGeral();
     dispararPonteiroFila(dadosRecusa.idChamada);   
   });   
@@ -865,11 +867,26 @@ io.on('connection', (socket) => {
 });   
   
 function dispararPonteiroFila(idChamadaFixa) {   
-  if (filaGeral.length === 0) return;   
   const chamada = chamadasPendentes[idChamadaFixa];   
   if (!chamada) return;   
   
-  if (chamada.indiceTentativaAtual >= filaGeral.length) chamada.indiceTentativaAtual = 0;   
+  // Se não há carros na fila ou se a fila inteira já recusou a chamada
+  if (filaGeral.length === 0 || chamada.indiceTentativaAtual >= filaGeral.length) {
+    if (chamada.jidCliente && chamada.sockWhatsApp) {
+      const msgSemCarro = `⚠️ *SEM TÁXIS DISPONÍVEIS NO MOMENTO*\n\nNão há táxis disponíveis para atendimento agora. Por favor, solicite novamente em 5 minutos.`;
+      chamada.sockWhatsApp.sendMessage(chamada.jidCliente, { text: msgSemCarro }).catch(e => console.error("Erro ao enviar resposta WhatsApp:", e));
+    }
+    liberarClienteWhatsApp(chamada.jidCliente);
+    delete chamadasPendentes[idChamadaFixa];
+    
+    // Processa a próxima solicitação na fila de espera do WhatsApp, se houver
+    if (filaEsperaWhatsApp.length > 0) {
+      const proximaSolicitacao = filaEsperaWhatsApp.shift();
+      processarNovaSolicitacaoWhatsApp(proximaSolicitacao);
+    }
+    return;
+  }
+
   const motorista = filaGeral[chamada.indiceTentativaAtual];   
   const idTaxiStr = String(motorista.idTaxi);   
   
@@ -879,7 +896,11 @@ function dispararPonteiroFila(idChamadaFixa) {
   const dadosMotorista = motoristasConectados[idTaxiStr];   
   if (dadosMotorista && dadosMotorista.socketId) {   
     io.to(dadosMotorista.socketId).emit('ofertaCorrida', { idChamada: idChamadaFixa, cliente: chamada.nomeCliente, local: chamada.origem });   
-  }   
+  } else {
+    // Se o motorista desacoplou da conexão, passa automaticamente para o próximo da fila
+    chamada.indiceTentativaAtual++;
+    dispararPonteiroFila(idChamadaFixa);
+  }
 }   
   
 function confirmarEBaixarCorrida(idChamada) {   
@@ -932,15 +953,18 @@ function confirmarEBaixarCorrida(idChamada) {
   }   
   
   liberarClienteWhatsApp(chamada.jidCliente);   
-  
+  delete chamadasPendentes[idChamada];   
   emitirAtualizacaoGeral();   
   io.emit('corridaAtribuida', dadosAtribuicao);   
-  delete chamadasPendentes[idChamada];   
+  
+  // Processa a próxima chamada em espera no WhatsApp, se houver
+  if (filaEsperaWhatsApp.length > 0) {
+    const proximaSolicitacao = filaEsperaWhatsApp.shift();
+    processarNovaSolicitacaoWhatsApp(proximaSolicitacao);
+  }
 }   
   
-function solicitarCorridaViaWhatsApp(dados) {   
-  if (filaGeral.length === 0) return false;   
-  
+function processarNovaSolicitacaoWhatsApp(dados) {
   const idChamada = "CORRIDA_WA_" + Date.now();   
   chamadasPendentes[idChamada] = {   
     idChamada: idChamada,   
@@ -953,7 +977,18 @@ function solicitarCorridaViaWhatsApp(dados) {
     lon: dados.lon || null   
   };   
   
-  dispararPonteiroFila(idChamada);   
+  dispararPonteiroFila(idChamada);
+}
+
+function solicitarCorridaViaWhatsApp(dados) {   
+  if (filaGeral.length === 0) return false;   
+  
+  // Se já houver chamada pendente no momento, coloca em fila de espera para não travar o envio
+  if (Object.keys(chamadasPendentes).length > 0) {
+    filaEsperaWhatsApp.push(dados);
+  } else {
+    processarNovaSolicitacaoWhatsApp(dados);
+  }
   return true;   
 }   
   
