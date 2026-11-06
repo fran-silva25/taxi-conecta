@@ -184,51 +184,50 @@
             box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important;
         }
 
-        /* TOGGLE SWITCH ESTILO PARA O PA2 */
         /* TOGGLE SWITCH CORRIGIDO PARA O PA2 */
-.switch-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-body);
-    padding: 10px 15px;
-    border-radius: 8px;
-    border: 1px solid var(--borda-card);
-    margin-top: 10px;
-}
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 26px;
-    flex-shrink: 0;
-}
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #64748b;
-    transition: .3s;
-    border-radius: 26px;
-}
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s;
-    border-radius: 50%;
-}
-input:checked + .slider {
-    background-color: #dc2626; /* Vermelho ao fechar PA2 */
-}
-input:checked + .slider:before {
-    transform: translateX(24px); /* Move a bolinha sem vazar do trilho */
-}
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-body);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--borda-card);
+            margin-top: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #64748b;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #dc2626; /* Vermelho ao fechar PA2 */
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
     </style>
 </head>
 <body>
@@ -512,6 +511,13 @@ input:checked + .slider:before {
     document.addEventListener('click', destravarAudioAutomatica, { once: true });
     document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
 
+    socket.on('connect', () => {
+        const adminLogado = localStorage.getItem('taxi_admin');
+        if (adminLogado) {
+            socket.emit('loginAdmin', { login: adminLogado });
+        }
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
         const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
         const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
@@ -565,7 +571,6 @@ input:checked + .slider:before {
         }
     }
 
-    // 🛑 FUNÇÃO PARA DISPARAR A ALTERAÇÃO DO PA2
     function mudarStatusPA2(checkbox) {
         const fechado = checkbox.checked;
         socket.emit('alternarStatusPA2', fechado);
@@ -596,7 +601,6 @@ input:checked + .slider:before {
             if (el) el.innerText = dados.modo;
         }
 
-        // Sincroniza o botão de toggle do PA2 com o estado do servidor
         if (typeof dados.pa2Fechado !== 'undefined') {
             const chk = document.getElementById('checkPa2Fechado');
             const desc = document.getElementById('statusPa2Desc');
@@ -622,21 +626,22 @@ input:checked + .slider:before {
         if (dados.corridas) renderizarCorridas(dados.corridas);
     });
 
-    // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
     socket.on('canalOcupado', (dados) => {
         if (dados.idTaxi !== 'Fiscal' && dados.idTaxi !== 'ADM') {
-            setEstadoPTTFiscal('OUVINDO', dados.nome);
+            setEstadoPTTFiscal('OUVINDO', dados.nome || dados.nomeMotorista);
         }
     });
 
-    // CANAL LIVRE (RESTAURA O BOTÃO DO FISCAL)
     socket.on('canalLivre', () => {
         if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
     });
 
-    // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA
+    socket.on('forcarCortePTT', () => {
+        if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
+    });
+
     socket.on('receberAudioPTT', (dados) => {
-        setEstadoPTTFiscal('STANDBY');
+        if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
         if (dados.historico) renderizarAudioAdm(dados.historico);
 
         if (dados.audioUrl) {
@@ -647,7 +652,6 @@ input:checked + .slider:before {
         }
     });
 
-    // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
     function setEstadoPTTFiscal(estado, nomeFalante = "") {
         const btn = document.getElementById('btnPTTFiscal');
         const lbl = document.getElementById('labelPTTFiscal');
@@ -705,7 +709,6 @@ input:checked + .slider:before {
 
         destravarAudioAutomatica();
 
-        // PRIORIDADE MÁXIMA DA CENTRAL: CORTA QUALQUER TRANSMISSÃO DE MOTORISTA EM ANDAMENTO
         socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal', ehModerador: true });
 
         if (!mediaRecorderFiscal) {
@@ -748,7 +751,6 @@ input:checked + .slider:before {
         btnPTTFiscal.addEventListener('touchend', pararTransmissaoFiscal, { passive: false });
     }
 
-    // SALVAR / EDITAR MOTORISTA DA FROTA
     function salvarCarroFrota() {
         const idEdit = document.getElementById('editandoCarroId').value;
         const numero = document.getElementById('frotaNumero').value.trim();
@@ -822,7 +824,6 @@ input:checked + .slider:before {
         }
     }
 
-    // SALVAR / EDITAR ADM / FISCAL
     function salvarAdmin() {
         const idEdit = document.getElementById('editandoAdmId').value;
         const usuario = document.getElementById('admUsuario').value.trim();
@@ -948,7 +949,6 @@ input:checked + .slider:before {
 
         const chaves = Object.keys(frota || {});
         
-        // Atualiza o contador de veículos com segurança
         const elContador = document.getElementById('qtdFrota');
         if (elContador) {
             elContador.innerText = chaves.length;
@@ -961,7 +961,7 @@ input:checked + .slider:before {
 
         tbody.innerHTML = chaves.map(k => {
             const f = frota[k];
-            const numCarro = f.numero || f.login.replace('Carro.', '');
+            const numCarro = f.numero || (f.login ? f.login.replace('Carro.', '') : k);
             const badgeFuncao = f.ehModerador ? '<span style="color:#9333ea; font-weight:bold;">⭐ Moderador</span>' : '<span>Motorista</span>';
             const tels = f.telefones ? f.telefones.join(',') : (f.telefone || '');
             return `
@@ -1009,7 +1009,7 @@ input:checked + .slider:before {
     function renderizarAudioAdm(historico) {
         const div = document.getElementById('listaAudiosAdm');
         if (!historico || historico.length === 0) { 
-            div.innerHTML = `<div style="text-align: center; color: var(--texto-secundario);">Nenhum áudio gravado.</div>`; 
+            div.innerHTML = `<div style="text-align: center; color: var(--texto-secundario);">Nenum áudio gravado.</div>`; 
             return; 
         }
         div.innerHTML = historico.map(a => `

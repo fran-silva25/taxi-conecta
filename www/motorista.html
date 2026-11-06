@@ -61,7 +61,7 @@
  }  
   
  body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }  
-   
+    
 .container {   
 width: 100%;   
 max-width: 460px;   
@@ -72,9 +72,9 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 position: relative;   
 min-height: 560px;   
 border: 2px solid var(--amarelo-ponto);   
-box-sizing: border-box;  
- transition: max-width 0.3s ease;  
- }  
+box-sizing: border-box;   
+ transition: max-width 0.3s ease;   
+ }   
   
  @media (min-width: 768px) {  
  .container { max-width: 650px; padding: 30px; }  
@@ -82,7 +82,7 @@ box-sizing: border-box;
  @media (min-width: 1024px) {  
  .container { max-width: 750px; padding: 35px; }  
  }  
-   
+    
 .banner-ponto-2216 { background: #000000; border: 2px solid #ffcc00; border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }  
  .logo-estrela { color: #ffcc00; font-size: 20px; font-weight: bold; line-height: 1; }  
  .texto-banner-ponto { color: #ffffff; font-size: 18px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }  
@@ -104,7 +104,7 @@ box-sizing: border-box;
   
  .btn-nav-maps { background: #4285F4 !important; color: white !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }  
  .btn-nav-waze { background: #33CCFF !important; color: #000 !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }  
-   
+    
 .status-box { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 16px; color: white; text-transform: uppercase; letter-spacing: 1px; }  
   
  .tabs { display: flex; gap: 6px; margin-bottom: 15px; }  
@@ -125,7 +125,7 @@ box-sizing: border-box;
   
  .ptt-container { text-align: center; margin: 15px 0; }  
  .btn-ptt { width: 140px; height: 140px; border-radius: 50%; background: var(--amarelo-ponto); color: #000; font-size: 18px; font-weight: bold; border: 5px solid #d9a700; box-shadow: 0 6px 20px rgba(255, 204, 0, 0.3); cursor: pointer; user-select: none; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; -webkit-touch-callout: none; touch-action: manipulation; transition: background 0.2s, color 0.2s; }  
-   
+    
 .btn-ptt.transmitindo { background: #007bff !important; color: white !important; border-color: #0056b3 !important; box-shadow: 0 0 25px rgba(0, 123, 255, 0.8) !important; }  
  .btn-ptt.ouvindo { background: #dc2626 !important; color: #ffffff !important; border-color: #991b1b !important; box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important; pointer-events: none; }  
   
@@ -133,7 +133,7 @@ box-sizing: border-box;
  .audio-item { position: relative; background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; text-align: left; }  
   
  .badge-carro-historico { background: #000; color: #ffcc00; font-weight: bold; font-family: 'Courier New', Courier, monospace; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffcc00; font-size: 13px; letter-spacing: 1px; display: inline-block; }  
-   
+    
 .modal-config-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000; }  
  .modal-config-box { background: var(--bg-container); border: 2px solid var(--amarelo-ponto); width: 90%; max-width: 400px; border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }  
   
@@ -141,7 +141,11 @@ box-sizing: border-box;
  .modal-aviso-mudo { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; }  
  .caixa-mudo { background: #1e1e1e; border: 3px solid #dc2626; border-radius: 12px; padding: 25px; text-align: center; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }  
   
- /* NOVA CAMADA DE OVERLAY MODAL BLOQUEANTE PARA CORRIDAS */  
+ table { width: 100%; border-collapse: collapse; font-size: 12px; }  
+ th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--borda-card); }  
+ th { color: var(--amarelo-ponto); }  
+ .table-responsive { overflow-x: auto; }  
+  
  #overlayBloqueioCorrida {  
  position: fixed;  
  top: 0;  
@@ -163,7 +167,6 @@ box-sizing: border-box;
 </head>  
 <body>  
   
-<!-- Camada invisível/escura que bloqueia interações fora do modal de corrida ativa ou oferta -->  
 <div id="overlayBloqueioCorrida"></div>  
   
 <div id="telaBloqueioTotal" class="overlay-bloqueio-total escondido">  
@@ -212,10 +215,11 @@ box-sizing: border-box;
  STATUS: <span id="labelStatus">LIVRE</span>  
  </div>  
   
- <div class="tabs">  
- <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button>  
- <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button>  
- <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button>  
+ <div class="tabs"> 
+  <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button> 
+  <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button> 
+  <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button> 
+  <button class="tab-btn" onclick="mudarTab('online')" id="btnTabOnline">👥 Online</button> 
  </div>  
   
  <div id="modalBloqueioRecusa" class="escondido">  
@@ -230,8 +234,8 @@ box-sizing: border-box;
  <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🛎️ NOVA CORRIDA DISPONÍVEL!</h2>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="ofertaCliente">--</span></p>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Origem:</strong> <span id="ofertaLocal">--</span></p>  
-   
-<div style="display: flex; gap: 10px; margin-top: 12px;">  
+    
+ <div style="display: flex; gap: 10px; margin-top: 12px;">  
  <button class="btn-green" onclick="aceitarCorrida()" style="padding: 12px;">ACEITAR</button>  
  <button class="btn-red" onclick="recusarCorrida()" style="padding: 12px;">RECUSAR</button>  
  </div>  
@@ -241,8 +245,8 @@ box-sizing: border-box;
  <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚕 CORRIDA EM ANDAMENTO</h2>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="viagemCliente">--</span></p>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Endereço de Embarque:</strong> <br><span id="viagemOrigem" style="font-weight: bold; color: #000;">--</span></p>  
-   
-<div id="boxBotoesNavegacao" class="escondido" style="margin-top: 12px; display: flex; gap: 8px;">  
+    
+ <div id="boxBotoesNavegacao" class="escondido" style="margin-top: 12px; display: flex; gap: 8px;">  
  <button id="btnAbrirMaps" class="btn-nav-maps" style="flex: 1;">🗺️ Google Maps</button>  
  <button id="btnAbrirWaze" class="btn-nav-waze" style="flex: 1;">🚘 Waze</button>  
  </div>  
@@ -280,20 +284,42 @@ box-sizing: border-box;
  <div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>  
  </div>  
  </div>  
-  
+
  <div id="tabDados" class="secao">  
  <div class="card" style="text-align: left;">  
- <h3 style="margin-top:0; text-align: center;">📍 Informações do Veículo</h3>  
- <p><strong>Veículo:</strong> Carro.<span id="infoNumero">--</span></p>  
+ <h3 style="text-align: center; color: var(--amarelo-ponto);">📍 Dados da Conexão</h3>  
+ <p><strong>Carro:</strong> <span id="infoNumero">--</span></p>  
  <p><strong>Motorista:</strong> <span id="infoNome">--</span></p>  
  <p><strong>Modelo:</strong> <span id="infoModelo">--</span></p>  
- <p><strong>Privilégio:</strong> <span id="infoPerfil">Motorista Comum</span></p>  
- <p id="infoGpsStatus" style="color: var(--amarelo-ponto); font-weight: bold; margin-bottom: 0;">Conectando ao GPS...</p>  
+ <p><strong>Perfil:</strong> <span id="infoPerfil">--</span></p>  
+ <p><strong>Status GPS:</strong> <span id="infoGpsStatus" style="color: #4ade80; font-weight: bold;">Carregando...</span></p>  
+ </div>  
+ </div>  
+  
+ <div id="tabOnline" class="secao">  
+  <div class="card">  
+    <h3 style="margin-top:0; color: var(--amarelo-ponto);">👥 Motoristas Online & Moderação</h3>  
+    <div class="table-responsive">  
+      <table>  
+        <thead>  
+          <tr>  
+            <th>Carro</th>  
+            <th>Nome</th>  
+            <th>Status</th>  
+            <th>Ações (Moderação)</th>  
+          </tr>  
+        </thead>  
+        <tbody id="tabelaConectadosMotorista">  
+          <tr><td colspan="4" style="text-align: center;">Nenhum motorista online.</td></tr>  
+        </tbody>  
+      </table>  
+    </div>  
+  </div>  
  </div>  
   
  <div class="card mt-3 text-left">  
  <h3 style="margin-top:0; text-align: center; color: var(--amarelo-ponto);">🟢 Frota Online na Praça</h3>  
- <div id="listaFrotaOnline" class="space-y-1 max-h-40 overflow-y-auto text-xs" style="display: flex; flex-direction: column; gap: 6px;">  
+ <div id="listaFrotaOnline" style="display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto;">  
  <p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>  
  </div>  
  </div>  
@@ -307,8 +333,8 @@ box-sizing: border-box;
  ⚙️ Configurações do App  
  <button onclick="fecharConfiguracoes()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer; width:auto; padding:0;">✖</button>  
  </h3>  
-   
-<div style="margin: 12px 0;">  
+    
+ <div style="margin: 12px 0;">  
  <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">🔊 Volume Global do Rádio:</label>  
  <input type="range" id="volumeGlobal" min="0" max="100" value="100" onchange="alterarVolumeGlobal(this.value)">  
  </div>  
@@ -334,8 +360,8 @@ box-sizing: border-box;
  let meuTaxi = null;  
  let statusAtual = "LIVRE";  
  let minhaLat = -23.580278;   
-let minhaLon = -46.561389;   
-let idChamadaAtual = null;  
+ let minhaLon = -46.561389;   
+ let idChamadaAtual = null;  
   
  let mediaRecorder = null;  
  let audioChunks = [];  
@@ -385,7 +411,7 @@ let idChamadaAtual = null;
  audioCorrida.currentTime = 0;  
  audioCorrida.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));  
  } catch (e) {  
- console.error("Erro ao reproduzir ficheiro de alerta:", e);  
+ console.error("Erro ao reproduzir áudio de alerta:", e);  
  }  
  }  
   
@@ -417,9 +443,7 @@ let idChamadaAtual = null;
  localStorage.setItem(`volGlobal_${meuTaxi.numero}`, val);  
  }  
  const vol = val / 100;  
- document.querySelectorAll('audio').forEach(a => {  
- a.volume = vol;  
- });  
+ document.querySelectorAll('audio').forEach(a => { a.volume = vol; });  
  }  
   
  function alterarModoPTT(modo) {  
@@ -445,20 +469,23 @@ let idChamadaAtual = null;
  }  
  }  
   
- function mudarTab(aba) {  
- document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));  
- document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));  
- if (aba === 'radio') {  
- document.querySelectorAll('.tab-btn')[0].classList.add('ativo');  
- document.getElementById('tabRadio').classList.add('ativa');  
- } else if (aba === 'status') {  
- document.querySelectorAll('.tab-btn')[1].classList.add('ativo');  
- document.getElementById('tabStatus').classList.add('ativa');  
- } else if (aba === 'dados') {  
- document.querySelectorAll('.tab-btn')[2].classList.add('ativo');  
- document.getElementById('tabDados').classList.add('ativa');  
- }  
- }  
+ function mudarTab(aba) {
+   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+   document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+   if (aba === 'radio') {
+     document.querySelectorAll('.tab-btn')[0].classList.add('ativo');
+     document.getElementById('tabRadio').classList.add('ativa');
+   } else if (aba === 'status') {
+     document.querySelectorAll('.tab-btn')[1].classList.add('ativo');
+     document.getElementById('tabStatus').classList.add('ativa');
+   } else if (aba === 'dados') {
+     document.querySelectorAll('.tab-btn')[2].classList.add('ativo');
+     document.getElementById('tabDados').classList.add('ativa');
+   } else if (aba === 'online') {
+     document.querySelectorAll('.tab-btn')[3].classList.add('ativo');
+     document.getElementById('tabOnline').classList.add('ativa');
+   }
+ }
   
  function iniciarSocketApp() {  
  try {  
@@ -470,8 +497,8 @@ let idChamadaAtual = null;
   
  socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });  
  configurarEventosSocket();  
-   
-const carroLogado = localStorage.getItem('taxi_carro');  
+    
+ const carroLogado = localStorage.getItem('taxi_carro');  
  if (carroLogado) {  
  const senhaSalva = localStorage.getItem('taxi_senha_temp') || "123";  
  socket.emit('loginMotorista', { login: String(carroLogado).trim(), senha: String(senhaSalva).trim(), reconexaoAutomatica: true });  
@@ -484,18 +511,68 @@ const carroLogado = localStorage.getItem('taxi_carro');
  }  
  }  
   
+ function renderizarConectadosMotorista(conectados) {
+   const tbody = document.getElementById('tabelaConectadosMotorista');
+   if (!tbody) return;
+   if (!conectados || conectados.length === 0) {
+     tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">Nenhum motorista online.</td></tr>`;
+     return;
+   }
+
+   const ehModeradorLogado = Boolean(meuTaxi && meuTaxi.ehModerador);
+
+   tbody.innerHTML = conectados.map(m => {
+     const ehProprio = String(m.idTaxi) === String(meuTaxi?.numero);
+     let botoesMod = '<span style="color:var(--texto-secundario); font-size:11px;">--</span>';
+
+     if (ehModeradorLogado && !ehProprio) {
+       botoesMod = `
+         <button onclick="abrirOpcoesModeracaoMotorista('${m.idTaxi}')" style="background:#eab308; color:#000; padding:4px 8px; font-size:11px; font-weight:bold; border-radius:4px; border:none; cursor:pointer;">⚙️ Moderar</button>
+       `;
+     }
+
+     return `
+       <tr>
+         <td><strong>Carro.${m.idTaxi}</strong> ${m.ehModerador ? '⭐' : ''}</td>
+         <td>${m.nome}</td>
+         <td><span style="color:${m.status === 'LIVRE' ? '#16a34a' : '#dc2626'}; font-weight:bold;">${m.status}</span></td>
+         <td>${botoesMod}</td>
+       </tr>
+     `;
+   }).join('');
+ }
+
+ function abrirOpcoesModeracaoMotorista(idTaxi) {
+   if (!meuTaxi || !meuTaxi.ehModerador) {
+     alert("Apenas motoristas moderadores podem usar este recurso.");
+     return;
+   }
+   const opcao = prompt(`Ações de Moderação para o Carro.${idTaxi}:\n\n1 - Silenciar Rádio PTT (15 min)\n2 - Suspender App/Fila (1 hora)\n3 - Remover Punição / Desbloquear\n\nDigite o número da opção desejada:`);
+
+   if (opcao === '1') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'MUTE', minutos: 15 });
+     alert(`Carro.${idTaxi} silenciado no PTT por 15 minutos.`);
+   } else if (opcao === '2') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'BAN', horas: 1 });
+     alert(`Carro.${idTaxi} suspenso da fila por 1 hora.`);
+   } else if (opcao === '3') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'DESBLOQUEAR' });
+     alert(`Punições do Carro.${idTaxi} removidas.`);
+   }
+ }
+
  function configurarEventosSocket() {  
  socket.on('loginErro', (dados) => {   
-alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas."));   
-window.location.href = "index.html";  
+ alert("Erro de Login: " + (dados.mensagem || "Credenciais inválidas."));   
+ window.location.href = "index.html";  
  });  
   
  socket.on('loginSucesso', (dados) => {  
  try {  
  if (!dados || !dados.carro) return;  
  meuTaxi = dados.carro;  
-   
-document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--';  
+    
+ document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--';  
  document.getElementById('infoNumero').innerText = meuTaxi.numero || '--';  
  document.getElementById('infoNome').innerText = meuTaxi.nome || 'Motorista';  
  document.getElementById('infoModelo').innerText = meuTaxi.modelo || 'Padrão';  
@@ -556,8 +633,7 @@ document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--'
  const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';  
  document.getElementById('ofertaCliente').innerText = nomePassageiro;  
  document.getElementById('ofertaLocal').innerText = dados.local || dados.origem || 'Local não informado';  
-   
-// EXIBE A OFERTA E ATIVA O BLOQUEIO TOTAL DA TELA DE FUNDO  
+    
  document.getElementById('modalOferta').classList.remove('escondido');  
  document.getElementById('overlayBloqueioCorrida').classList.add('ativo');  
  });  
@@ -591,8 +667,8 @@ document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--'
  const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';  
  document.getElementById('viagemCliente').innerText = nomePassageiro;  
  document.getElementById('viagemOrigem').innerText = dados.origem || 'Não informado';  
-   
-const boxNav = document.getElementById('boxBotoesNavegacao');  
+    
+ const boxNav = document.getElementById('boxBotoesNavegacao');  
  const btnMaps = document.getElementById('btnAbrirMaps');  
  const btnWaze = document.getElementById('btnAbrirWaze');  
   
@@ -604,7 +680,6 @@ const boxNav = document.getElementById('boxBotoesNavegacao');
  boxNav.classList.add('escondido');  
  }  
   
- // OCULTA OFERTA, EXIBE O CARTÃO DE VIAGEM E MANTÉM O BLOQUEIO ATIVO ATÉ O "OK" FINAL  
  document.getElementById('modalOferta').classList.add('escondido');  
  document.getElementById('cartaoViagemAtiva').classList.remove('escondido');  
  document.getElementById('overlayBloqueioCorrida').classList.add('ativo');  
@@ -615,15 +690,19 @@ const boxNav = document.getElementById('boxBotoesNavegacao');
   
  socket.on('atualizarSistema', (dados) => {  
  const divOnline = document.getElementById('listaFrotaOnline');  
- if (dados.conectados && dados.conectados.length > 0) {  
- divOnline.innerHTML = dados.conectados.map(m => `  
- <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 8px; border-radius: 6px; border: 1px solid var(--borda-card);">  
- <span style="font-weight: bold; color: var(--amarelo-ponto);">Carro.${m.idTaxi} (${m.nome})</span>  
- <span style="font-size: 10px; background: rgba(22, 163, 74, 0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${m.status}</span>  
- </div>  
- `).join('');  
+ if (dados.conectados && dados.conectados.length > 0) {
+   if (divOnline) {
+     divOnline.innerHTML = dados.conectados.map(m => `  
+       <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 8px; border-radius: 6px; border: 1px solid var(--borda-card);">  
+         <span style="font-weight: bold; color: var(--amarelo-ponto);">Carro.${m.idTaxi} (${m.nome})</span>  
+         <span style="font-size: 10px; background: rgba(22, 163, 74, 0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${m.status}</span>  
+       </div>  
+     `).join('');  
+   }
+   renderizarConectadosMotorista(dados.conectados);
  } else {  
- divOnline.innerHTML = `<p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>`;  
+   if (divOnline) divOnline.innerHTML = `<p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>`;  
+   renderizarConectadosMotorista([]);
  }  
   
  if (dados.historico && meuTaxi && meuTaxi.numero) {  
@@ -662,7 +741,7 @@ const boxNav = document.getElementById('boxBotoesNavegacao');
  const btn = document.getElementById('btnPTT');  
  btn.classList.remove('transmitindo');  
  btn.classList.remove('ouvindo');  
- document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";  
+ document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
  }  
  });  
   
@@ -680,24 +759,24 @@ const boxNav = document.getElementById('boxBotoesNavegacao');
  const audio = new Audio(urlAudioFinal);  
  const strVol = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
  audio.volume = parseFloat(strVol) / 100;  
-   
-btn.classList.add('ouvindo');  
+    
+ btn.classList.add('ouvindo');  
  const nomeFalante = (dados.nomeMotorista || dados.idTaxi || 'Central').toUpperCase();  
  document.getElementById('labelPTT').innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeFalante}</span>`;  
   
  audio.onended = () => {  
  btn.classList.remove('ouvindo');  
- document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";  
+ document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
  socket.emit('liberarCanalPTT');  
  };  
  audio.onerror = () => {  
  btn.classList.remove('ouvindo');  
- document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";  
+ document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
  };  
   
  audio.play().catch(() => {  
  btn.classList.remove('ouvindo');  
- document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ FALAR" : "SEGURE P/ FALAR";  
+ document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
  });  
  } else {  
  btn.classList.remove('ouvindo');  
@@ -727,8 +806,8 @@ btn.classList.add('ouvindo');
  document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;  
  }  
  if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
-   
-navigator.geolocation.watchPosition(  
+    
+ navigator.geolocation.watchPosition(  
  (pos) => {  
  if (!simulandoChegadaNoPonto) {  
  minhaLat = pos.coords.latitude;  
@@ -757,7 +836,7 @@ navigator.geolocation.watchPosition(
  simulandoChegadaNoPonto = true;  
  statusAtual = "LIVRE";  
  minhaLat = -23.580278;   
-minhaLon = -46.561389;  
+ minhaLon = -46.561389;  
  document.getElementById('labelStatus').innerText = "LIVRE";  
  document.getElementById('boxStatusVisual').style.background = "#16a34a";  
  document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida";  
@@ -796,14 +875,14 @@ minhaLon = -46.561389;
  document.getElementById('btnStatus').className = "btn-green";  
  document.getElementById('infoGpsStatus').innerText = "Buscando GPS real...";  
  document.getElementById('btnAusente').classList.add('escondido');   
-} else {  
+ } else {  
  statusAtual = "LIVRE";  
  document.getElementById('labelStatus').innerText = "LIVRE";  
  document.getElementById('boxStatusVisual').style.background = "#16a34a";  
  document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida";  
  document.getElementById('btnStatus').className = "btn-red";  
  document.getElementById('btnAusente').classList.remove('escondido');   
-document.getElementById('btnAusente').innerHTML = "⏸️ Ficar Ausente (Pausa / Banheiro)";  
+ document.getElementById('btnAusente').innerHTML = "⏸️ Ficar Ausente (Pausa / Banheiro)";  
  document.getElementById('btnAusente').style.background = "#d97706";  
  }  
  if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
@@ -832,11 +911,11 @@ document.getElementById('btnAusente').innerHTML = "⏸️ Ficar Ausente (Pausa /
  reader.onloadend = () => {  
  if (meuTaxi && socket) {  
  socket.emit('transmitirAudioPTT', {   
-idTaxi: meuTaxi.numero,   
-nomeMotorista: meuTaxi.nome,  
+ idTaxi: meuTaxi.numero,   
+ nomeMotorista: meuTaxi.nome,  
  audioBuffer: reader.result,   
-duracao: duracao   
-});  
+ duracao: duracao   
+ });  
  }  
  };  
  };  
@@ -867,12 +946,12 @@ duracao: duracao
  if (mediaRecorder && (mediaRecorder.state === "inactive" || mediaRecorder.state === "paused")) {  
  mediaRecorder.start();  
  }  
-   
-const btn = document.getElementById('btnPTT');  
+    
+ const btn = document.getElementById('btnPTT');  
  btn.classList.add('transmitindo');  
  document.getElementById('labelPTT').innerHTML = "FALANDO...<br><span style='font-size:10px'>(Solte p/ Enviar)</span>";  
-   
-socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, ehModerador: meuTaxi.ehModerador });  
+    
+ socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, ehModerador: meuTaxi.ehModerador });  
  } catch (err) {  
  gravando = false;  
  document.getElementById('btnPTT').classList.remove('transmitindo');  
@@ -884,8 +963,8 @@ socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, e
  if (!gravando) return;  
  gravando = false;  
  try { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); } catch (err) {}  
-   
-const btn = document.getElementById('btnPTT');  
+    
+ const btn = document.getElementById('btnPTT');  
  btn.classList.remove('transmitindo');  
  document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
  setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);  
@@ -937,7 +1016,6 @@ const btn = document.getElementById('btnPTT');
  if (!idChamadaAtual || !socket) return;  
  socket.emit('aceitarCorridaMotorista', { idChamada: idChamadaAtual });  
  document.getElementById('modalOferta').classList.add('escondido');  
- // Mantém o overlay de bloqueio ativo até o motorista conferir o endereço e clicar em OK (Ciente)  
  }  
   
  function recusarCorrida() {  
@@ -945,15 +1023,11 @@ const btn = document.getElementById('btnPTT');
  socket.emit('recusarCorridaMotorista', { idChamada: idChamadaAtual });  
  document.getElementById('modalOferta').classList.add('escondido');  
  idChamadaAtual = null;  
-   
-// Liberta o ecrã ao recusar  
  document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');  
  }  
   
  function fecharCartaoViagem() {  
  document.getElementById('cartaoViagemAtiva').classList.add('escondido');  
-   
-// Liberta totalmente o ecrã só quando o motorista clica no OK final  
  document.getElementById('overlayBloqueioCorrida').classList.remove('ativo');  
  }  
   
@@ -961,7 +1035,6 @@ const btn = document.getElementById('btnPTT');
  const carroLogado = localStorage.getItem('taxi_carro');  
  if (carroLogado) {  
  document.getElementById('displayNumeroCarro').innerText = carroLogado;  
- document.getElementById('infoNumero').innerText = carroLogado;  
  }  
  ativarModoSegundoPlano();
  iniciarSocketApp();  
