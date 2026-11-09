@@ -287,8 +287,9 @@
                 <span style="font-weight: bold; color: var(--amarelo-ponto);">Bem-vindo, <span id="nomeUsuarioLogado">Carregando...</span></span>
                 <span id="badgeCargoLogado" style="background: #000; border: 1px solid var(--amarelo-ponto); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: var(--amarelo-ponto); margin-left: 8px;">ADM</span>
             </div>
-            <div>
-                <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH GERAL</button>
+            <!-- 🛡️ BLOCO COM ID PARA OCULTAR O REFRESH PARA FISCAL -->
+            <div id="containerBtnRefresh">
+                <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
             </div>
         </div>
 
@@ -612,6 +613,14 @@
         if (elNome) elNome.innerText = nomeSalvo;
         if (elCargo) elCargo.innerText = cargoSalvo;
         
+        // 🛡️ VERIFICAÇÃO DE PERMISSÃO PARA OCULTAR O REFRESH DO FISCAL
+        if (cargoSalvo && cargoSalvo.trim().toUpperCase() === 'FISCAL') {
+            const containerRefresh = document.getElementById('containerBtnRefresh');
+            if (containerRefresh) {
+                containerRefresh.classList.add('escondido');
+            }
+        }
+        
         if (cargoSalvo !== 'ADM') {
             const btnApagarLogs = document.getElementById('btnLimparLogs');
             if (btnApagarLogs) btnApagarLogs.style.display = 'none';
@@ -631,28 +640,26 @@
             if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
         });
 
-    // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA (BLINDADO CONTRA ECO)
-socket.on('receberAudioPTT', (dados) => {
-    setEstadoPTTFiscal('STANDBY');
-    if (dados.historico) renderizarAudioAdm(dados.historico);
+        // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA (BLINDADO CONTRA ECO)
+        socket.on('receberAudioPTT', (dados) => {
+            setEstadoPTTFiscal('STANDBY');
+            if (dados.historico) renderizarAudioAdm(dados.historico);
 
-    // 🛡️ Blindagem contra o eco no Admin/Fiscal:
-    // Verifica se o áudio foi enviado pela própria Central/Fiscal ou ADM
-    const idEnviado = String(dados.idTaxi || '').trim();
-    const eMeuProprioAudio = (idEnviado === 'Fiscal' || idEnviado === 'ADM');
+            const idEnviado = String(dados.idTaxi || '').trim();
+            const eMeuProprioAudio = (idEnviado === 'Fiscal' || idEnviado === 'ADM');
 
-    // Se for o áudio da própria central voltando do servidor, ignora a reprodução local
-    if (eMeuProprioAudio) {
-        return; 
-    }
+            if (eMeuProprioAudio) {
+                return; 
+            }
 
-    if (dados.audioUrl) {
-        destravarAudioAutomatica();
-        const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
-        const audio = new Audio(urlAudioFinal);
-        audio.play().catch(() => {});
-    }
-});
+            if (dados.audioUrl) {
+                destravarAudioAutomatica();
+                const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
+                const audio = new Audio(urlAudioFinal);
+                audio.play().catch(() => {});
+            }
+        });
+
         // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
         function setEstadoPTTFiscal(estado, nomeFalante = "") {
             const btn = document.getElementById('btnPTTFiscal');
@@ -711,7 +718,6 @@ socket.on('receberAudioPTT', (dados) => {
 
             destravarAudioAutomatica();
 
-            // PRIORIDADE MÁXIMA DA CENTRAL: CORTA QUALQUER TRANSMISSÃO DE MOTORISTA EM ANDAMENTO
             socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal', ehModerador: true });
 
             if (!mediaRecorderFiscal) {
