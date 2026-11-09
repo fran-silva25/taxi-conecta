@@ -983,7 +983,6 @@ function dispararPonteiroFila(idChamadaFixa) {
     if (!chamada) return;   
 
     // 🛡️ CORREÇÃO: Só avisa que não tem carros se a fila estiver realmente zerada. 
-    // Se ainda há motoristas na fila, pegamos o próximo da vez.
     if (filaGeral.length === 0) {  
         if (chamada.jidCliente && chamada.sockWhatsApp) {  
             const msgSemCarro = `⚠️ *SEM TÁXIS DISPONÍVEIS NO MOMENTO*\n\nNão há táxis disponíveis para atendimento agora. Por favor, solicite novamente em 5 minutos.`;  
@@ -994,34 +993,49 @@ function dispararPonteiroFila(idChamadaFixa) {
         
         if (filaEsperaWhatsApp.length > 0) {  
             const proximaSolicitacao = filaEsperaWhatsApp.shift();  
-            // (continua o fluxo de espera se houver)
         }
         return;
     }   
 
-    // Se a tentativa atual ultrapassou o tamanho da fila atual, reseta para o início ou pega o primeiro disponível
+    // Se a tentativa atual ultrapassou o tamanho da fila, reseta para o início
     if (chamada.indiceTentativaAtual >= filaGeral.length) {
-        chamada.indiceTentativaAtual = 0; // Volta para o primeiro da fila que sobrou
+        chamada.indiceTentativaAtual = 0; 
     }
 
     const proximoMotorista = filaGeral[chamada.indiceTentativaAtual];
     
-    // Dispara a corrida para o próximo motorista da fila...
-    // (o restante do código de envio do socket para o motorista continua aqui)
-  
-  const idTaxiStr = String(motorista.idTaxi);  
-  
-  chamada.idTaxi = idTaxiStr;  
-  chamada.nomeMotorista = motorista.nome;  
-  
-  const dadosMotorista = motoristasConectados[idTaxiStr];  
-  if (dadosMotorista && dadosMotorista.socketId) {  
-    io.to(dadosMotorista.socketId).emit('ofertaCorrida', { idChamada: idChamadaFixa, cliente: chamada.nomeCliente, local: chamada.origem });  
-  } else {
-    chamada.indiceTentativaAtual++;
-    dispararPonteiroFila(idChamadaFixa);
-  }
-}  
+    // Validação de segurança para garantir que o motorista existe na fila
+    if (!proximoMotorista) {
+        console.error("Erro: proximoMotorista é undefined na fila.");
+        return;
+    }
+
+    const idTaxiStr = String(proximoMotorista.idTaxi);   
+    chamada.idTaxi = idTaxiStr;   
+    chamada.nomeMotorista = proximoMotorista.nome;   
+
+    // Dispara a corrida via socket para a sala do táxi atual
+    io.to(`taxi_${idTaxiStr}`).emit('novaChamadaCorrida', {
+        idChamada: idChamadaFixa,
+        origem: chamada.origem,
+        destino: chamada.destino || "Não informado",
+        distancia: chamada.distancia || ""
+    });
+
+    // Verificação de socket conectado do motorista
+    const dadosMotorista = motoristasConectados[idTaxiStr];   
+    if (dadosMotorista && dadosMotorista.socketId) {   
+        io.to(dadosMotorista.socketId).emit('ofertaCorrida', { 
+            idChamada: idChamadaFixa, 
+            cliente: chamada.nomeCliente || "Passageiro", 
+            local: chamada.origem 
+        });   
+    } else {
+        // Se o motorista não estiver conectado, pula para o próximo da fila automaticamente
+        chamada.indiceTentativaAtual++;
+        dispararPonteiroFila(idChamadaFixa);
+    }
+}
   
 function confirmarEBaixarCorrida(idChamada) {  
   const chamada = chamadasPendentes[idChamada];  
