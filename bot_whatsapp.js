@@ -55,40 +55,56 @@ function verificarDentroDaCerca(pontoLatLon, poligonoCerca) {
     return dentro;
 }
 
-async function buscarCoordenadasPorEndereco(enderecoTexto) {
-    try {
-        const query = encodeURIComponent(`${enderecoTexto}, São Paulo, SP, Brasil`);
-        const resposta = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-            headers: { 'User-Agent': 'BotPonto2216/1.0 (contato@ponto2216.com.br)' }
-        });
-        const dados = await resposta.json();
-        if (dados && dados.length > 0) return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon) };
-        return null;
-    } catch (e) {
-        console.error('Erro na API de mapas:', e);
-        return null;
-    }
+async function buscarCoordenadasPorEndereco(enderecoTexto) {  
+    try {  
+        const query = encodeURIComponent(`${enderecoTexto}, São Paulo, SP, Brasil`);  
+        const resposta = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {  
+            headers: { 'User-Agent': 'BotPonto2216/1.0 (contato@ponto2216.com.br)' }  
+        });  
+        
+        const textoResposta = await resposta.text();
+        if (!textoResposta || textoResposta.trim().startsWith('<')) {
+            console.error('⚠️ API de mapas (busca por endereço) retornou HTML/XML em vez de JSON.');
+            return null;
+        }
+
+        const dados = JSON.parse(textoResposta);
+        if (dados && dados.length > 0) {
+            return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon) };  
+        }
+        return null;  
+    } catch (e) {  
+        console.error('Erro na API de mapas:', e.message);  
+        return null;  
+    }  
 }
 
-async function buscarEnderecoPorCoordenadas(lat, lon) {
-    try {
-        const resposta = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
-            headers: { 'User-Agent': 'BotPonto2216/1.0 (contato@ponto2216.com.br)' }
-        });
-        const dados = await resposta.json();
-        if (dados && dados.address) {
-            const rua = dados.address.road || dados.address.pedestrian || dados.address.street || "Endereço via Pino GPS";
-            const numero = dados.address.house_number ? `, ${dados.address.house_number}` : '';
-            const bairro = (dados.address.suburb || dados.address.neighbourhood || dados.address.city_district) 
-                ? ` - ${dados.address.suburb || dados.address.neighbourhood || dados.address.city_district}` 
-                : '';
-            return `${rua}${numero}${bairro}`;
+async function buscarEnderecoPorCoordenadas(lat, lon) {  
+    try {  
+        const resposta = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {  
+            headers: { 'User-Agent': 'BotPonto2216/1.0 (contato@ponto2216.com.br)' }  
+        });  
+        
+        const textoResposta = await resposta.text();
+        if (!textoResposta || textoResposta.trim().startsWith('<')) {
+            console.error('⚠️ API de mapas (geocodificação reversa) retornou HTML/XML em vez de JSON.');
+            return "Endereço via Pino GPS";
         }
-        return "Endereço via Pino GPS";
-    } catch (e) {
-        console.error('Erro na geocodificação reversa:', e);
-        return "Endereço via Pino GPS";
-    }
+
+        const dados = JSON.parse(textoResposta);
+        if (dados && dados.address) {  
+            const rua = dados.address.road || dados.address.pedestrian || dados.address.street || "Endereço via Pino GPS";  
+            const numero = dados.address.house_number ? `, ${dados.address.house_number}` : '';  
+            const bairro = (dados.address.suburb || dados.address.neighbourhood || dados.address.city_district)   
+                ? ` - ${dados.address.suburb || dados.address.neighbourhood || dados.address.city_district}`   
+                : '';  
+            return `${rua}${numero}${bairro}`;  
+        }  
+        return "Endereço via Pino GPS";  
+    } catch (e) {  
+        console.error('Erro na geocodificação reversa:', e.message);  
+        return "Endereço via Pino GPS";  
+    }  
 }
 
 const estadosClientes = {};
