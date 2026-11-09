@@ -631,19 +631,28 @@
             if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
         });
 
-        // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA
-        socket.on('receberAudioPTT', (dados) => {
-            setEstadoPTTFiscal('STANDBY');
-            if (dados.historico) renderizarAudioAdm(dados.historico);
+    // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA (BLINDADO CONTRA ECO)
+socket.on('receberAudioPTT', (dados) => {
+    setEstadoPTTFiscal('STANDBY');
+    if (dados.historico) renderizarAudioAdm(dados.historico);
 
-            if (dados.audioUrl) {
-                destravarAudioAutomatica();
-                const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
-                const audio = new Audio(urlAudioFinal);
-                audio.play().catch(() => {});
-            }
-        });
+    // 🛡️ Blindagem contra o eco no Admin/Fiscal:
+    // Verifica se o áudio foi enviado pela própria Central/Fiscal ou ADM
+    const idEnviado = String(dados.idTaxi || '').trim();
+    const eMeuProprioAudio = (idEnviado === 'Fiscal' || idEnviado === 'ADM');
 
+    // Se for o áudio da própria central voltando do servidor, ignora a reprodução local
+    if (eMeuProprioAudio) {
+        return; 
+    }
+
+    if (dados.audioUrl) {
+        destravarAudioAutomatica();
+        const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
+        const audio = new Audio(urlAudioFinal);
+        audio.play().catch(() => {});
+    }
+});
         // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
         function setEstadoPTTFiscal(estado, nomeFalante = "") {
             const btn = document.getElementById('btnPTTFiscal');
