@@ -339,7 +339,7 @@ function iniciarBotWhatsApp(funcaoSolicitarCorrida) {
 
                         if (localizacaoRecebida && localizacaoRecebida.degreesLatitude && localizacaoRecebida.degreesLongitude) {
                             const lat = localizacaoRecebida.degreesLatitude;
-                            const lon = localizacaoRecebids.degreesLongitude;
+                            const lon = localizacaoRecebida.degreesLongitude;
 
                             await enviarMsgSegura(`📍 Identificando o endereço da sua localização...`);
                             

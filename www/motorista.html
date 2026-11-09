@@ -437,20 +437,39 @@ box-sizing: border-box;
      }
  }  
   
- function tocarSomAlertaCorrida() {  
- try {  
- const audioCorrida = new Audio('alerta.mp3');  
- if (meuTaxi && meuTaxi.numero) {  
- const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
- audioCorrida.volume = parseFloat(volSalvo) / 100;  
- }  
- audioCorrida.currentTime = 0;  
- audioCorrida.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));  
- } catch (e) {  
- console.error("Erro ao reproduzir áudio de alerta:", e);  
- }  
- }  
-  
+ // Variável global para controlar o som ativo do alerta
+let audioAlertaAtual = null;
+
+function tocarSomAlertaCorrida() {  
+    try {  
+        // Se já houver um alerta tocando, para ele antes de iniciar outro
+        pararSomAlertaCorrida();
+
+        audioAlertaAtual = new Audio('alerta.mp3');  
+        
+        // 🔄 Configura o loop para tocar sem parar até o motorista interagir
+        audioAlertaAtual.loop = true; 
+
+        if (meuTaxi && meuTaxi.numero) {  
+            const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
+            audioAlertaAtual.volume = parseFloat(volSalvo) / 100;  
+        }  
+
+        audioAlertaAtual.currentTime = 0;  
+        audioAlertaAtual.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));  
+    } catch (e) {  
+        console.error("Erro ao reproduzir áudio de alerta:", e);  
+    }  
+}
+
+// Função para parar o som quando o motorista aceitar ou recusar a corrida
+function pararSomAlertaCorrida() {
+    if (audioAlertaAtual) {
+        audioAlertaAtual.pause();
+        audioAlertaAtual.currentTime = 0;
+        audioAlertaAtual = null;
+    }
+}
  function aplicarTema(tema) {  
  document.documentElement.setAttribute('data-tema', tema);  
  const lbl = document.getElementById('labelTema');  
