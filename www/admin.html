@@ -228,11 +228,16 @@
 <body>
 
 <div class="container">
-    <div class="banner-ponto-2216">
-        <button class="btn-acao-topo" onclick="alternarTema()">🌓 <span id="labelTema">Tema</span></button>
-        <span class="texto-banner-ponto">PONTO 2216 - ADMIN / FISCAL</span>
+    <div class="banner-ponto-2216" style="text-align: center; padding: 15px;">
+    <!-- Título Principal Centralizado -->
+    <span class="texto-banner-ponto" style="display: block; font-size: 20px; font-weight: bold; margin-bottom: 12px; color: #FFFFFF;">PONTO 2216 - ADMIN / FISCAL</span>
+    
+    <!-- Linha Inferior com os botões -->
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button class="btn-acao-topo" onclick="alternarTema()">🌗 <span id="labelTema">Escuro</span></button>
         <button id="btnSairAdm" class="btn-sair" onclick="fazerLogoutAdm()">🚪 Sair</button>
     </div>
+</div>
 
     <div id="alertaRecusaFlutuante" class="escondido">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
