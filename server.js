@@ -233,15 +233,17 @@ async function carregarAdmsDoBanco() {
   
 async function salvarAdmNoBanco(adm) {  
   try {  
+    const senhaLimpa = String(adm.senha).trim();
     const query = `  
-      INSERT INTO administradores (usuario, senha, nome, cargo)  
-      VALUES ($1, $2, $3, $4)  
+      INSERT INTO administradores (usuario, senha, senha_hash, nome, cargo)  
+      VALUES ($1, $2, $2, $3, $4)  
       ON CONFLICT (usuario) DO UPDATE SET  
         senha = EXCLUDED.senha,  
+        senha_hash = EXCLUDED.senha_hash,  
         nome = EXCLUDED.nome,  
         cargo = EXCLUDED.cargo;  
     `;  
-    await db.query(query, [adm.usuario, String(adm.senha).trim(), adm.nome, adm.cargo]);  
+    await db.query(query, [adm.usuario, senhaLimpa, adm.nome, adm.cargo]);  
   } catch (e) {  
     console.error("Erro ao salvar administrador no banco:", e);  
   }  
