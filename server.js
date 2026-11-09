@@ -256,6 +256,30 @@ async function excluirAdmDoBanco(usuarioKey) {
     console.error("Erro ao excluir administrador do banco:", e);  
   }  
 }  
+// Rota para excluir veículo da frota
+socket.on('excluirFrota', async (dados) => {
+    try {
+        const idLimpo = String(dados.id || '').replace(/[^0-9]/g, '');
+        const loginChave = `Carro.${idLimpo}`;
+        
+        // Remove da memória do servidor
+        if (frotaCadastrada[loginChave]) {
+            delete frotaCadastrada[loginChave];
+        }
+        if (frotaCadastrada[idLimpo]) {
+            delete frotaCadastrada[idLimpo];
+        }
+
+        // Remove do banco de dados PostgreSQL
+        await db.query('DELETE FROM motoristas WHERE numero = $1', [idLimpo]);
+
+        // Atualiza todos os painéis conectados
+        emitirAtualizacaoGeral();
+        console.log(`🗑️ Veículo Carro.${idLimpo} excluído com sucesso pela central.`);
+    } catch (e) {
+        console.error("Erro ao excluir veículo da frota:", e);
+    }
+});
   
 let historicoRecusas = carregarHistoricoRecusas();  
 let historicoCorridas = carregarHistoricoCorridas();  
