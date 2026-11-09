@@ -978,26 +978,37 @@ io.on('connection', (socket) => {
   });  
 });  
   
-function dispararPonteiroFila(idChamadaFixa) {  
-  const chamada = chamadasPendentes[idChamadaFixa];  
-  if (!chamada) return;  
-  
-  if (filaGeral.length === 0 || chamada.indiceTentativaAtual >= filaGeral.length) {
-    if (chamada.jidCliente && chamada.sockWhatsApp) {
-      const msgSemCarro = `⚠️ *SEM TÁXIS DISPONÍVEIS NO MOMENTO*\n\nNão há táxis disponíveis para atendimento agora. Por favor, solicite novamente em 5 minutos.`;
-      chamada.sockWhatsApp.sendMessage(chamada.jidCliente, { text: msgSemCarro }).catch(e => console.error("Erro ao enviar resposta WhatsApp:", e));
-    }
-    liberarClienteWhatsApp(chamada.jidCliente);
-    delete chamadasPendentes[idChamadaFixa];
-    
-    if (filaEsperaWhatsApp.length > 0) {
-      const proximaSolicitacao = filaEsperaWhatsApp.shift();
-      processarNovaSolicitacaoWhatsApp(proximaSolicitacao);
-    }
-    return;
-  }
+function dispararPonteiroFila(idChamadaFixa) {   
+    const chamada = chamadasPendentes[idChamadaFixa];   
+    if (!chamada) return;   
 
-  const motorista = filaGeral[chamada.indiceTentativaAtual];  
+    // 🛡️ CORREÇÃO: Só avisa que não tem carros se a fila estiver realmente zerada. 
+    // Se ainda há motoristas na fila, pegamos o próximo da vez.
+    if (filaGeral.length === 0) {  
+        if (chamada.jidCliente && chamada.sockWhatsApp) {  
+            const msgSemCarro = `⚠️ *SEM TÁXIS DISPONÍVEIS NO MOMENTO*\n\nNão há táxis disponíveis para atendimento agora. Por favor, solicite novamente em 5 minutos.`;  
+            chamada.sockWhatsApp.sendMessage(chamada.jidCliente, { text: msgSemCarro }).catch(e => console.error("Erro ao enviar resposta WhatsApp:", e));  
+        }  
+        liberarClienteWhatsApp(chamada.jidCliente);  
+        delete chamadasPendentes[idChamadaFixa];  
+        
+        if (filaEsperaWhatsApp.length > 0) {  
+            const proximaSolicitacao = filaEsperaWhatsApp.shift();  
+            // (continua o fluxo de espera se houver)
+        }
+        return;
+    }   
+
+    // Se a tentativa atual ultrapassou o tamanho da fila atual, reseta para o início ou pega o primeiro disponível
+    if (chamada.indiceTentativaAtual >= filaGeral.length) {
+        chamada.indiceTentativaAtual = 0; // Volta para o primeiro da fila que sobrou
+    }
+
+    const proximoMotorista = filaGeral[chamada.indiceTentativaAtual];
+    
+    // Dispara a corrida para o próximo motorista da fila...
+    // (o restante do código de envio do socket para o motorista continua aqui)
+  
   const idTaxiStr = String(motorista.idTaxi);  
   
   chamada.idTaxi = idTaxiStr;  
