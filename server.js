@@ -34,6 +34,7 @@ if (!fs.existsSync(PASTA_SALVOS_MODERACAO)) {
 const ARQUIVO_RECUSAS = path.join(__dirname, 'historico_recusas.json');  
 const ARQUIVO_HISTORICO_PTT = path.join(__dirname, 'historico_ptt.json');  
 const ARQUIVO_CORRIDAS = path.join(__dirname, 'historico_corridas.json');  
+const ARQUIVO_LOG_MODERACAO = path.join(__dirname, 'historico_moderacao.json');  
   
 function checarAniversarioApp() {  
   const hoje = new Date();  
@@ -116,6 +117,22 @@ function carregarHistoricoCorridas() {
 function salvarHistoricoCorridas() {  
   try {  
     fs.writeFileSync(ARQUIVO_CORRIDAS, JSON.stringify(historicoCorridas, null, 2), 'utf8');  
+  } catch (e) {}  
+}  
+
+function carregarLogModeracao() {  
+  try {  
+    if (fs.existsSync(ARQUIVO_LOG_MODERACAO)) {  
+      const dados = fs.readFileSync(ARQUIVO_LOG_MODERACAO, 'utf8');  
+      return JSON.parse(dados);  
+    }  
+  } catch (e) {}  
+  return [];  
+}  
+
+function salvarLogModeracaoNaNuvem() {  
+  try {  
+    fs.writeFileSync(ARQUIVO_LOG_MODERACAO, JSON.stringify(logModeracao, null, 2), 'utf8');  
   } catch (e) {}  
 }  
   
@@ -240,6 +257,7 @@ async function excluirAdmDoBanco(usuarioKey) {
   
 let historicoRecusas = carregarHistoricoRecusas();  
 let historicoCorridas = carregarHistoricoCorridas();  
+let logModeracao = carregarLogModeracao();  
 let frotaCadastrada = {};  
 let usuariosAdmCadastrados = {};  
   
@@ -258,37 +276,38 @@ let chamadasPendentes = {};
 let filaEsperaWhatsApp = [];  
 let idEmTransmissaoPTT = null;  
   
-function obterListaConectados() {
-  return Object.values(motoristasConectados).map(m => {
-    const login = `Carro.${m.idTaxi}`;
-    const veiculo = frotaCadastrada[login] || {};
-    return {  
-      idTaxi: m.idTaxi, 
-      nome: m.nome, 
-      status: m.status,
-      ehModerador: Boolean(veiculo.ehModerador),
-      mutadoAte: veiculo.mutadoAte || null,
-      banidoAte: veiculo.banidoAte || null,
-      bloqueioRecusa: Boolean(veiculo.bloqueioRecusa)
-    };
-  });
-}
+function obterListaConectados() { 
+  return Object.values(motoristasConectados).map(m => { 
+    const login = `Carro.${m.idTaxi}`; 
+    const veiculo = frotaCadastrada[login] || {}; 
+    return {   
+      idTaxi: m.idTaxi,  
+      nome: m.nome,  
+      status: m.status, 
+      ehModerador: Boolean(veiculo.ehModerador), 
+      mutadoAte: veiculo.mutadoAte || null, 
+      banidoAte: veiculo.banidoAte || null, 
+      bloqueioRecusa: Boolean(veiculo.bloqueioRecusa) 
+    }; 
+  }); 
+} 
 
-function emitirAtualizacaoGeral() {
-  io.emit('atualizarSistema', {  
-    versao: VERSAO_SISTEMA,
-    modo: modoOperacao,  
-    pa2Fechado: pa2Fechado,  
-    fila: filaGeral,  
-    frota: frotaCadastrada,  
-    usuariosAdm: usuariosAdmCadastrados,  
-    historico: historicoAudio,  
-    recusas: historicoRecusas,  
-    corridas: historicoCorridas,
-    conectados: obterListaConectados(),
-    emTransmissaoPTT: idEmTransmissaoPTT
-  });
-}
+function emitirAtualizacaoGeral() {  
+  io.emit('atualizarSistema', {   
+    versao: VERSAO_SISTEMA, 
+    modo: modoOperacao,   
+    pa2Fechado: pa2Fechado,   
+    fila: filaGeral,   
+    frota: frotaCadastrada,   
+    usuariosAdm: usuariosAdmCadastrados,   
+    historico: historicoAudio,   
+    recusas: historicoRecusas,   
+    corridas: historicoCorridas, 
+    logModeracao: logModeracao,
+    conectados: obterListaConectados(), 
+    emTransmissaoPTT: idEmTransmissaoPTT 
+  });  
+}  
 
 function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {  
   const R = 6371e3;  
@@ -304,11 +323,11 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
   
 function determinarModoAutomatico() {  
   const hora = new Date().getHours();  
-  if (hora >= 5 && hora < 8) return "SO_PH";          // 05h às 07h59: Todos os carros no PH
-  if (hora >= 8 && hora < 10) return "MANHA_SHOPPING";  // 08h às 09h59: 1 no PA4, 1 no PA2, resto no PH
-  if (hora >= 10 && hora < 22) return "SHOPPING_COMPLETO"; // 10h às 21h59: Abastece PA4 -> PA2 -> PH
-  if (hora >= 22 && hora < 24) return "NOTURNO";        // 22h às 23h59: Mantém 2 a 3 no PA4 + resto no PH
-  return "BAIXA_FROTA";                                // 00h às 04h59: Madrugada (Atendimento por Telefone)
+  if (hora >= 5 && hora < 8) return "SO_PH";          // 05h às 07h59: Todos os carros no PH 
+  if (hora >= 8 && hora < 10) return "MANHA_SHOPPING";  // 08h às 09h59: 1 no PA4, 1 no PA2, resto no PH 
+  if (hora >= 10 && hora < 22) return "SHOPPING_COMPLETO"; // 10h às 21h59: Abastece PA4 -> PA2 -> PH 
+  if (hora >= 22 && hora < 24) return "NOTURNO";        // 22h às 23h59: Mantém 2 a 3 no PA4 + resto no PH 
+  return "BAIXA_FROTA";                                 // 00h às 04h59: Madrugada (Atendimento por Telefone) 
 }  
   
 function redistribuirVagas() {  
@@ -384,7 +403,7 @@ function redistribuirVagas() {
   
 setInterval(() => {  
   redistribuirVagas();  
-  emitirAtualizacaoGeral();
+  emitirAtualizacaoGeral(); 
 }, 30 * 1000);  
   
 app.get('/', (req, res) => res.sendFile(__dirname + '/www/index.html'));  
@@ -418,7 +437,7 @@ app.get('/qr', (req, res) => {
 });  
   
 io.on('connection', (socket) => {  
-  emitirAtualizacaoGeral();
+  emitirAtualizacaoGeral(); 
   
   socket.on('adminLimparSistemaGeral', async (dadosUsuario) => {  
     const cargoUser = dadosUsuario && dadosUsuario.cargo ? String(dadosUsuario.cargo).toUpperCase() : '';  
@@ -429,7 +448,7 @@ io.on('connection', (socket) => {
   
     filaGeral = [];  
     chamadasPendentes = {};  
-    filaEsperaWhatsApp = [];
+    filaEsperaWhatsApp = []; 
     idEmTransmissaoPTT = null;  
   
     for (let chave in frotaCadastrada) {  
@@ -441,7 +460,7 @@ io.on('connection', (socket) => {
       motoristasConectados[idTaxi].status = "LIVRE";  
     }  
   
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
     io.emit('forcarStatusLivreGeral');  
     io.emit('canalLivre');  
   });  
@@ -449,7 +468,7 @@ io.on('connection', (socket) => {
   socket.on('alternarStatusPA2', (statusFechado) => {  
     pa2Fechado = Boolean(statusFechado);  
     redistribuirVagas();  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('loginAdmin', (dados) => {  
@@ -461,8 +480,8 @@ io.on('connection', (socket) => {
       socket.emit('loginAdmSucesso', {  
         usuario: admCadastrado.usuario,  
         nome: admCadastrado.nome || 'Administrador',  
-        cargo: admCadastrado.cargo || 'ADM',
-        versao: VERSAO_SISTEMA
+        cargo: admCadastrado.cargo || 'ADM', 
+        versao: VERSAO_SISTEMA 
       });  
     } else {  
       socket.emit('loginErro', { mensagem: "Credenciais administrativas incorretas." });  
@@ -491,7 +510,7 @@ io.on('connection', (socket) => {
     frotaCadastrada[loginGerado] = novoCarro;  
     await salvarCarroNoBanco(novoCarro);  
   
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
     socket.emit('cadastroSucesso', { login: loginGerado });  
   });  
   
@@ -541,7 +560,7 @@ io.on('connection', (socket) => {
     frotaCadastrada[loginGerado] = carroAtualizado;  
     await salvarCarroNoBanco(carroAtualizado);  
   
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('resetarSenhaFrota', async (dados) => {  
@@ -558,12 +577,12 @@ io.on('connection', (socket) => {
   socket.on('loginMotorista', (dados) => {  
     const idStr = String(dados.login || '').replace(/[^0-9]/g, '').trim();  
     const carro = Object.values(frotaCadastrada).find(c => String(c.numero).trim() === idStr);  
-   
+     
     if (!carro) {  
       socket.emit('loginErro', { mensagem: `Login (Carro ${idStr}) não encontrado na base.` });  
       return;  
     }  
-   
+     
     if (motoristasConectados[idStr]) {  
       socket.emit('loginErro', { mensagem: `Acesso negado: O Carro.${idStr} já está conectado em outro dispositivo!` });  
       return;  
@@ -571,16 +590,16 @@ io.on('connection', (socket) => {
   
     const senhaCadastrada = (carro.senha !== null && carro.senha !== undefined && String(carro.senha).trim() !== "") ? String(carro.senha).trim() : "123";  
     const senhaInformada = (dados.senha !== null && dados.senha !== undefined) ? String(dados.senha).trim() : "";  
-   
+     
     if (senhaCadastrada !== senhaInformada) {  
       socket.emit('loginErro', { mensagem: "Senha incorreta." });  
       return;  
     }  
-   
+     
     motoristasConectados[idStr] = { idTaxi: idStr, nome: carro.nome, status: "LIVRE", socketId: socket.id, timestampLogin: Date.now() };  
     socket.emit('loginSucesso', { carro: carro, historicoAudio: historicoAudio, versao: VERSAO_SISTEMA });  
-    emitirAtualizacaoGeral();
-   
+    emitirAtualizacaoGeral(); 
+     
     if (checarAniversarioApp()) {  
       socket.emit('aniversarioApp', { mensagem: "🎉 Parabéns! O Táxi Conecta completa mais um ano de vida hoje! (Início em 03/10/2026) 🚕" });  
     }  
@@ -590,29 +609,22 @@ io.on('connection', (socket) => {
     const idTaxi = String(dados.idTaxi || '').trim();  
     if (idTaxi) {  
       delete motoristasConectados[idTaxi];  
-   
+     
       const indexFila = filaGeral.findIndex(c => String(c.idTaxi) === idTaxi);  
       if (indexFila !== -1) {  
         filaGeral.splice(indexFila, 1);  
       }  
-   
+     
       redistribuirVagas();  
-      emitirAtualizacaoGeral();
+      emitirAtualizacaoGeral(); 
     }  
   });  
 
-  // EVENTO DE MODERAÇÃO (ADMIN/FISCAL OU MOTORISTA MODERADOR)
+  // EVENTO DE MODERAÇÃO E LOG DE ALTERAÇÕES / ACESSOS
   socket.on('aplicarModeracaoMotorista', async (dados) => {
-    const idSolicitante = String(dados.solicitanteId || '');
-    const isAdm = dados.isAdm === true || idSolicitante === 'ADM' || idSolicitante === 'Fiscal';
-    const loginSolicitante = `Carro.${idSolicitante}`;
-    const veiculoSolicitante = frotaCadastrada[loginSolicitante];
-
-    const ehAutorizado = isAdm || (veiculoSolicitante && veiculoSolicitante.ehModerador === true);
-    if (!ehAutorizado) {
-      socket.emit('loginErro', { mensagem: "Você não possui permissão de moderador." });
-      return;
-    }
+    const idSolicitante = String(dados.solicitanteId || 'Central');
+    const cargoSolicitante = dados.cargo || 'FISCAL';
+    const nomeResponsavel = dados.nomeResponsavel || `Fiscal (${idSolicitante})`;
 
     const targetTaxiId = String(dados.targetTaxiId || '').replace(/[^0-9]/g, '');
     const targetLogin = `Carro.${targetTaxiId}`;
@@ -624,12 +636,16 @@ io.on('connection', (socket) => {
     }
 
     const agora = Date.now();
+    let descricaoAcao = "";
+
     if (dados.tipo === 'MUTE') {
       const minutos = Number(dados.minutos || 15);
       carroAlvo.mutadoAte = agora + (minutos * 60 * 1000);
+      descricaoAcao = `Silenciado (Mute) por ${minutos} min`;
     } else if (dados.tipo === 'BAN') {
       const horas = Number(dados.horas || 1);
       carroAlvo.banidoAte = agora + (horas * 60 * 60 * 1000);
+      descricaoAcao = `Banido da fila por ${horas}h`;
       
       const indexFila = filaGeral.findIndex(c => String(c.idTaxi) === targetTaxiId);
       if (indexFila !== -1) {
@@ -640,9 +656,34 @@ io.on('connection', (socket) => {
       carroAlvo.mutadoAte = null;
       carroAlvo.banidoAte = null;
       carroAlvo.bloqueioRecusa = false;
+      descricaoAcao = `Desbloqueado / Liberado na praça`;
     }
 
     await salvarCarroNoBanco(carroAlvo);
+
+    // REGISTRA NO LOG DE MODERAÇÃO E ALTERAÇÕES
+    logModeracao.unshift({
+      id: Date.now(),
+      timestamp: Date.now(),
+      moderador: `${nomeResponsavel} [${cargoSolicitante}]`,
+      alvo: `Carro.${targetTaxiId} (${carroAlvo.nome})`,
+      acao: descricaoAcao,
+      dataHora: new Date().toLocaleString('pt-BR')
+    });
+    if (logModeracao.length > 300) logModeracao.pop();
+    salvarLogModeracaoNaNuvem();
+
+    emitirAtualizacaoGeral();
+  });
+
+  socket.on('limparLogModeracao', (dadosUsuario) => {
+    const cargoUser = dadosUsuario && dadosUsuario.cargo ? String(dadosUsuario.cargo).toUpperCase() : '';
+    if (cargoUser !== 'ADM') {
+      socket.emit('loginErro', { mensagem: 'Acesso negado: Apenas o Administrador Geral (ADM) pode apagar o log de moderação.' });
+      return;
+    }
+    logModeracao = [];
+    try { if (fs.existsSync(ARQUIVO_LOG_MODERACAO)) fs.unlinkSync(ARQUIVO_LOG_MODERACAO); } catch (e) {}
     emitirAtualizacaoGeral();
   });
    
@@ -651,7 +692,6 @@ io.on('connection', (socket) => {
     const loginTransmissor = `Carro.${idTransmissor}`; 
     const carroObj = frotaCadastrada[loginTransmissor];  
 
-    // Validação de banimento no rádio
     if (carroObj && carroObj.banidoAte && Date.now() < carroObj.banidoAte) {
       socket.emit('loginErro', { mensagem: "Sua conta está banida pela moderação." });
       return;
@@ -739,7 +779,7 @@ io.on('connection', (socket) => {
       modoManualOverridden = true;  
       redistribuirVagas();  
     }  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('chamarCorrida', () => {  
@@ -754,7 +794,7 @@ io.on('connection', (socket) => {
       io.to(motoristasConectados[motorista.idTaxi].socketId).emit('forcarStatusOcupado');  
     }  
   
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
     io.emit('corridaAtribuida', chamadoFinal);  
   });  
   
@@ -769,7 +809,6 @@ io.on('connection', (socket) => {
         veiculo.bloqueioRecusa = false;  
         await salvarCarroNoBanco(veiculo);  
       } else {
-        // Se estiver bloqueado por recusa e não estiver simulando no ponto, não entra na fila
         return;
       }
     }  
@@ -789,7 +828,7 @@ io.on('connection', (socket) => {
       if (indexFila !== -1) {  
         filaGeral.splice(indexFila, 1);  
         redistribuirVagas();  
-        emitirAtualizacaoGeral();
+        emitirAtualizacaoGeral(); 
       }  
       return;  
     }  
@@ -814,7 +853,7 @@ io.on('connection', (socket) => {
   
       filaGeral.push(novoCarroFila);  
       redistribuirVagas();  
-      emitirAtualizacaoGeral();
+      emitirAtualizacaoGeral(); 
     }  
   });  
   
@@ -826,7 +865,7 @@ io.on('connection', (socket) => {
       redistribuirVagas();  
     }  
     if (motoristasConectados[idTaxiStr]) motoristasConectados[idTaxiStr].status = "AUSENTE";  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('aceitarCorridaMotorista', (dadosAceite) => {  
@@ -863,11 +902,10 @@ io.on('connection', (socket) => {
     salvarHistoricoRecusas();  
   
     chamada.indiceTentativaAtual++;  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
     dispararPonteiroFila(dadosRecusa.idChamada);  
   });  
 
-  // Evento de liberação manual do motorista pelo Fiscal
   socket.on('fiscalLiberarMotorista', async (dados) => {
     const idTaxiStr = String(dados.idTaxi || '').replace(/[^0-9]/g, '');
     const login = `Carro.${idTaxiStr}`;
@@ -878,7 +916,7 @@ io.on('connection', (socket) => {
       await salvarCarroNoBanco(carro);
       emitirAtualizacaoGeral();
     }
-  });
+  });  
   
   socket.on('cadastrarAdm', async (dados) => {  
     const key = (dados.usuario || '').trim().toLowerCase();  
@@ -886,7 +924,7 @@ io.on('connection', (socket) => {
     const novoAdm = { usuario: key, senha: dados.senha.trim(), nome: dados.nome.trim(), cargo: dados.cargo || 'FISCAL' };  
     usuariosAdmCadastrados[key] = novoAdm;  
     await salvarAdmNoBanco(novoAdm);  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('excluirAdmin', async (dados) => {  
@@ -894,14 +932,14 @@ io.on('connection', (socket) => {
     if (usuariosAdmCadastrados[key]) {  
       delete usuariosAdmCadastrados[key];  
       await excluirAdmDoBanco(key);  
-      emitirAtualizacaoGeral();
+      emitirAtualizacaoGeral(); 
     }  
   });  
   
   socket.on('limparHistoricoRecusas', () => {  
     historicoRecusas = [];  
     try { if (fs.existsSync(ARQUIVO_RECUSAS)) fs.unlinkSync(ARQUIVO_RECUSAS); } catch (e) {}  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('limparHistoricoPTT', () => {  
@@ -912,14 +950,14 @@ io.on('connection', (socket) => {
       if (fs.existsSync(ARQUIVO_HISTORICO_PTT)) fs.unlinkSync(ARQUIVO_HISTORICO_PTT);  
     } catch (e) {}  
     historicoAudio = [];  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
     io.emit('receberAudioPTT', { historico: [] });  
   });  
   
   socket.on('limparHistoricoCorridas', () => {  
     historicoCorridas = [];  
     try { if (fs.existsSync(ARQUIVO_CORRIDAS)) fs.unlinkSync(ARQUIVO_CORRIDAS); } catch (e) {}  
-    emitirAtualizacaoGeral();
+    emitirAtualizacaoGeral(); 
   });  
   
   socket.on('disconnect', () => {  
@@ -931,7 +969,7 @@ io.on('connection', (socket) => {
           filaGeral.splice(indexFila, 1);  
           redistribuirVagas();  
         }  
-        emitirAtualizacaoGeral();
+        emitirAtualizacaoGeral(); 
         break;  
       }  
     }  

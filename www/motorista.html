@@ -62,19 +62,19 @@
   
  body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }  
     
-.container {   
-width: 100%;   
-max-width: 460px;   
-background: var(--bg-container);   
-padding: 20px;   
-border-radius: 16px;   
-box-shadow: 0 4px 20px rgba(0,0,0,0.3);   
-position: relative;   
-min-height: 560px;   
-border: 2px solid var(--amarelo-ponto);   
-box-sizing: border-box;   
- transition: max-width 0.3s ease;   
- }   
+.container {  
+width: 100%;  
+max-width: 460px;  
+background: var(--bg-container);  
+padding: 20px;  
+border-radius: 16px;  
+box-shadow: 0 4px 20px rgba(0,0,0,0.3);  
+position: relative;  
+min-height: 560px;  
+border: 2px solid var(--amarelo-ponto);  
+box-sizing: border-box;  
+ transition: max-width 0.3s ease;  
+ }  
   
  @media (min-width: 768px) {  
  .container { max-width: 650px; padding: 30px; }  
@@ -85,7 +85,7 @@ box-sizing: border-box;
     
 .banner-ponto-2216 { background: #000000; border: 2px solid #ffcc00; border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }  
  .logo-estrela { color: #ffcc00; font-size: 20px; font-weight: bold; line-height: 1; }  
- .texto-banner-ponto { color: #ffffff; font-size: 18px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }  
+ .texto-banner-ponto { color: #ffffff; font-size: 16px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; word-break: break-word; text-align: center; flex: 1; }  
   
  .carro-badge-container { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; background: var(--preto-ponto); padding: 8px; border-radius: 8px; border: 1px solid var(--amarelo-ponto); }  
  .carro-label { font-size: 20px; font-weight: bold; color: var(--amarelo-ponto); }  
@@ -146,6 +146,28 @@ box-sizing: border-box;
  th { color: var(--amarelo-ponto); }  
  .table-responsive { overflow-x: auto; }  
   
+ /* ESTILO DO SUB-MENU DE MODERAÇÃO POR DUPLO CLIQUE (3 OPÇÕES) */
+ #modalSubMenuMod {
+   position: fixed;
+   top: 0; left: 0; right: 0; bottom: 0;
+   background: rgba(0,0,0,0.85);
+   z-index: 9999;
+   display: none;
+   align-items: center;
+   justify-content: center;
+   padding: 20px;
+ }
+ .caixa-submenu-mod {
+   background: var(--bg-container);
+   border: 3px solid var(--amarelo-ponto);
+   border-radius: 14px;
+   padding: 20px;
+   width: 100%;
+   max-width: 340px;
+   text-align: center;
+   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+ }
+
  #overlayBloqueioCorrida {  
  position: fixed;  
  top: 0;  
@@ -188,6 +210,17 @@ box-sizing: border-box;
  <button class="btn-red" onclick="fecharAvisoMudo()" style="padding: 15px; font-size: 18px;">ESTOU CIENTE</button>  
  </div>  
 </div>  
+
+<!-- SUB-MENU DE MODERAÇÃO FLUTUANTE (ACIONADO POR DUPLO CLIQUE COM AS 3 OPÇÕES) -->
+<div id="modalSubMenuMod" onclick="fecharSubMenuExterno(event)">
+  <div class="caixa-submenu-mod" onclick="event.stopPropagation()">
+    <h3 id="tituloCarroMod" style="color: var(--amarelo-ponto); margin-top:0;">Gerenciar Carro</h3>
+    <button class="btn-red" style="margin-bottom: 10px;" onclick="executarModAction('bloquear')">❌ BLOQUEAR ⏰</button>
+    <button class="btn-blue" style="margin-bottom: 10px; background: #d97706 !important;" onclick="executarModAction('proibir')">🎙️ PROIBIR FALAR ⏰</button>
+    <button class="btn-green" style="margin-bottom: 10px;" onclick="executarModAction('liberar')">🔓 LIBERAR BLOQUEIO/FALA</button>
+    <button style="background: #444; color: white;" onclick="fecharSubMenuMod()">Fechar</button>
+  </div>
+</div>
   
 <div class="container">  
  <div class="banner-ponto-2216">  
@@ -215,11 +248,11 @@ box-sizing: border-box;
  STATUS: <span id="labelStatus">LIVRE</span>  
  </div>  
   
- <div class="tabs"> 
-  <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button> 
-  <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button> 
-  <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button> 
-  <button class="tab-btn" onclick="mudarTab('online')" id="btnTabOnline">👥 Online</button> 
+ <div class="tabs">  
+  <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button>  
+  <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button>  
+  <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button>  
+  <button class="tab-btn" onclick="mudarTab('online')" id="btnTabOnline">👥 Online</button>  
  </div>  
   
  <div id="modalBloqueioRecusa" class="escondido">  
@@ -297,8 +330,10 @@ box-sizing: border-box;
  </div>  
   
  <div id="tabOnline" class="secao">  
-  <div class="card">  
+  <!-- TABELA DE MODERAÇÃO (EXCLUSIVA PARA QUEM É MODERADOR / ADMIN) -->
+  <div id="painelModeracaoContainer" class="card escondido" style="text-align: left; margin-bottom: 12px;">  
     <h3 style="margin-top:0; color: var(--amarelo-ponto);">👥 Motoristas Online & Moderação</h3>  
+    <p style="font-size: 11px; color: var(--texto-secundario); margin: 0 0 8px 0;">💡 Dê duplo clique em um veículo para abrir o menu de ações.</p>
     <div class="table-responsive">  
       <table>  
         <thead>  
@@ -306,23 +341,24 @@ box-sizing: border-box;
             <th>Carro</th>  
             <th>Nome</th>  
             <th>Status</th>  
-            <th>Ações (Moderação)</th>  
           </tr>  
         </thead>  
         <tbody id="tabelaConectadosMotorista">  
-          <tr><td colspan="4" style="text-align: center;">Nenhum motorista online.</td></tr>  
+          <tr><td colspan="3" style="text-align: center;">Nenhum motorista online.</td></tr>  
         </tbody>  
       </table>  
     </div>  
   </div>  
+
+  <!-- FROTA ONLINE NA PRAÇA (EXCLUSIVO DA ABA ONLINE PARA TODOS) -->
+  <div class="card" style="text-align: left; margin-top: 0;">  
+    <h3 style="margin-top:0; text-align: center; color: var(--amarelo-ponto);">🟢 Frota Online na Praça</h3>  
+    <div id="listaFrotaOnline" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">  
+    <p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>  
+    </div>  
+  </div>  
  </div>  
-  
- <div class="card mt-3 text-left">  
- <h3 style="margin-top:0; text-align: center; color: var(--amarelo-ponto);">🟢 Frota Online na Praça</h3>  
- <div id="listaFrotaOnline" style="display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto;">  
- <p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>  
- </div>  
- </div>  
+
  </div>  
  </div>  
 </div>  
@@ -399,7 +435,7 @@ box-sizing: border-box;
              console.log("Serviço de segundo plano ativado / ambiente de teste.");
          }
      }
- }
+ }  
   
  function tocarSomAlertaCorrida() {  
  try {  
@@ -470,22 +506,22 @@ box-sizing: border-box;
  }  
   
  function mudarTab(aba) {
-   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
-   document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
-   if (aba === 'radio') {
-     document.querySelectorAll('.tab-btn')[0].classList.add('ativo');
-     document.getElementById('tabRadio').classList.add('ativa');
-   } else if (aba === 'status') {
-     document.querySelectorAll('.tab-btn')[1].classList.add('ativo');
-     document.getElementById('tabStatus').classList.add('ativa');
-   } else if (aba === 'dados') {
-     document.querySelectorAll('.tab-btn')[2].classList.add('ativo');
-     document.getElementById('tabDados').classList.add('ativa');
-   } else if (aba === 'online') {
-     document.querySelectorAll('.tab-btn')[3].classList.add('ativo');
-     document.getElementById('tabOnline').classList.add('ativa');
-   }
- }
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+    document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+    if (aba === 'radio') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('ativo');
+      document.getElementById('tabRadio').classList.add('ativa');
+    } else if (aba === 'status') {
+      document.querySelectorAll('.tab-btn')[1].classList.add('ativo');
+      document.getElementById('tabStatus').classList.add('ativa');
+    } else if (aba === 'dados') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('ativo');
+      document.getElementById('tabDados').classList.add('ativa');
+    } else if (aba === 'online') {
+      document.querySelectorAll('.tab-btn')[3].classList.add('ativo');
+      document.getElementById('tabOnline').classList.add('ativa');
+    }
+ }  
   
  function iniciarSocketApp() {  
  try {  
@@ -511,54 +547,77 @@ box-sizing: border-box;
  }  
  }  
   
+ // RENDERIZAR TABELA DE MODERAÇÃO (APENAS PARA QUEM É MODERADOR / ADMIN)
  function renderizarConectadosMotorista(conectados) {
-   const tbody = document.getElementById('tabelaConectadosMotorista');
-   if (!tbody) return;
-   if (!conectados || conectados.length === 0) {
-     tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">Nenhum motorista online.</td></tr>`;
-     return;
-   }
+    const tbody = document.getElementById('tabelaConectadosMotorista');
+    const painelMod = document.getElementById('painelModeracaoContainer');
+    if (!tbody || !painelMod) return;
 
-   const ehModeradorLogado = Boolean(meuTaxi && meuTaxi.ehModerador);
+    const ehModeradorLogado = Boolean(meuTaxi && meuTaxi.ehModerador);
 
-   tbody.innerHTML = conectados.map(m => {
-     const ehProprio = String(m.idTaxi) === String(meuTaxi?.numero);
-     let botoesMod = '<span style="color:var(--texto-secundario); font-size:11px;">--</span>';
+    // Se não for moderador, esconde inteiramente o painel de moderação
+    if (!ehModeradorLogado) {
+      painelMod.classList.add('escondido');
+      return;
+    }
 
-     if (ehModeradorLogado && !ehProprio) {
-       botoesMod = `
-         <button onclick="abrirOpcoesModeracaoMotorista('${m.idTaxi}')" style="background:#eab308; color:#000; padding:4px 8px; font-size:11px; font-weight:bold; border-radius:4px; border:none; cursor:pointer;">⚙️ Moderar</button>
-       `;
-     }
+    // Se for moderador, exibe o painel
+    painelMod.classList.remove('escondido');
 
-     return `
-       <tr>
-         <td><strong>Carro.${m.idTaxi}</strong> ${m.ehModerador ? '⭐' : ''}</td>
-         <td>${m.nome}</td>
-         <td><span style="color:${m.status === 'LIVRE' ? '#16a34a' : '#dc2626'}; font-weight:bold;">${m.status}</span></td>
-         <td>${botoesMod}</td>
-       </tr>
-     `;
-   }).join('');
+    if (!conectados || conectados.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Nenhum motorista online.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = conectados.map(m => {
+      const ehProprio = String(m.idTaxi) === String(meuTaxi?.numero);
+      
+      return `  
+        <tr ${!ehProprio ? `ondblclick="abrirSubMenuMod('${m.idTaxi}', '${m.nome}')"` : ''} title="${!ehProprio ? 'Dê duplo clique para gerenciar' : 'Seu próprio veículo'}">  
+          <td><strong>Carro.${m.idTaxi}</strong> ${m.ehModerador ? '⭐' : ''}</td>  
+          <td>${m.nome}</td>  
+          <td><span style="color:${m.status === 'LIVRE' ? '#16a34a' : '#dc2626'}; font-weight:bold;">${m.status}</span></td>  
+        </tr>  
+      `;  
+    }).join('');
  }
 
- function abrirOpcoesModeracaoMotorista(idTaxi) {
-   if (!meuTaxi || !meuTaxi.ehModerador) {
-     alert("Apenas motoristas moderadores podem usar este recurso.");
-     return;
-   }
-   const opcao = prompt(`Ações de Moderação para o Carro.${idTaxi}:\n\n1 - Silenciar Rádio PTT (15 min)\n2 - Suspender App/Fila (1 hora)\n3 - Remover Punição / Desbloquear\n\nDigite o número da opção desejada:`);
+ // VARIÁVEIS E FUNÇÕES DO SUB-MENU DE DUPLO CLIQUE (MODERAÇÃO)
+ let carroSelecionadoMod = null;
 
-   if (opcao === '1') {
-     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'MUTE', minutos: 15 });
-     alert(`Carro.${idTaxi} silenciado no PTT por 15 minutos.`);
-   } else if (opcao === '2') {
-     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'BAN', horas: 1 });
-     alert(`Carro.${idTaxi} suspenso da fila por 1 hora.`);
-   } else if (opcao === '3') {
-     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: idTaxi, tipo: 'DESBLOQUEAR' });
-     alert(`Punições do Carro.${idTaxi} removidas.`);
+ function abrirSubMenuMod(idTaxi, nomeMotorista) {
+   if (!meuTaxi || !meuTaxi.ehModerador) return;
+   carroSelecionadoMod = idTaxi;
+   document.getElementById('tituloCarroMod').innerText = `Gerenciar: Carro ${idTaxi} (${nomeMotorista})`;
+   document.getElementById('modalSubMenuMod').style.display = 'flex';
+ }
+
+ function fecharSubMenuMod() {
+   document.getElementById('modalSubMenuMod').style.display = 'none';
+   carroSelecionadoMod = null;
+ }
+
+ function fecharSubMenuExterno(event) {
+   if (event.target.id === 'modalSubMenuMod') {
+     fecharSubMenuMod();
    }
+ }
+
+ function executarModAction(acao) {
+   if (!carroSelecionadoMod || !meuTaxi) return;
+
+   if (acao === 'bloquear') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'BAN', horas: 1 });
+     alert(`Comando [BLOQUEAR] aplicado ao Carro.${carroSelecionadoMod}`);
+   } else if (acao === 'proibir') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'MUTE', minutos: 15 });
+     alert(`Comando [PROIBIR FALAR] aplicado ao Carro.${carroSelecionadoMod}`);
+   } else if (acao === 'liberar') {
+     socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'DESBLOQUEAR' });
+     alert(`Restrições removidas do Carro.${carroSelecionadoMod}`);
+   }
+
+   fecharSubMenuMod();
  }
 
  function configurarEventosSocket() {  
@@ -690,19 +749,19 @@ box-sizing: border-box;
   
  socket.on('atualizarSistema', (dados) => {  
  const divOnline = document.getElementById('listaFrotaOnline');  
- if (dados.conectados && dados.conectados.length > 0) {
-   if (divOnline) {
+ if (dados.conectados && dados.conectados.length > 0) {  
+   if (divOnline) {  
      divOnline.innerHTML = dados.conectados.map(m => `  
        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container); padding: 8px; border-radius: 6px; border: 1px solid var(--borda-card);">  
          <span style="font-weight: bold; color: var(--amarelo-ponto);">Carro.${m.idTaxi} (${m.nome})</span>  
          <span style="font-size: 10px; background: rgba(22, 163, 74, 0.2); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${m.status}</span>  
        </div>  
      `).join('');  
-   }
-   renderizarConectadosMotorista(dados.conectados);
+   }  
+   renderizarConectadosMotorista(dados.conectados);  
  } else {  
    if (divOnline) divOnline.innerHTML = `<p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>`;  
-   renderizarConectadosMotorista([]);
+   renderizarConectadosMotorista([]);  
  }  
   
  if (dados.historico && meuTaxi && meuTaxi.numero) {  
