@@ -325,7 +325,7 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
   
 function determinarModoAutomatico() {  
   const hora = new Date().getHours();  
-  if (hora >= 5 && hora < 8) return "SO_PH";           // 05h às 07h59: Todos os carros no PH  
+  if (hora >= 5 && hora < 8) return "SO_PH";          // 05h às 07h59: Todos os carros no PH  
   if (hora >= 8 && hora < 10) return "MANHA_SHOPPING";  // 08h às 09h59: 1 no PA4, 1 no PA2, resto no PH  
   if (hora >= 10 && hora < 22) return "SHOPPING_COMPLETO"; // 10h às 21h59: Abastece PA4 -> PA2 -> PH  
   if (hora >= 22 && hora < 24) return "NOTURNO";        // 22h às 23h59: Mantém 2 a 3 no PA4 + resto no PH  
@@ -467,7 +467,6 @@ io.on('connection', (socket) => {
     io.emit('canalLivre');  
   });  
 
-  // Rotina para excluir veículo da frota (CORRIGIDA DENTRO DO ESCOPO DO SOCKET)
   socket.on('excluirFrota', async (dados) => {
       try {
           const idLimpo = String(dados.id || '').replace(/[^0-9]/g, '');
@@ -487,7 +486,7 @@ io.on('connection', (socket) => {
       } catch (e) {
           console.error("Erro ao excluir veículo da frota:", e);
       }
-  });
+  });  
   
   socket.on('alternarStatusPA2', (statusFechado) => {  
     pa2Fechado = Boolean(statusFechado);  
@@ -708,7 +707,7 @@ io.on('connection', (socket) => {
     try { if (fs.existsSync(ARQUIVO_LOG_MODERACAO)) fs.unlinkSync(ARQUIVO_LOG_MODERACAO); } catch (e) {}
     emitirAtualizacaoGeral();
   });
-   
+    
   socket.on('solicitarCanalPTT', (dados) => {  
     const idTransmissor = String(dados.idTaxi);  
     const loginTransmissor = `Carro.${idTransmissor}`;  
@@ -820,7 +819,13 @@ io.on('connection', (socket) => {
     io.emit('corridaAtribuida', chamadoFinal);  
   });  
   
+  // Tratamento do GPS contínuo a cada 15 segundos emitido pelo app do motorista
   socket.on('atualizarGPS', async (dados) => {  
+    // Trava de segurança para ignorar pacotes de GPS vazios ou inválidos
+    if (!dados || dados.latitude === undefined || dados.longitude === undefined || isNaN(dados.latitude) || isNaN(dados.longitude)) {
+      return;
+    }
+
     const idTaxiStr = String(dados.idTaxi);  
     const login = `Carro.${idTaxiStr}`;  
     const veiculo = frotaCadastrada[login];  
@@ -842,7 +847,15 @@ io.on('connection', (socket) => {
       return;  
     }  
   
-    motoristasConectados[idTaxiStr] = { idTaxi: idTaxiStr, nome: dados.nome, latitude: dados.latitude, longitude: dados.longitude, status: dados.status, socketId: socket.id };  
+    // Atualiza o registro em tempo real do motorista conectado (processa a cada ping de 15s)
+    motoristasConectados[idTaxiStr] = { 
+      idTaxi: idTaxiStr, 
+      nome: dados.nome, 
+      latitude: dados.latitude, 
+      longitude: dados.longitude, 
+      status: dados.status, 
+      socketId: socket.id 
+    };  
   
     const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);  
   
@@ -855,15 +868,18 @@ io.on('connection', (socket) => {
       return;  
     }  
   
+    // Cálculo de distância para os pontos físicos
     const distPH = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PH.latitude, PONTOS_FISICOS.PH.longitude);  
     const distPA2 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA2.latitude, PONTOS_FISICOS.PA2.longitude);  
     const distPA4 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA4.latitude, PONTOS_FISICOS.PA4.longitude);  
   
     let estaNoPonto = (distPH <= PONTOS_FISICOS.PH.raioMetros) || (!pa2Fechado && distPA2 <= PONTOS_FISICOS.PA2.raioMetros) || (distPA4 <= PONTOS_FISICOS.PA4.raioMetros);  
   
-    const simulacaoForcada = dados.simulacao === true || (dados.latitude === PONTOS_FISICOS.PH.latitude && dados.longitude === PONTOS_FISICOS.PH.longitude);  
+    // Simulação rigorosamente desligada por padrão (apenas se enviada explicitamente)
+    const simulacaoForcada = dados.simulacao === true;  
     const naArea = simulacaoForcada || verificarDentroDaCerca([dados.latitude, dados.longitude], fronteiraPonto2216);  
   
+    // Se o motorista está dentro do ponto físico e na área autorizada, mas ainda não está na fila
     if ((estaNoPonto || simulacaoForcada) && naArea && indexFila === -1 && !bloqueadoPorRecusa) {  
       const novoCarroFila = {  
         idTaxi: idTaxiStr,  
@@ -876,7 +892,14 @@ io.on('connection', (socket) => {
       filaGeral.push(novoCarroFila);  
       redistribuirVagas();  
       emitirAtualizacaoGeral();  
-    }  
+    } 
+    // Se o motorista JÁ ESTÁ na fila, mas se afastou dos pontos físicos permitidos nos ciclos de 15s, removemos ele da fila para evitar fraude
+    else if (!estaNoPonto && !simulacaoForcada && indexFila !== -1) {
+      filaGeral.splice(indexFila, 1);
+      redistribuirVagas();
+      emitirAtualizacaoGeral();
+      console.log(`🚗 Carro.${idTaxiStr} se afastou dos PAs e foi removido da fila física automaticamente.`);
+    }
   });  
   
   socket.on('statusAusente', (dados) => {  
@@ -1092,7 +1115,7 @@ function confirmarEBaixarCorrida(idChamada) {
     const mensagemFinal = `🚕 *TÁXI CONFIRMADO!*\n\n` +  
       `👤 *Passageiro(a):* ${dadosAtribuicao.nomeCliente}\n` +  
       `👨‍✈️ *Motorista:* ${dadosAtribuicao.nome}\n` +  
-      `🚘 *Veículo:* ${dadosAtribuicao.modelo}\n` +  
+      `🚘 *Veículo:* ${dadosAtriviaicao?.modelo || dadosAtribuicao.modelo}\n` +  
       `📋 *Placa:* ${dadosAtribuicao.placa}\n\n` +  
       `⏱️ *Previsão de chegada:* aprox. ${tempoEstimado}\n\n` +  
       `⚠️ Aguarde no local *(se for condomínio, aguardar na portaria)*, o seu táxi está a caminho!`;  

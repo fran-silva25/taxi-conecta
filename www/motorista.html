@@ -874,55 +874,97 @@ function pararSomAlertaCorrida() {
  }  
  }  
   
- function iniciarGPS() {  
- if ("geolocation" in navigator) {  
- navigator.geolocation.getCurrentPosition(  
- (position) => {  
- if (!simulandoChegadaNoPonto) {  
- minhaLat = position.coords.latitude;  
- minhaLon = position.coords.longitude;  
- document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;  
- }  
- if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
-    
- navigator.geolocation.watchPosition(  
- (pos) => {  
- if (!simulandoChegadaNoPonto) {  
- minhaLat = pos.coords.latitude;  
- minhaLon = pos.coords.longitude;  
- document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;  
- }  
- if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
- },  
- () => {},  
- { enableHighAccuracy: false, maximumAge: 10000, timeout: 5000 }  
- );  
- },  
- () => {  
- document.getElementById('infoGpsStatus').innerText = simulandoChegadaNoPonto ? "GPS Simulado (No Ponto)" : "GPS Padrão (Permissão Pendente)";  
- if (meuTaxi && socket) socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
- },  
- { timeout: 5000 }  
- );  
- } else if (meuTaxi && socket) {  
- socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: simulandoChegadaNoPonto });  
- }  
- }  
-  
- function simularChegadaPonto() {  
- if (!meuTaxi) return;  
- simulandoChegadaNoPonto = true;  
- statusAtual = "LIVRE";  
- minhaLat = -23.580278;   
- minhaLon = -46.561389;  
- document.getElementById('labelStatus').innerText = "LIVRE";  
- document.getElementById('boxStatusVisual').style.background = "#16a34a";  
- document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida";  
- document.getElementById('btnStatus').className = "btn-red";  
- document.getElementById('infoGpsStatus').innerText = "📍 GPS Simulado (Dentro do Ponto)";  
- socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: true });  
- alert("📍 Simulação Ativada!\nSeu GPS foi fixado no Ponto 2216.");  
- }  
+function iniciarGPS() { 
+    if ("geolocation" in navigator) { 
+        const opcoesGPS = { 
+            enableHighAccuracy: true, // Corrigido para forçar o GPS real do celular
+            maximumAge: 0, 
+            timeout: 10000 
+        }; 
+
+        // 1. Captura inicial imediata
+        navigator.geolocation.getCurrentPosition( 
+            (position) => { 
+                if (!simulandoChegadaNoPonto) { 
+                    minhaLat = position.coords.latitude; 
+                    minhaLon = position.coords.longitude; 
+                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`; 
+                } 
+                if (meuTaxi && socket) {
+                    socket.emit('atualizarGPS', { 
+                        idTaxi: meuTaxi.numero, 
+                        nome: meuTaxi.nome, 
+                        latitude: minhaLat, 
+                        longitude: minhaLon, 
+                        status: statusAtual, 
+                        simulacao: simulandoChegadaNoPonto 
+                    }); 
+                }
+            }, 
+            (erro) => { 
+                document.getElementById('infoGpsStatus').innerText = simulandoChegadaNoPonto ? "GPS Simulado (No Ponto)" : "Erro no Sinal GPS"; 
+                console.warn("Erro no GPS inicial:", erro.message);
+            }, 
+            opcoesGPS 
+        ); 
+
+        // 2. Monitoramento contínuo em tempo real
+        navigator.geolocation.watchPosition( 
+            (pos) => { 
+                if (!simulandoChegadaNoPonto) { 
+                    minhaLat = pos.coords.latitude; 
+                    minhaLon = pos.coords.longitude; 
+                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`; 
+                } 
+                if (meuTaxi && socket) {
+                    socket.emit('atualizarGPS', { 
+                        idTaxi: meuTaxi.numero, 
+                        nome: meuTaxi.nome, 
+                        latitude: minhaLat, 
+                        longitude: minhaLon, 
+                        status: statusAtual, 
+                        simulacao: simulandoChegadaNoPonto 
+                    }); 
+                }
+            }, 
+            (err) => { console.warn("Erro no watchPosition:", err.message); }, 
+            opcoesGPS 
+        ); 
+
+        // 3. Intervalo de segurança de 15 segundos para garantir que o server enxergue os carros continuamente
+        setInterval(() => {
+            if (meuTaxi && socket && minhaLat !== 0 && minhaLon !== 0) {
+                socket.emit('atualizarGPS', {
+                    idTaxi: meuTaxi.numero,
+                    nome: meuTaxi.nome,
+                    latitude: minhaLat,
+                    longitude: minhaLon,
+                    status: statusAtual,
+                    simulacao: simulandoChegadaNoPonto
+                });
+                console.log("GPS sincronizado com o server (15s):", minhaLat, minhaLon);
+            }
+        }, 15000);
+
+    } else if (meuTaxi && socket) { 
+        alert("Geolocalização não suportada neste dispositivo.");
+    } 
+} 
+
+function simularChegadaPonto() { 
+    if (!meuTaxi) return; 
+    simulandoChegadaNoPonto = true; 
+    statusAtual = "LIVRE"; 
+    minhaLat = -23.580278; // Coordenada padrão do PH 
+    minhaLon = -46.561389; 
+    document.getElementById('labelStatus').innerText = "LIVRE"; 
+    document.getElementById('boxStatusVisual').style.background = "#16a34a"; 
+    document.getElementById('btnStatus').innerText = "Mudar para: Em Corrida"; 
+    document.getElementById('btnStatus').className = "btn-red"; 
+    document.getElementById('infoGpsStatus').innerText = "📍 GPS Simulado (Dentro do Ponto)"; 
+    socket.emit('atualizarGPS', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, latitude: minhaLat, longitude: minhaLon, status: statusAtual, simulacao: true }); 
+    alert("📍 Simulação Ativada!\nSeu GPS foi fixado no Ponto PH."); 
+} 
   
  function marcarAusente() {  
  if (statusAtual === "AUSENTE") {  
