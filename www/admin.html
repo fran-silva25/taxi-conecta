@@ -582,7 +582,6 @@
     let dadosCacheFrota = {};
     let dadosCacheAdms = {};
     let dadosCacheConectados = [];
-    let estadoCanalCentral = 'LIVRE';
     let cacheHistoricoAdmin = [];
 
     let volumesPorMotoristaAdm = JSON.parse(localStorage.getItem('admin_volumes_motoristas') || '{}');
@@ -612,18 +611,18 @@
     // 🛡️ CORREÇÃO DE CREDENCIAIS E RECONEXÃO ROBUSTA DO ADMIN
     socket.on('connect', () => {
         const adminLogado = localStorage.getItem('taxi_admin');
+        const senhaSalva = localStorage.getItem('taxi_admin_senha') || '';
         if (adminLogado) {
-            socket.emit('loginAdmin', { login: adminLogado });
+            socket.emit('loginAdmin', { usuario: adminLogado, senha: senhaSalva });
         } else {
-            // Se não houver login salvo, redireciona para a tela de autenticação
             window.location.href = "index.html";
         }
     });
 
-    // Tratamento de erro de credenciais administrativas
     socket.on('loginErro', (dados) => {
         alert("Erro de Acesso Administrativo: " + (dados.mensagem || "Credenciais inválidas."));
         localStorage.removeItem('taxi_admin');
+        localStorage.removeItem('taxi_admin_senha');
         localStorage.removeItem('taxi_admin_nome');
         localStorage.removeItem('taxi_admin_cargo');
         window.location.href = "index.html";
@@ -646,9 +645,7 @@
         
         if (cargoSalvo && cargoSalvo.trim().toUpperCase() === 'FISCAL') {
             const containerRefresh = document.getElementById('containerBtnRefresh');
-            if (containerRefresh) {
-                containerRefresh.classList.add('escondido');
-            }
+            if (containerRefresh) containerRefresh.classList.add('escondido');
         }
         
         if (cargoSalvo !== 'ADM') {
@@ -676,9 +673,7 @@
             const idEnviado = String(dados.idTaxi || '').trim();
             const eMeuProprioAudio = (idEnviado === 'Fiscal' || idEnviado === 'ADM');
 
-            if (eMeuProprioAudio) {
-                return; 
-            }
+            if (eMeuProprioAudio) return; 
 
             if (dados.audioUrl) {
                 destravarAudioAutomatica();
@@ -701,7 +696,6 @@
                 btn.className = 'btn-ptt-fiscal';
                 lbl.innerHTML = "SEGURE<br>P/ FALAR";
                 gravandoFiscal = false;
-                estadoCanalCentral = 'LIVRE';
             } else if (estado === 'TRANSMITINDO') {
                 btn.className = 'btn-ptt-fiscal transmitindo';
                 lbl.innerText = "CENTRAL TRANSMITINDO...";
@@ -710,7 +704,6 @@
                 btn.className = 'btn-ptt-fiscal ouvindo';
                 const nomeStr = (nomeFalante || 'MOTORISTA').toUpperCase();
                 lbl.innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeStr}</span><br><span style="font-size:9px; color:#ffcc00;">(CLIQUE P/ CORTAR)</span>`;
-                estadoCanalCentral = 'OUVINDO';
             }
         }
 
@@ -784,10 +777,14 @@
             if (mediaRecorderFiscal && (mediaRecorderFiscal.state === "inactive" || mediaRecorderFiscal.state === "paused")) {
                 mediaRecorderFiscal.start();
             }
-            setEstadoPTTFiscalAdm('TRANSMITINDO');
+            const btn = document.getElementById('btnPTTFiscal');
+            const lbl = document.getElementById('labelPTTFiscal');
+            if (btn && lbl) {
+                btn.className = 'btn-ptt-fiscal transmitindo';
+                lbl.innerText = "CENTRAL TRANSMITINDO...";
+            }
         } catch (err) {
             gravandoFiscal = false;
-            setEstadoPTTFiscalAdm('STANDBY');
         }
     }
 
@@ -800,24 +797,13 @@
                 mediaRecorderFiscal.stop();
             }
         } catch (err) {}
-        setEstadoPTTFiscalAdm('STANDBY');
-        setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
-    }
-
-    function setEstadoPTTFiscalAdm(estado) {
         const btn = document.getElementById('btnPTTFiscal');
         const lbl = document.getElementById('labelPTTFiscal');
-        if (!btn || !lbl) return;
-
-        if (estado === 'STANDBY') {
+        if (btn && lbl) {
             btn.className = 'btn-ptt-fiscal';
             lbl.innerHTML = "SEGURE<br>P/ FALAR";
-            gravandoFiscal = false;
-        } else if (estado === 'TRANSMITINDO') {
-            btn.className = 'btn-ptt-fiscal transmitindo';
-            lbl.innerText = "CENTRAL TRANSMITINDO...";
-            gravandoFiscal = true;
         }
+        setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
     }
 
     (function carregarTemaSalvo() {
@@ -850,6 +836,7 @@
     function fazerLogoutAdm() {
         if (confirm("Deseja realmente sair do painel administrativo?")) {
             localStorage.removeItem('taxi_admin');
+            localStorage.removeItem('taxi_admin_senha');
             localStorage.removeItem('taxi_admin_nome');
             localStorage.removeItem('taxi_admin_cargo');
             window.location.href = "index.html?logout=true";
