@@ -61,7 +61,7 @@
  }  
   
  body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }  
-    
+   
 .container {  
 width: 100%;  
 max-width: 460px;  
@@ -82,7 +82,7 @@ box-sizing: border-box;
  @media (min-width: 1024px) {  
  .container { max-width: 750px; padding: 35px; }  
  }  
-    
+   
 .banner-ponto-2216 { background: #000000; border: 2px solid #ffcc00; border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }  
  .logo-estrela { color: #ffcc00; font-size: 20px; font-weight: bold; line-height: 1; }  
  .texto-banner-ponto { color: #ffffff; font-size: 16px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; word-break: break-word; text-align: center; flex: 1; }  
@@ -104,7 +104,7 @@ box-sizing: border-box;
   
  .btn-nav-maps { background: #4285F4 !important; color: white !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }  
  .btn-nav-waze { background: #33CCFF !important; color: #000 !important; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 14px; border-radius: 8px; border: none; font-weight: bold; }  
-    
+   
 .status-box { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; font-size: 16px; color: white; text-transform: uppercase; letter-spacing: 1px; }  
   
  .tabs { display: flex; gap: 6px; margin-bottom: 15px; }  
@@ -125,15 +125,15 @@ box-sizing: border-box;
   
  .ptt-container { text-align: center; margin: 15px 0; }  
  .btn-ptt { width: 140px; height: 140px; border-radius: 50%; background: var(--amarelo-ponto); color: #000; font-size: 18px; font-weight: bold; border: 5px solid #d9a700; box-shadow: 0 6px 20px rgba(255, 204, 0, 0.3); cursor: pointer; user-select: none; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; -webkit-touch-callout: none; touch-action: manipulation; transition: background 0.2s, color 0.2s; }  
-    
+   
 .btn-ptt.transmitindo { background: #007bff !important; color: white !important; border-color: #0056b3 !important; box-shadow: 0 0 25px rgba(0, 123, 255, 0.8) !important; }  
  .btn-ptt.ouvindo { background: #dc2626 !important; color: #ffffff !important; border-color: #991b1b !important; box-shadow: 0 0 20px rgba(220, 38, 38, 0.8) !important; pointer-events: none; }  
   
- .historico-audio-list { max-height: 280px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }  
+ .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }  
  .audio-item { position: relative; background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; text-align: left; }  
   
  .badge-carro-historico { background: #000; color: #ffcc00; font-weight: bold; font-family: 'Courier New', Courier, monospace; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffcc00; font-size: 13px; letter-spacing: 1px; display: inline-block; }  
-    
+   
 .modal-config-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000; }  
  .modal-config-box { background: var(--bg-container); border: 2px solid var(--amarelo-ponto); width: 90%; max-width: 400px; border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }  
   
@@ -146,24 +146,45 @@ box-sizing: border-box;
  th { color: var(--amarelo-ponto); }  
  .table-responsive { overflow-x: auto; }  
   
- /* SUB-MENU DE MODERAÇÃO */
- #modalSubMenuMod {  
-   position: fixed; top: 0; left: 0; right: 0; bottom: 0;  
-   background: rgba(0,0,0,0.85); z-index: 9999; display: none;  
-   align-items: center; justify-content: center; padding: 20px;  
- }  
- .caixa-submenu-mod {  
-   background: var(--bg-container); border: 3px solid var(--amarelo-ponto);  
-   border-radius: 14px; padding: 20px; width: 100%; max-width: 340px;  
-   text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8);  
- }  
+ /* ESTILO DO SUB-MENU DE MODERAÇÃO POR DUPLO CLIQUE (3 OPÇÕES) */
+ #modalSubMenuMod {
+   position: fixed;
+   top: 0; left: 0; right: 0; bottom: 0;
+   background: rgba(0,0,0,0.85);
+   z-index: 9999;
+   display: none;
+   align-items: center;
+   justify-content: center;
+   padding: 20px;
+ }
+ .caixa-submenu-mod {
+   background: var(--bg-container);
+   border: 3px solid var(--amarelo-ponto);
+   border-radius: 14px;
+   padding: 20px;
+   width: 100%;
+   max-width: 340px;
+   text-align: center;
+   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+ }
 
  #overlayBloqueioCorrida {  
- position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;  
- background: rgba(0, 0, 0, 0.85); z-index: 9000; display: none;  
- justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;  
+ position: fixed;  
+ top: 0;  
+ left: 0;  
+ width: 100vw;  
+ height: 100vh;  
+ background: rgba(0, 0, 0, 0.85);  
+ z-index: 9000;  
+ display: none;  
+ justify-content: center;  
+ align-items: center;  
+ padding: 20px;  
+ box-sizing: border-box;  
  }  
- #overlayBloqueioCorrida.ativo { display: flex; }  
+ #overlayBloqueioCorrida.ativo {  
+ display: flex;  
+ }  
  </style>  
 </head>  
 <body>  
@@ -190,14 +211,15 @@ box-sizing: border-box;
  </div>  
 </div>  
 
-<div id="modalSubMenuMod" onclick="fecharSubMenuExterno(event)">  
- <div class="caixa-submenu-mod" onclick="event.stopPropagation()">  
-    <h3 id="tituloCarroMod" style="color: var(--amarelo-ponto); margin-top:0;">Gerenciar Carro</h3>  
-    <button class="btn-red" style="margin-bottom: 10px;" onclick="executarModAction('bloquear')">❌ BLOQUEAR ⏰</button>  
-    <button class="btn-blue" style="margin-bottom: 10px; background: #d97706 !important;" onclick="executarModAction('proibir')">🎙️ PROIBIR FALAR ⏰</button>  
-    <button class="btn-green" style="margin-bottom: 10px;" onclick="executarModAction('liberar')">🔓 LIBERAR BLOQUEIO/FALA</button>  
-    <button style="background: #444; color: white;" onclick="fecharSubMenuMod()">Fechar</button>  
- </div>  
+<!-- SUB-MENU DE MODERAÇÃO FLUTUANTE (ACIONADO POR DUPLO CLIQUE COM AS 3 OPÇÕES) -->
+<div id="modalSubMenuMod" onclick="fecharSubMenuExterno(event)">
+  <div class="caixa-submenu-mod" onclick="event.stopPropagation()">
+    <h3 id="tituloCarroMod" style="color: var(--amarelo-ponto); margin-top:0;">Gerenciar Carro</h3>
+    <button class="btn-red" style="margin-bottom: 10px;" onclick="executarModAction('bloquear')">❌ BLOQUEAR ⏰</button>
+    <button class="btn-blue" style="margin-bottom: 10px; background: #d97706 !important;" onclick="executarModAction('proibir')">🎙️ PROIBIR FALAR ⏰</button>
+    <button class="btn-green" style="margin-bottom: 10px;" onclick="executarModAction('liberar')">🔓 LIBERAR BLOQUEIO/FALA</button>
+    <button style="background: #444; color: white;" onclick="fecharSubMenuMod()">Fechar</button>
+  </div>
 </div>  
   
 <div class="container">  
@@ -227,7 +249,7 @@ box-sizing: border-box;
  </div>  
   
  <div class="tabs">  
-  <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT <span id="badgeNaoLidosMotorista" style="background:#dc2626; color:white; padding:1px 5px; border-radius:50%; font-size:10px; display:none;">0</span></button>  
+  <button class="tab-btn" onclick="mudarTab('radio')" id="btnTabRadio">📻 Rádio PTT</button>  
   <button class="tab-btn ativo" onclick="mudarTab('status')">🚦 Status & Fila</button>  
   <button class="tab-btn" onclick="mudarTab('dados')">📍 Conexão</button>  
   <button class="tab-btn" onclick="mudarTab('online')" id="btnTabOnline">👥 Online</button>  
@@ -245,7 +267,7 @@ box-sizing: border-box;
  <h2 style="color: #854d0e; margin-top: 0; font-size: 18px;">🛎️ NOVA CORRIDA DISPONÍVEL!</h2>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="ofertaCliente">--</span></p>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Origem:</strong> <span id="ofertaLocal">--</span></p>  
-    
+   
  <div style="display: flex; gap: 10px; margin-top: 12px;">  
  <button class="btn-green" onclick="aceitarCorrida()" style="padding: 12px;">ACEITAR</button>  
  <button class="btn-red" onclick="recusarCorrida()" style="padding: 12px;">RECUSAR</button>  
@@ -256,7 +278,7 @@ box-sizing: border-box;
  <h2 style="color: #166534; margin-top: 0; font-size: 18px;">🚕 CORRIDA EM ANDAMENTO</h2>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Passageiro:</strong> <span id="viagemCliente">--</span></p>  
  <p style="font-size: 15px; margin: 6px 0;"><strong>Endereço de Embarque:</strong> <br><span id="viagemOrigem" style="font-weight: bold; color: #000;">--</span></p>  
-    
+   
  <div id="boxBotoesNavegacao" class="escondido" style="margin-top: 12px; display: flex; gap: 8px;">  
  <button id="btnAbrirMaps" class="btn-nav-maps" style="flex: 1;">🗺️ Google Maps</button>  
  <button id="btnAbrirWaze" class="btn-nav-waze" style="flex: 1;">🚘 Waze</button>  
@@ -272,7 +294,7 @@ box-sizing: border-box;
  <h3>Controle de Status</h3>  
  <button id="btnStatus" class="btn-red" onclick="alternarStatus()">Mudar para: Em Corrida</button>  
  <hr style="border: 1px solid var(--borda-card); margin: 15px 0;">  
- <button class="btn-blue escondido" onclick="simularChegadaPonto()">📍 Simular Chegada no Ponto (Teste)</button>  
+<button class="btn-blue escondido" onclick="simularChegadaPonto()">📍 Simular Chegada no Ponto (Teste)</button>  
  <button id="btnAusente" style="background: #d97706; color: white;" onclick="marcarAusente()">⏸️ Ficar Ausente (Pausa / Banheiro)</button>  
  </div>  
  </div>  
@@ -280,10 +302,7 @@ box-sizing: border-box;
  <div id="tabRadio" class="secao">  
  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">  
  <h4 style="margin: 0; color: var(--texto-principal); font-size: 14px;" id="tituloTabRadio">📻 Transmissão de Rádio</h4>  
- <div style="display: flex; gap: 6px;">
-     <button onclick="marcarTodosComoVistosMotorista()" style="background: #2563eb; color: white; padding: 6px 8px; font-size: 11px; border-radius: 6px; width: auto;">👁️ Marcar Vistos</button>
-     <button class="btn-red" style="width: auto; padding: 6px 10px; font-size: 11px;" onclick="limparPttMotorista()">🗑️ Limpar Tela</button>  
- </div>
+ <button class="btn-red" style="width: auto; padding: 6px 10px; font-size: 11px;" onclick="limparPttMotorista()">🗑️ Limpar Tela</button>  
  </div>  
   
  <div class="ptt-container">  
@@ -311,9 +330,10 @@ box-sizing: border-box;
  </div>  
   
  <div id="tabOnline" class="secao">  
- <div id="painelModeracaoContainer" class="card escondido" style="text-align: left; margin-bottom: 12px;">  
+  <!-- TABELA DE MODERAÇÃO (EXCLUSIVA PARA QUEM É MODERADOR / ADMIN) -->
+  <div id="painelModeracaoContainer" class="card escondido" style="text-align: left; margin-bottom: 12px;">  
     <h3 style="margin-top:0; color: var(--amarelo-ponto);">👥 Motoristas Online & Moderação</h3>  
-    <p style="font-size: 11px; color: var(--texto-secundario); margin: 0 0 8px 0;">💡 Dê duplo clique em um veículo para abrir o menu de ações.</p>  
+    <p style="font-size: 11px; color: var(--texto-secundario); margin: 0 0 8px 0;">💡 Dê duplo clique em um veículo para abrir o menu de ações.</p>
     <div class="table-responsive">  
       <table>  
         <thead>  
@@ -328,14 +348,15 @@ box-sizing: border-box;
         </tbody>  
       </table>  
     </div>  
- </div>  
+  </div>  
 
- <div class="card" style="text-align: left; margin-top: 0;">  
+  <!-- FROTA ONLINE NA PRAÇA (EXCLUSIVO DA ABA ONLINE PARA TODOS) -->
+  <div class="card" style="text-align: left; margin-top: 0;">  
     <h3 style="margin-top:0; text-align: center; color: var(--amarelo-ponto);">🟢 Frota Online na Praça</h3>  
     <div id="listaFrotaOnline" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">  
     <p style="text-align: center; color: var(--texto-secundario);">Nenhum motorista online.</p>  
     </div>  
- </div>  
+  </div>  
  </div>  
 
  </div>  
@@ -348,7 +369,7 @@ box-sizing: border-box;
  ⚙️ Configurações do App  
  <button onclick="fecharConfiguracoes()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer; width:auto; padding:0;">✖</button>  
  </h3>  
-    
+   
  <div style="margin: 12px 0;">  
  <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 4px;">🔊 Volume Global do Rádio:</label>  
  <input type="range" id="volumeGlobal" min="0" max="100" value="100" onchange="alterarVolumeGlobal(this.value)">  
@@ -388,20 +409,6 @@ box-sizing: border-box;
  let estadoCanal = 'LIVRE';  
  let modoPTTAtual = 'pressionar';  
  let temaAtual = 'escuro';  
- let cacheHistoricoMotorista = [];
-
- // Volume individual por ID de motorista (Estilo Zello)
- let volumesPorMotorista = JSON.parse(localStorage.getItem('taxi_volumes_motoristas') || '{}');
-
- function ajustarVolumePorMotorista(idTaxi, volume) {
-     const volNum = parseFloat(volume);
-     volumesPorMotorista[idTaxi] = volNum;
-     localStorage.setItem('taxi_volumes_motoristas', JSON.stringify(volumesPorMotorista));
-
-     document.querySelectorAll(`.player-carro-${idTaxi}`).forEach(player => {
-         player.volume = volNum;
-     });
- }
   
  let audioContextDestravado = false;  
  function destravarAudioAutomatica() {  
@@ -424,35 +431,39 @@ box-sizing: border-box;
                  body: "Rádio PTT ativo e posição na fila mantida.",  
                  smallIcon: "ic_stat_icon_config_sample"  
              });  
-         } catch (e) {}  
+         } catch (e) {  
+             console.log("Serviço de segundo plano ativado / ambiente de teste.");  
+         }  
      }  
  }  
   
- let audioAlertaAtual = null;  
+ let audioAlertaAtual = null;
 
- function tocarSomAlertaCorrida() {   
-     try {   
-         pararSomAlertaCorrida();  
-         audioAlertaAtual = new Audio('alerta.mp3');   
-         audioAlertaAtual.loop = true;   
+ function tocarSomAlertaCorrida() {  
+     try {  
+         pararSomAlertaCorrida();
+         audioAlertaAtual = new Audio('alerta.mp3');  
+         audioAlertaAtual.loop = true;  
 
-         if (meuTaxi && meuTaxi.numero) {   
-             const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';   
-             audioAlertaAtual.volume = parseFloat(volSalvo) / 100;   
-         }   
+         if (meuTaxi && meuTaxi.numero) {  
+             const volSalvo = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
+             audioAlertaAtual.volume = parseFloat(volSalvo) / 100;  
+         }  
 
-         audioAlertaAtual.currentTime = 0;   
-         audioAlertaAtual.play().catch(e => {});   
-     } catch (e) {}   
- }  
-
- function pararSomAlertaCorrida() {  
-     if (audioAlertaAtual) {  
-         audioAlertaAtual.pause();  
          audioAlertaAtual.currentTime = 0;  
-         audioAlertaAtual = null;  
+         audioAlertaAtual.play().catch(e => console.log("Aguardando interação para tocar alerta:", e));  
+     } catch (e) {  
+         console.error("Erro ao reproduzir áudio de alerta:", e);  
      }  
- }  
+ }
+
+ function pararSomAlertaCorrida() {
+     if (audioAlertaAtual) {
+         audioAlertaAtual.pause();
+         audioAlertaAtual.currentTime = 0;
+         audioAlertaAtual = null;
+     }
+ }
 
  function aplicarTema(tema) {  
  document.documentElement.setAttribute('data-tema', tema);  
@@ -481,6 +492,8 @@ box-sizing: border-box;
  if (meuTaxi && meuTaxi.numero) {  
  localStorage.setItem(`volGlobal_${meuTaxi.numero}`, val);  
  }  
+ const vol = val / 100;  
+ document.querySelectorAll('audio').forEach(a => { a.volume = vol; });  
  }  
   
  function alterarModoPTT(modo) {  
@@ -495,9 +508,6 @@ box-sizing: border-box;
   
  function limparPttMotorista() {  
  if (confirm("Deseja apagar as mensagens da sua tela?")) {  
- if (meuTaxi && meuTaxi.numero) {  
- localStorage.setItem(`ponto2216_limpou_${meuTaxi.numero}`, 'true');  
- }  
  const divLista = document.getElementById('listaAudios');  
  if (divLista) {  
  divLista.innerHTML = `<div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>`;  
@@ -506,27 +516,32 @@ box-sizing: border-box;
  }  
  }  
   
- function mudarTab(aba) {  
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));  
-    document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));  
-    if (aba === 'radio') {  
-      document.querySelectorAll('.tab-btn')[0].classList.add('ativo');  
-      document.getElementById('tabRadio').classList.add('ativa');  
-    } else if (aba === 'status') {  
-      document.querySelectorAll('.tab-btn')[1].classList.add('ativo');  
-      document.getElementById('tabStatus').classList.add('ativa');  
-    } else if (aba === 'dados') {  
-      document.querySelectorAll('.tab-btn')[2].classList.add('ativo');  
-      document.getElementById('tabDados').classList.add('ativa');  
-    } else if (aba === 'online') {  
-      document.querySelectorAll('.tab-btn')[3].classList.add('ativo');  
-      document.getElementById('tabOnline').classList.add('ativa');  
-    }  
+ function mudarTab(aba) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+    document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+    if (aba === 'radio') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('ativo');
+      document.getElementById('tabRadio').classList.add('ativa');
+    } else if (aba === 'status') {
+      document.querySelectorAll('.tab-btn')[1].classList.add('ativo');
+      document.getElementById('tabStatus').classList.add('ativa');
+    } else if (aba === 'dados') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('ativo');
+      document.getElementById('tabDados').classList.add('ativa');
+    } else if (aba === 'online') {
+      document.querySelectorAll('.tab-btn')[3].classList.add('ativo');
+      document.getElementById('tabOnline').classList.add('ativa');
+    }
  }  
   
  function iniciarSocketApp() {  
  try {  
- socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });  
+ socket = io(SOCKET_URL, { 
+     transports: ['websocket', 'polling'],
+     reconnection: true,
+     reconnectionAttempts: Infinity,
+     reconnectionDelay: 1000
+ });  
  configurarEventosSocket();  
   
  const carroLogado = localStorage.getItem('taxi_carro');  
@@ -537,30 +552,33 @@ box-sizing: border-box;
  alert("Nenhum carro logado. Faça o login na tela inicial.");  
  window.location.href = "index.html";  
  }  
- } catch (e) {}  
+ } catch (e) {  
+ console.error("Erro ao conectar socket:", e);  
+ }  
  }  
   
- function renderizarConectadosMotorista(conectados) {  
-    const tbody = document.getElementById('tabelaConectadosMotorista');  
-    const painelMod = document.getElementById('painelModeracaoContainer');  
-    if (!tbody || !painelMod) return;  
+ function renderizarConectadosMotorista(conectados) {
+    const tbody = document.getElementById('tabelaConectadosMotorista');
+    const painelMod = document.getElementById('painelModeracaoContainer');
+    if (!tbody || !painelMod) return;
 
-    const ehModeradorLogado = Boolean(meuTaxi && meuTaxi.ehModerador);  
+    const ehModeradorLogado = Boolean(meuTaxi && meuTaxi.ehModerador);
 
-    if (!ehModeradorLogado) {  
-      painelMod.classList.add('escondido');  
-      return;  
-    }  
+    if (!ehModeradorLogado) {
+      painelMod.classList.add('escondido');
+      return;
+    }
 
-    painelMod.classList.remove('escondido');  
+    painelMod.classList.remove('escondido');
 
-    if (!conectados || conectados.length === 0) {  
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Nenhum motorista online.</td></tr>`;  
-      return;  
-    }  
+    if (!conectados || conectados.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Nenhum motorista online.</td></tr>`;
+      return;
+    }
 
-    tbody.innerHTML = conectados.map(m => {  
-      const ehProprio = String(m.idTaxi) === String(meuTaxi?.numero);  
+    tbody.innerHTML = conectados.map(m => {
+      const ehProprio = String(m.idTaxi) === String(meuTaxi?.numero);
+      
       return `  
         <tr ${!ehProprio ? `ondblclick="abrirSubMenuMod('${m.idTaxi}', '${m.nome}')"` : ''} title="${!ehProprio ? 'Dê duplo clique para gerenciar' : 'Seu próprio veículo'}">  
           <td><strong>Carro.${m.idTaxi}</strong> ${m.ehModerador ? '⭐' : ''}</td>  
@@ -568,45 +586,45 @@ box-sizing: border-box;
           <td><span style="color:${m.status === 'LIVRE' ? '#16a34a' : '#dc2626'}; font-weight:bold;">${m.status}</span></td>  
         </tr>  
       `;  
-    }).join('');  
- }  
+    }).join('');
+ }
 
- let carroSelecionadoMod = null;  
+ let carroSelecionadoMod = null;
 
- function abrirSubMenuMod(idTaxi, nomeMotorista) {  
-    if (!meuTaxi || !meuTaxi.ehModerador) return;  
-    carroSelecionadoMod = idTaxi;  
-    document.getElementById('tituloCarroMod').innerText = `Gerenciar: Carro ${idTaxi} (${nomeMotorista})`;  
-    document.getElementById('modalSubMenuMod').style.display = 'flex';  
- }  
+ function abrirSubMenuMod(idTaxi, nomeMotorista) {
+    if (!meuTaxi || !meuTaxi.ehModerador) return;
+    carroSelecionadoMod = idTaxi;
+    document.getElementById('tituloCarroMod').innerText = `Gerenciar: Carro ${idTaxi} (${nomeMotorista})`;
+    document.getElementById('modalSubMenuMod').style.display = 'flex';
+ }
 
- function fecharSubMenuMod() {  
-    document.getElementById('modalSubMenuMod').style.display = 'none';  
-    carroSelecionadoMod = null;  
- }  
+ function fecharSubMenuMod() {
+    document.getElementById('modalSubMenuMod').style.display = 'none';
+    carroSelecionadoMod = null;
+ }
 
- function fecharSubMenuExterno(event) {  
-    if (event.target.id === 'modalSubMenuMod') {  
-      fecharSubMenuMod();  
-    }  
- }  
+ function fecharSubMenuExterno(event) {
+    if (event.target.id === 'modalSubMenuMod') {
+      fecharSubMenuMod();
+    }
+ }
 
- function executarModAction(acao) {  
-    if (!carroSelecionadoMod || !meuTaxi) return;  
+ function executarModAction(acao) {
+    if (!carroSelecionadoMod || !meuTaxi) return;
 
-    if (acao === 'bloquear') {  
-      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'BAN', horas: 1 });  
-      alert(`Comando [BLOQUEAR] aplicado ao Carro.${carroSelecionadoMod}`);  
-    } else if (acao === 'proibir') {  
-      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'MUTE', minutos: 15 });  
-      alert(`Comando [PROIBIR FALAR] aplicado ao Carro.${carroSelecionadoMod}`);  
-    } else if (acao === 'liberar') {  
-      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'DESBLOQUEAR' });  
-      alert(`Restrições removidas do Carro.${carroSelecionadoMod}`);  
-    }  
+    if (acao === 'bloquear') {
+      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'BAN', horas: 1 });
+      alert(`Comando [BLOQUEAR] aplicado ao Carro.${carroSelecionadoMod}`);
+    } else if (acao === 'proibir') {
+      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'MUTE', minutos: 15 });
+      alert(`Comando [PROIBIR FALAR] aplicado ao Carro.${carroSelecionadoMod}`);
+    } else if (acao === 'liberar') {
+      socket.emit('aplicarModeracaoMotorista', { solicitanteId: meuTaxi.numero, targetTaxiId: carroSelecionadoMod, tipo: 'DESBLOQUEAR' });
+      alert(`Restrições removidas do Carro.${carroSelecionadoMod}`);
+    }
 
-    fecharSubMenuMod();  
- }  
+    fecharSubMenuMod();
+ }
 
  function configurarEventosSocket() {  
  socket.on('loginErro', (dados) => {   
@@ -619,8 +637,8 @@ box-sizing: border-box;
  if (!dados || !dados.carro) return;  
  meuTaxi = dados.carro;  
   
- localStorage.setItem('taxi_carro', meuTaxi.numero);  
- localStorage.setItem('taxi_senha_temp', meuTaxi.senha || "123");  
+ localStorage.setItem('taxi_carro', meuTaxi.numero);
+ localStorage.setItem('taxi_senha_temp', meuTaxi.senha || "123");
   
  document.getElementById('displayNumeroCarro').innerText = meuTaxi.numero || '--';  
  document.getElementById('infoNumero').innerText = meuTaxi.numero || '--';  
@@ -641,6 +659,7 @@ box-sizing: border-box;
   
  const volDoCarro = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
  document.getElementById('volumeGlobal').value = volDoCarro;  
+ alterarVolumeGlobal(volDoCarro);  
   
  const pttDoCarro = localStorage.getItem(`modoPTT_${meuTaxi.numero}`) || 'pressionar';  
  document.getElementById('selectModoPTT').value = pttDoCarro;  
@@ -655,22 +674,19 @@ box-sizing: border-box;
  document.getElementById('telaAvisoMudo').classList.remove('escondido');  
  }  
   
- const chaveCacheLocal = `ponto2216_limpou_${meuTaxi.numero}`;  
- if (localStorage.getItem(chaveCacheLocal) === 'true') {  
- cacheHistoricoMotorista = [];
- renderizarHistoricoAudio([]);  
- } else if (dados.historicoAudio) {  
- cacheHistoricoMotorista = dados.historicoAudio;
- renderizarHistoricoAudio(cacheHistoricoMotorista);  
+ if (dados.historicoAudio) {  
+ renderizarHistoricoAudio(dados.historicoAudio);  
  }  
   
  setTimeout(() => { try { iniciarGPS(); } catch (e) {} }, 1000);  
- } catch (err) {}  
+ } catch (err) {  
+ console.error("Erro no pós-login:", err);  
+ }  
  });  
   
- socket.on('avisoSaidaFila', (dados) => {  
-     alert(`⚠️ ${dados.mensagem}`);  
- });  
+ socket.on('avisoSaidaFila', (dados) => {
+     alert(`⚠️ ${dados.mensagem}`);
+ });
 
  socket.on('ofertaCorrida', (dados) => {  
  if (!meuTaxi) return;  
@@ -682,7 +698,7 @@ box-sizing: border-box;
  const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';  
  document.getElementById('ofertaCliente').innerText = nomePassageiro;  
  document.getElementById('ofertaLocal').innerText = dados.local || dados.origem || 'Local não informado';  
-    
+   
  document.getElementById('modalOferta').classList.remove('escondido');  
  document.getElementById('overlayBloqueioCorrida').classList.add('ativo');  
  });  
@@ -716,7 +732,7 @@ box-sizing: border-box;
  const nomePassageiro = dados.cliente || dados.passageiro || dados.nomeCliente || dados.nomePassageiro || 'Passageiro';  
  document.getElementById('viagemCliente').innerText = nomePassageiro;  
  document.getElementById('viagemOrigem').innerText = dados.origem || 'Não informado';  
-    
+   
  const boxNav = document.getElementById('boxBotoesNavegacao');  
  const btnMaps = document.getElementById('btnAbrirMaps');  
  const btnWaze = document.getElementById('btnAbrirWaze');  
@@ -754,12 +770,8 @@ box-sizing: border-box;
      renderizarConectadosMotorista([]);  
  }  
   
- if (dados.historico && meuTaxi && meuTaxi.numero) {  
- const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';  
- if (!jaLimpou) {
-     cacheHistoricoMotorista = dados.historico;
-     renderizarHistoricoAudio(cacheHistoricoMotorista);  
- }
+ if (dados.historico) {  
+     renderizarHistoricoAudio(dados.historico);  
  }  
  });  
   
@@ -799,11 +811,9 @@ box-sizing: border-box;
   
  socket.on('receberAudioPTT', (dados) => {  
  if (!meuTaxi || !meuTaxi.numero) return;  
- const jaLimpou = localStorage.getItem(`ponto2216_limpou_${meuTaxi.numero}`) === 'true';  
- if (!jaLimpou && dados.historico) {
-     cacheHistoricoMotorista = dados.historico;
-     renderizarHistoricoAudio(cacheHistoricoMotorista);  
- }
+ if (dados.historico) {
+     renderizarHistoricoAudio(dados.historico);  
+ }  
   
  const btn = document.getElementById('btnPTT');  
  btn.classList.remove('transmitindo');  
@@ -812,12 +822,9 @@ box-sizing: border-box;
  destravarAudioAutomatica();  
  const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;  
  const audio = new Audio(urlAudioFinal);  
- 
- // Volume individual do motorista que enviou o áudio, com fallback para o global
- const volIndividual = volumesPorMotorista[dados.idTaxi];
- const strVolGlobal = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';
- audio.volume = volIndividual !== undefined ? volIndividual : (parseFloat(strVolGlobal) / 100);  
-    
+ const strVol = localStorage.getItem(`volGlobal_${meuTaxi.numero}`) || '100';  
+ audio.volume = parseFloat(strVol) / 100;  
+   
  btn.classList.add('ouvindo');  
  const nomeFalante = (dados.nomeMotorista || dados.idTaxi || 'Central').toUpperCase();  
  document.getElementById('labelPTT').innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeFalante}</span>`;  
@@ -854,64 +861,78 @@ box-sizing: border-box;
  }  
  }  
 
-function iniciarGPS() {  
-    if ("geolocation" in navigator) {  
-        const opcoesGPS = { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 };  
+function iniciarGPS() { 
+    if ("geolocation" in navigator) { 
+        const opcoesGPS = { 
+            enableHighAccuracy: true, 
+            maximumAge: 0, 
+            timeout: 10000 
+        }; 
 
-        navigator.geolocation.getCurrentPosition(  
-            (position) => {  
-                if (!simulandoChegadaNoPonto) {  
-                    minhaLat = position.coords.latitude;  
-                    minhaLon = position.coords.longitude;  
-                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;  
-                }  
+        navigator.geolocation.getCurrentPosition( 
+            (position) => { 
+                if (!simulandoChegadaNoPonto) { 
+                    minhaLat = position.coords.latitude; 
+                    minhaLon = position.coords.longitude; 
+                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`; 
+                } 
                 if (meuTaxi && socket) {  
                     socket.emit('atualizarGPS', {  
-                        idTaxi: meuTaxi.numero, nome: meuTaxi.nome,  
-                        latitude: minhaLat, longitude: minhaLon,  
-                        status: statusAtual, simulacao: simulandoChegadaNoPonto  
+                        idTaxi: meuTaxi.numero,  
+                        nome: meuTaxi.nome,  
+                        latitude: minhaLat,  
+                        longitude: minhaLon,  
+                        status: statusAtual,  
+                        simulacao: simulandoChegadaNoPonto  
                     });  
                 }  
-            },  
-            (erro) => {  
-                document.getElementById('infoGpsStatus').innerText = simulandoChegadaNoPonto ? "GPS Simulado (No Ponto)" : "Erro no Sinal GPS";  
-            },  
-            opcoesGPS  
-        );  
+            }, 
+            (erro) => { 
+                document.getElementById('infoGpsStatus').innerText = simulandoChegadaNoPonto ? "GPS Simulado (No Ponto)" : "Erro no Sinal GPS"; 
+                console.warn("Erro no GPS inicial:", erro.message);  
+            }, 
+            opcoesGPS 
+        ); 
 
-        navigator.geolocation.watchPosition(  
-            (pos) => {  
-                if (!simulandoChegadaNoPonto) {  
-                    minhaLat = pos.coords.latitude;  
-                    minhaLon = pos.coords.longitude;  
-                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`;  
-                }  
+        navigator.geolocation.watchPosition( 
+            (pos) => { 
+                if (!simulandoChegadaNoPonto) { 
+                    minhaLat = pos.coords.latitude; 
+                    minhaLon = pos.coords.longitude; 
+                    document.getElementById('infoGpsStatus').innerText = `GPS Ativo (${minhaLat.toFixed(4)}, ${minhaLon.toFixed(4)})`; 
+                } 
                 if (meuTaxi && socket) {  
                     socket.emit('atualizarGPS', {  
-                        idTaxi: meuTaxi.numero, nome: meuTaxi.nome,  
-                        latitude: minhaLat, longitude: minhaLon,  
-                        status: statusAtual, simulacao: simulandoChegadaNoPonto  
+                        idTaxi: meuTaxi.numero,  
+                        nome: meuTaxi.nome,  
+                        latitude: minhaLat,  
+                        longitude: minhaLon,  
+                        status: statusAtual,  
+                        simulacao: simulandoChegadaNoPonto  
                     });  
                 }  
-            },  
-            (err) => {},  
-            opcoesGPS  
-        );  
+            }, 
+            (err) => { console.warn("Erro no watchPosition:", err.message); }, 
+            opcoesGPS 
+        ); 
 
         setInterval(() => {  
             if (meuTaxi && socket && minhaLat !== 0 && minhaLon !== 0) {  
                 socket.emit('atualizarGPS', {  
-                    idTaxi: meuTaxi.numero, nome: meuTaxi.nome,  
-                    latitude: minhaLat, longitude: minhaLon,  
-                    status: statusAtual, simulacao: simulandoChegadaNoPonto  
+                    idTaxi: meuTaxi.numero,  
+                    nome: meuTaxi.nome,  
+                    latitude: minhaLat,  
+                    longitude: minhaLon,  
+                    status: statusAtual,  
+                    simulacao: simulandoChegadaNoPonto  
                 });  
             }  
-        }, 10000);  
+        }, 10000); 
 
     } else if (meuTaxi && socket) {  
         alert("Geolocalização não suportada neste dispositivo.");  
     }  
-}  
+} 
 
 function simularChegadaPonto() {  
     if (!meuTaxi) return;  
@@ -972,7 +993,11 @@ function simularChegadaPonto() {
   
  async function iniciarMidiaPTT() {  
  try {  
- if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;  
+ if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {  
+ alert("⚠️ API de Mídia não suportada neste dispositivo.");  
+ return false;  
+ }  
+  
  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });  
  if (!stream) return false;  
   
@@ -997,11 +1022,13 @@ function simularChegadaPonto() {
  });  
  }  
  };  
+  
  stream.getTracks().forEach(track => track.stop());  
  };  
  return true;  
  } catch (err) {  
- alert("⚠️ Permissão de microfone negada.");  
+ console.error("Erro de permissão de microfone:", err);  
+ alert("⚠️ Permissão de microfone negada. Verifique as configurações do app no celular.");  
  return false;  
  }  
  }  
@@ -1026,11 +1053,11 @@ function simularChegadaPonto() {
  if (mediaRecorder && (mediaRecorder.state === "inactive" || mediaRecorder.state === "paused")) {  
  mediaRecorder.start();  
  }  
-    
+   
  const btn = document.getElementById('btnPTT');  
  btn.classList.add('transmitindo');  
  document.getElementById('labelPTT').innerHTML = "FALANDO...<br><span style='font-size:10px'>(Solte p/ Enviar)</span>";  
-    
+   
  socket.emit('solicitarCanalPTT', { idTaxi: meuTaxi.numero, nome: meuTaxi.nome, ehModerador: meuTaxi.ehModerador });  
  } catch (err) {  
  gravando = false;  
@@ -1043,11 +1070,11 @@ function simularChegadaPonto() {
  if (!gravando) return;  
  gravando = false;  
  try {     
-     if (mediaRecorder && mediaRecorder.state === "recording") {  
-         mediaRecorder.stop();  
-     }     
+      if (mediaRecorder && mediaRecorder.state === "recording") {  
+          mediaRecorder.stop();  
+      }     
  } catch (err) {}  
-    
+   
  const btn = document.getElementById('btnPTT');  
  btn.classList.remove('transmitindo');  
  document.getElementById('labelPTT').innerText = modoPTTAtual === 'clique' ? "CLIQUE P/ PARAR" : "SEGURE P/ FALAR";  
@@ -1068,76 +1095,29 @@ function simularChegadaPonto() {
  }  
  });  
  }  
-
- // Funções de Visto e Contador de Áudios no App do Motorista
- function marcarAudioComoVistoMotorista(idAudio) {
-     localStorage.setItem(`audio_visto_${idAudio}`, 'true');
-     renderizarHistoricoAudio(cacheHistoricoMotorista);
- }
-
- function marcarTodosComoVistosMotorista() {
-     if (cacheHistoricoMotorista) {
-         cacheHistoricoMotorista.forEach(a => {
-             localStorage.setItem(`audio_visto_${a.id}`, 'true');
-         });
-         renderizarHistoricoAudio(cacheHistoricoMotorista);
-     }
- }
-
- function atualizarContadorNaoLidosMotorista(historico) {
-     if (!historico) return;
-     let naoLidos = historico.filter(a => localStorage.getItem(`audio_visto_${a.id}`) !== 'true').length;
-     const badge = document.getElementById('badgeNaoLidosMotorista');
-     if (badge) {
-         if (naoLidos > 0) {
-             badge.innerText = naoLidos;
-             badge.style.display = 'inline-block';
-         } else {
-             badge.style.display = 'none';
-         }
-     }
- }
   
  function renderizarHistoricoAudio(historico) {  
  const divLista = document.getElementById('listaAudios');  
  if (!divLista) return;  
  if (!historico || historico.length === 0) {  
  divLista.innerHTML = `<div style="text-align: center; color: var(--texto-secundario); font-size: 12px;">Nenhuma mensagem de áudio recente.</div>`;  
- atualizarContadorNaoLidosMotorista([]);
  return;  
  }  
   
- cacheHistoricoMotorista = historico;
- atualizarContadorNaoLidosMotorista(historico);
-
  divLista.innerHTML = historico.map(a => {  
  const estrelaTag = a.ehModerador ? ' ⭐' : '';  
  const urlAudioFinal = a.audioUrl.startsWith('http') ? a.audioUrl : `${SOCKET_URL}${a.audioUrl}`;  
- 
- const jaVisto = localStorage.getItem(`audio_visto_${a.id}`) === 'true';
- const badgeNova = !jaVisto ? `<span style="background: #dc2626; color: white; padding: 2px 6px; border-radius: 50%; font-size: 10px; font-weight: bold; margin-left: 6px;">Nova</span>` : '';
- const estiloCelula = !jaVisto ? `border-left: 4px solid #dc2626; background: rgba(220, 38, 38, 0.05);` : '';
-
- const volumeSalvo = volumesPorMotorista[a.idTaxi] !== undefined ? volumesPorMotorista[a.idTaxi] : 1.0;
   
  return `  
- <div class="audio-item" style="${estiloCelula}">  
+ <div class="audio-item">  
  <div style="display: flex; justify-content: space-between; align-items:center; font-weight: bold; color: var(--texto-principal); margin-bottom: 6px;">  
  <div style="display: flex; align-items: center; gap: 6px;">  
  <span class="badge-carro-historico">${a.idTaxi === 'Fiscal' ? 'Central' : a.idTaxi}${estrelaTag}</span>  
- <span style="font-size: 13px; color: var(--texto-secundario);">(${a.nomeMotorista}) ${badgeNova}</span>  
+ <span style="font-size: 13px; color: var(--texto-secundario);">(${a.nomeMotorista})</span>  
  </div>  
- <div style="display: flex; gap: 6px; align-items: center;">
-     ${!jaVisto ? `<button onclick="marcarAudioComoVistoMotorista('${a.id}')" style="background: #3b82f6; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 10px; cursor: pointer; width: auto; margin: 0;">👁️ Visto</button>` : ''}
-     <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>  
- </div>
+ <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>  
  </div>  
- <audio id="player_mot_${a.id}" class="player-carro-${a.idTaxi}" controls src="${urlAudioFinal}" style="width: 100%; height: 30px;" onplay="this.volume = ${volumeSalvo}; marcarAudioComoVistoMotorista('${a.id}')"></audio>  
- 
- <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--texto-secundario);">
-     <span>🔊 Volume do Carro.${a.idTaxi}:</span>
-     <input type="range" min="0" max="1" step="0.1" value="${volumeSalvo}" style="width: 100px; accent-color: var(--amarelo-ponto); margin: 0;" oninput="ajustarVolumePorMotorista('${a.idTaxi}', this.value)">
- </div>
+ <audio controls src="${urlAudioFinal}" style="width: 100%; height: 30px;"></audio>  
  </div>  
  `;  
  }).join('');  
