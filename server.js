@@ -242,11 +242,12 @@ async function salvarAdmNoBanco(adm) {
         nome = EXCLUDED.nome,  
         cargo = EXCLUDED.cargo;  
     `;  
+    // Ordem correta: 1: usuario, 2: senha, 3: nome, 4: cargo
     await db.query(query, [adm.usuario, senhaLimpa, adm.nome, adm.cargo]);  
   } catch (e) {  
     console.error("Erro ao salvar administrador no banco:", e);  
   }  
-}  
+}
   
 async function excluirAdmDoBanco(usuarioKey) {  
   try {  
