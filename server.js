@@ -15,8 +15,8 @@ app.use(express.json());
   
 const server = http.createServer(app);  
 const io = new Server(server, {  
- cors: { origin: "*", methods: ["GET", "POST"] },  
- maxHttpBufferSize: 10 * 1024 * 1024  
+  cors: { origin: "*", methods: ["GET", "POST"] },  
+  maxHttpBufferSize: 10 * 1024 * 1024  
 });  
   
 const VERSAO_SISTEMA = "2.0";
@@ -137,6 +137,7 @@ function salvarLogModeracaoNaNuvem() {
   } catch (e) {}  
 }  
   
+// Carregamento assíncrono do Banco de Dados para Frota  
 async function carregarFrotaDoBanco() {  
   try {  
     const res = await db.query('SELECT * FROM motoristas');  
@@ -203,6 +204,7 @@ async function salvarCarroNoBanco(carro) {
   }  
 }  
   
+// Carregamento assíncrono do Banco de Dados para Administradores  
 async function carregarAdmsDoBanco() {  
   try {  
     const res = await db.query('SELECT * FROM administradores');  
@@ -242,12 +244,11 @@ async function salvarAdmNoBanco(adm) {
         nome = EXCLUDED.nome,  
         cargo = EXCLUDED.cargo;  
     `;  
-    // Ordem correta: 1: usuario, 2: senha, 3: nome, 4: cargo
     await db.query(query, [adm.usuario, senhaLimpa, adm.nome, adm.cargo]);  
   } catch (e) {  
     console.error("Erro ao salvar administrador no banco:", e);  
   }  
-}
+}  
   
 async function excluirAdmDoBanco(usuarioKey) {  
   try {  
@@ -903,7 +904,7 @@ io.on('connection', (socket) => {
       filaGeral.push(novoCarroFila);  
       redistribuirVagas();  
       emitirAtualizacaoGeral();  
-    } 
+    }   
     else if (!estaNoPonto && !simulacaoForcada && indexFila !== -1) {
       filaGeral.splice(indexFila, 1);
       redistribuirVagas();
@@ -1157,7 +1158,7 @@ function solicitarCorridaViaWhatsApp(dados) {
   
   if (Object.keys(chamadasPendentes).length > 0) {
     filaEsperaWhatsApp.push(dados);
-  } else {
+    } else {
     processarNovaSolicitacaoWhatsApp(dados);
   }
   return true;  
