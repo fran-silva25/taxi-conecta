@@ -62,7 +62,10 @@
 
         body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; }
         
+<<<<<<< HEAD
         /* Container Principal Controlado */
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         .container { 
             max-width: 1200px; 
             width: 100%; 
@@ -76,7 +79,10 @@
             box-sizing: border-box; 
         }
         
+<<<<<<< HEAD
         /* Banner Principal Ponto 2216 */
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         .banner-ponto-2216 { 
             background: #000000; 
             border: 2px solid #ffcc00; 
@@ -104,11 +110,16 @@
             flex: 1;
         }
 
+<<<<<<< HEAD
         .logo-estrela {
             color: #ffcc00;
         }
 
         /* Wrapper para os botões alinhados logo abaixo do banner */
+=======
+        .logo-estrela { color: #ffcc00; }
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         .botoes-acao-wrapper {
             display: flex;
             justify-content: space-between;
@@ -176,8 +187,13 @@
             z-index: 9999;
         }
 
+<<<<<<< HEAD
         .historico-audio-list { max-height: 250px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
         .audio-item { background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+=======
+        .historico-audio-list { max-height: 280px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--borda-card); border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .audio-item { background: var(--bg-container); border: 1px solid var(--borda-card); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; }
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
         .btn-ptt-fiscal {
             width: 130px;
@@ -256,14 +272,20 @@
 <body>
 
 <div class="container">
+<<<<<<< HEAD
     <!-- Banner Principal -->
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     <div class="banner-ponto-2216"> 
         <span class="logo-estrela">✦</span> 
         <span class="texto-banner-ponto">Ponto 2216 / Admin-Fiscal</span> 
         <span class="logo-estrela">✦</span> 
     </div> 
 
+<<<<<<< HEAD
     <!-- Linha Inferior com os botões alinhados nas pontas -->
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     <div class="botoes-acao-wrapper">
         <button class="btn-acao-topo" onclick="alternarTema()">🌗 <span id="labelTema">Escuro</span></button>
         <button id="btnSairAdm" class="btn-sair" onclick="fazerLogoutAdm()">🚪 Sair</button>
@@ -287,7 +309,10 @@
                 <span style="font-weight: bold; color: var(--amarelo-ponto);">Bem-vindo, <span id="nomeUsuarioLogado">Carregando...</span></span>
                 <span id="badgeCargoLogado" style="background: #000; border: 1px solid var(--amarelo-ponto); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: var(--amarelo-ponto); margin-left: 8px;">ADM</span>
             </div>
+<<<<<<< HEAD
             <!-- 🛡️ BLOCO COM ID PARA OCULTAR O REFRESH PARA FISCAL -->
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
             <div id="containerBtnRefresh">
                 <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
             </div>
@@ -297,7 +322,11 @@
             <button class="tab-btn ativo" onclick="mudarTab('fila')">🚦 Fila</button>
             <button class="tab-btn" onclick="mudarTab('online')">🟢 Online</button>
             <button class="tab-btn" onclick="mudarTab('frota')">🚖 Frota</button>
+<<<<<<< HEAD
             <button class="tab-btn" onclick="mudarTab('radio')">📻 PTT</button>
+=======
+            <button class="tab-btn" onclick="mudarTab('radio')">📻 PTT <span id="badgeNaoLidosAdmin" style="background:#dc2626; color:white; padding:1px 5px; border-radius:50%; font-size:10px; display:none;">0</span></button>
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
             <button class="tab-btn" onclick="mudarTab('corridas')">📖 Corridas</button>
             <button class="tab-btn" onclick="mudarTab('recusas')">📜 Recusas</button>
             <button class="tab-btn" onclick="mudarTab('logs')">🛡️ Logs</button>
@@ -441,7 +470,14 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <h3 style="margin: 0;">📜 Histórico de Áudios do Rádio PTT</h3>
+<<<<<<< HEAD
                     <button class="btn-excluir" onclick="limparHistoricoPTT()">🗑️ Apagar Todo Histórico</button>
+=======
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="marcarTodosComoVistosAdmin()" style="background: #2563eb; color: white; padding: 6px 10px; font-size: 12px; border-radius: 6px; width: auto; border:none; cursor:pointer; font-weight:bold;">👁️ Marcar Vistos</button>
+                        <button class="btn-excluir" onclick="limparHistoricoPTT()">🗑️ Apagar Todo Histórico</button>
+                    </div>
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
                 </div>
                 <div id="listaAudiosAdm" class="historico-audio-list">
                     <div style="text-align: center; color: var(--texto-secundario);">Nenhuma mensagem gravada recentemente.</div>
@@ -573,7 +609,16 @@
 
 <script>
     const SOCKET_URL = "https://taxi-conecta-api.onrender.com";
+<<<<<<< HEAD
     const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+=======
+    const socket = io(SOCKET_URL, { 
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000
+    });
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
     let mediaRecorderFiscal = null;
     let audioChunksFiscal = [];
@@ -582,7 +627,23 @@
     let dadosCacheFrota = {};
     let dadosCacheAdms = {};
     let dadosCacheConectados = [];
+<<<<<<< HEAD
     let estadoCanalCentral = 'LIVRE';
+=======
+    let cacheHistoricoAdmin = [];
+
+    let volumesPorMotoristaAdm = JSON.parse(localStorage.getItem('admin_volumes_motoristas') || '{}');
+
+    function ajustarVolumePorMotoristaAdm(idTaxi, volume) {
+        const volNum = parseFloat(volume);
+        volumesPorMotoristaAdm[idTaxi] = volNum;
+        localStorage.setItem('admin_volumes_motoristas', JSON.stringify(volumesPorMotoristaAdm));
+
+        document.querySelectorAll(`.player-adm-carro-${idTaxi}`).forEach(player => {
+            player.volume = volNum;
+        });
+    }
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
     let audioContextDestravado = false;
     function destravarAudioAutomatica() {
@@ -596,6 +657,7 @@
     document.addEventListener('click', destravarAudioAutomatica, { once: true });
     document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
 
+<<<<<<< HEAD
     socket.on('connect', () => {
         const adminLogado = localStorage.getItem('taxi_admin');
         if (adminLogado) {
@@ -607,18 +669,55 @@
         const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
         const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
         const loginSalvo = localStorage.getItem('taxi_admin') || "admin";
+=======
+    // 🛡️ CORREÇÃO DE CREDENCIAIS E RECONEXÃO ROBUSTA DO ADMIN
+    socket.on('connect', () => {
+        const adminLogado = localStorage.getItem('taxi_admin');
+        const senhaSalva = localStorage.getItem('taxi_admin_senha') || '';
+        if (adminLogado) {
+            socket.emit('loginAdmin', { usuario: adminLogado, senha: senhaSalva });
+        } else {
+            window.location.href = "index.html";
+        }
+    });
+
+    socket.on('loginErro', (dados) => {
+        alert("Erro de Acesso Administrativo: " + (dados.mensagem || "Credenciais inválidas."));
+        localStorage.removeItem('taxi_admin');
+        localStorage.removeItem('taxi_admin_senha');
+        localStorage.removeItem('taxi_admin_nome');
+        localStorage.removeItem('taxi_admin_cargo');
+        window.location.href = "index.html";
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const adminLogadoCheck = localStorage.getItem('taxi_admin');
+        if (!adminLogadoCheck) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
+        const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         
         const elNome = document.getElementById('nomeUsuarioLogado');
         const elCargo = document.getElementById('badgeCargoLogado');
         if (elNome) elNome.innerText = nomeSalvo;
         if (elCargo) elCargo.innerText = cargoSalvo;
         
+<<<<<<< HEAD
         // 🛡️ VERIFICAÇÃO DE PERMISSÃO PARA OCULTAR O REFRESH DO FISCAL
         if (cargoSalvo && cargoSalvo.trim().toUpperCase() === 'FISCAL') {
             const containerRefresh = document.getElementById('containerBtnRefresh');
             if (containerRefresh) {
                 containerRefresh.classList.add('escondido');
             }
+=======
+        if (cargoSalvo && cargoSalvo.trim().toUpperCase() === 'FISCAL') {
+            const containerRefresh = document.getElementById('containerBtnRefresh');
+            if (containerRefresh) containerRefresh.classList.add('escondido');
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         }
         
         if (cargoSalvo !== 'ADM') {
@@ -626,41 +725,70 @@
             if (btnApagarLogs) btnApagarLogs.style.display = 'none';
         }
 
+<<<<<<< HEAD
         inicializarGravadorFiscal();
 
         // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         socket.on('canalOcupado', (dados) => {
             if (dados.idTaxi !== 'Fiscal' && dados.idTaxi !== 'ADM') {
                 setEstadoPTTFiscal('OUVINDO', dados.nome);
             }
         });
 
+<<<<<<< HEAD
         // CANAL LIVRE (RESTAURA O BOTÃO DO FISCAL)
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         socket.on('canalLivre', () => {
             if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
         });
 
+<<<<<<< HEAD
         // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA (BLINDADO CONTRA ECO)
         socket.on('receberAudioPTT', (dados) => {
             setEstadoPTTFiscal('STANDBY');
             if (dados.historico) renderizarAudioAdm(dados.historico);
+=======
+        socket.on('receberAudioPTT', (dados) => {
+            setEstadoPTTFiscal('STANDBY');
+            if (dados.historico) {
+                cacheHistoricoAdmin = dados.historico;
+                renderizarAudioAdm(cacheHistoricoAdmin);
+            }
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
             const idEnviado = String(dados.idTaxi || '').trim();
             const eMeuProprioAudio = (idEnviado === 'Fiscal' || idEnviado === 'ADM');
 
+<<<<<<< HEAD
             if (eMeuProprioAudio) {
                 return; 
             }
+=======
+            if (eMeuProprioAudio) return; 
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
             if (dados.audioUrl) {
                 destravarAudioAutomatica();
                 const urlAudioFinal = dados.audioUrl.startsWith('http') ? dados.audioUrl : `${SOCKET_URL}${dados.audioUrl}`;
                 const audio = new Audio(urlAudioFinal);
+<<<<<<< HEAD
+=======
+                
+                const volIndividual = volumesPorMotoristaAdm[dados.idTaxi];
+                audio.volume = volIndividual !== undefined ? volIndividual : 1.0;
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
                 audio.play().catch(() => {});
             }
         });
 
+<<<<<<< HEAD
         // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         function setEstadoPTTFiscal(estado, nomeFalante = "") {
             const btn = document.getElementById('btnPTTFiscal');
             const lbl = document.getElementById('labelPTTFiscal');
@@ -670,7 +798,10 @@
                 btn.className = 'btn-ptt-fiscal';
                 lbl.innerHTML = "SEGURE<br>P/ FALAR";
                 gravandoFiscal = false;
+<<<<<<< HEAD
                 estadoCanalCentral = 'LIVRE';
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
             } else if (estado === 'TRANSMITINDO') {
                 btn.className = 'btn-ptt-fiscal transmitindo';
                 lbl.innerText = "CENTRAL TRANSMITINDO...";
@@ -679,6 +810,7 @@
                 btn.className = 'btn-ptt-fiscal ouvindo';
                 const nomeStr = (nomeFalante || 'MOTORISTA').toUpperCase();
                 lbl.innerHTML = `OUVINDO<br><span style="font-size:10px">${nomeStr}</span><br><span style="font-size:9px; color:#ffcc00;">(CLIQUE P/ CORTAR)</span>`;
+<<<<<<< HEAD
                 estadoCanalCentral = 'OUVINDO';
             }
         }
@@ -751,6 +883,11 @@
             setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
         }
 
+=======
+            }
+        }
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         const btnPTTFiscal = document.getElementById('btnPTTFiscal');
         if (btnPTTFiscal) {
             btnPTTFiscal.addEventListener('mousedown', iniciarTransmissaoFiscal);
@@ -761,6 +898,98 @@
         }
     });
 
+<<<<<<< HEAD
+=======
+    async function inicializarGravadorFiscal() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("⚠️ API de Mídia não suportada neste navegador.");
+                return false;
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+            if (!stream) return false;
+
+            mediaRecorderFiscal = new MediaRecorder(stream);
+            audioChunksFiscal = [];
+            
+            mediaRecorderFiscal.ondataavailable = (e) => { 
+                if (e.data && e.data.size > 0) audioChunksFiscal.push(e.data); 
+            };
+            
+            mediaRecorderFiscal.onstop = () => {
+                if (audioChunksFiscal.length === 0) return;
+                const blob = new Blob(audioChunksFiscal, { type: 'audio/webm' });
+                audioChunksFiscal = [];
+                let duracao = Math.max(1, Math.round((Date.now() - tempoInicioFiscal) / 1000)) + "s";
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(blob);
+                reader.onloadend = () => {
+                    socket.emit('transmitirAudioPTT', {
+                        idTaxi: 'Fiscal',
+                        nomeMotorista: 'Central / Fiscal',
+                        audioBuffer: reader.result,
+                        duracao: duracao
+                    });
+                };
+                stream.getTracks().forEach(track => track.stop());
+            };
+            return true;
+        } catch (e) {
+            console.error("Erro no microfone do fiscal:", e);
+            alert("⚠️ Permissão de microfone negada ou indisponível.");
+            return false;
+        }
+    }
+
+    async function iniciarTransmissaoFiscal(e) {
+        if (e) e.preventDefault();
+        if (gravandoFiscal) return;
+
+        destravarAudioAutomatica();
+        socket.emit('solicitarCanalPTT', { idTaxi: 'Fiscal', nome: 'Central / Fiscal', ehModerador: true });
+
+        if (!mediaRecorderFiscal) {
+            const ativou = await inicializarGravadorFiscal();
+            if (!ativou) return;
+        }
+
+        try {
+            gravandoFiscal = true;
+            audioChunksFiscal = [];
+            tempoInicioFiscal = Date.now();
+            if (mediaRecorderFiscal && (mediaRecorderFiscal.state === "inactive" || mediaRecorderFiscal.state === "paused")) {
+                mediaRecorderFiscal.start();
+            }
+            const btn = document.getElementById('btnPTTFiscal');
+            const lbl = document.getElementById('labelPTTFiscal');
+            if (btn && lbl) {
+                btn.className = 'btn-ptt-fiscal transmitindo';
+                lbl.innerText = "CENTRAL TRANSMITINDO...";
+            }
+        } catch (err) {
+            gravandoFiscal = false;
+        }
+    }
+
+    function pararTransmissaoFiscal(e) {
+        if (e) e.preventDefault();
+        if (!gravandoFiscal) return;
+        gravandoFiscal = false;
+        try {
+            if (mediaRecorderFiscal && mediaRecorderFiscal.state === "recording") {
+                mediaRecorderFiscal.stop();
+            }
+        } catch (err) {}
+        const btn = document.getElementById('btnPTTFiscal');
+        const lbl = document.getElementById('labelPTTFiscal');
+        if (btn && lbl) {
+            btn.className = 'btn-ptt-fiscal';
+            lbl.innerHTML = "SEGURE<br>P/ FALAR";
+        }
+        setTimeout(() => { if (socket) socket.emit('liberarCanalPTT'); }, 500);
+    }
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     (function carregarTemaSalvo() {
         const temaSalvo = localStorage.getItem('ponto2216_tema_adm') || 'escuro';
         document.documentElement.setAttribute('data-tema', temaSalvo);
@@ -791,6 +1020,10 @@
     function fazerLogoutAdm() {
         if (confirm("Deseja realmente sair do painel administrativo?")) {
             localStorage.removeItem('taxi_admin');
+<<<<<<< HEAD
+=======
+            localStorage.removeItem('taxi_admin_senha');
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
             localStorage.removeItem('taxi_admin_nome');
             localStorage.removeItem('taxi_admin_cargo');
             window.location.href = "index.html?logout=true";
@@ -849,7 +1082,14 @@
         if (dados.conectados) renderizarOnline(dados.conectados);
         if (dados.frota) { dadosCacheFrota = dados.frota; renderizarFrota(dados.frota); }
         if (dados.usuariosAdm) { dadosCacheAdms = dados.usuariosAdm; renderizarAdms(dados.usuariosAdm); }
+<<<<<<< HEAD
         if (dados.historico) renderizarAudioAdm(dados.historico);
+=======
+        if (dados.historico) {
+            cacheHistoricoAdmin = dados.historico;
+            renderizarAudioAdm(cacheHistoricoAdmin);
+        }
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         if (dados.recusas) renderizarRecusas(dados.recusas);
         if (dados.corridas) renderizarCorridas(dados.corridas);
         if (dados.logModeracao) renderizarLogModeracao(dados.logModeracao);
@@ -1190,10 +1430,42 @@
         }).join('');
     }
 
+<<<<<<< HEAD
+=======
+    function marcarAudioComoVistoAdmin(idAudio) {
+        localStorage.setItem(`admin_audio_visto_${idAudio}`, 'true');
+        renderizarAudioAdm(cacheHistoricoAdmin);
+    }
+
+    function marcarTodosComoVistosAdmin() {
+        if (cacheHistoricoAdmin) {
+            cacheHistoricoAdmin.forEach(a => {
+                localStorage.setItem(`admin_audio_visto_${a.id}`, 'true');
+            });
+            renderizarAudioAdm(cacheHistoricoAdmin);
+        }
+    }
+
+    function atualizarContadorNaoLidosAdmin(historico) {
+        if (!historico) return;
+        let naoLidos = historico.filter(a => localStorage.getItem(`admin_audio_visto_${a.id}`) !== 'true').length;
+        const badge = document.getElementById('badgeNaoLidosAdmin');
+        if (badge) {
+            if (naoLidos > 0) {
+                badge.innerText = naoLidos;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     function renderizarAudioAdm(historico) {
         const div = document.getElementById('listaAudiosAdm');
         if (!historico || historico.length === 0) { 
             div.innerHTML = `<div style="text-align: center; color: var(--texto-secundario);">Nenhum áudio gravado.</div>`; 
+<<<<<<< HEAD
             return; 
         }
         div.innerHTML = historico.map(a => `
@@ -1205,6 +1477,42 @@
                 <audio controls src="${a.audioUrl.startsWith('http') ? a.audioUrl : SOCKET_URL + a.audioUrl}" style="width: 100%; height: 30px;"></audio>
             </div>
         `).join('');
+=======
+            atualizarContadorNaoLidosAdmin([]);
+            return; 
+        }
+
+        cacheHistoricoAdmin = historico;
+        atualizarContadorNaoLidosAdmin(historico);
+
+        div.innerHTML = historico.map(a => {
+            const jaVisto = localStorage.getItem(`admin_audio_visto_${a.id}`) === 'true';
+            const badgeNova = !jaVisto ? `<span style="background: #dc2626; color: white; padding: 2px 6px; border-radius: 50%; font-size: 10px; font-weight: bold; margin-left: 6px;">Nova</span>` : '';
+            const estiloCelula = !jaVisto ? `border-left: 4px solid #dc2626; background: rgba(220, 38, 38, 0.05);` : '';
+
+            const remetenteLabel = (a.idTaxi === 'Fiscal' || a.idTaxi === 'ADM') ? '🎧 Central / Fiscal' : 'Carro.' + a.idTaxi + ' (' + a.nomeMotorista + ')';
+            const volumeSalvo = volumesPorMotoristaAdm[a.idTaxi] !== undefined ? volumesPorMotoristaAdm[a.idTaxi] : 1.0;
+
+            return `
+                <div class="audio-item" style="${estiloCelula}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 6px;">
+                        <span style="color: var(--amarelo-ponto);">${remetenteLabel} ${badgeNova}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${!jaVisto ? `<button onclick="marcarAudioComoVistoAdmin('${a.id}')" style="background: #3b82f6; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 10px; cursor: pointer; width: auto; margin: 0;">👁️ Visto</button>` : ''}
+                            <span style="font-size: 11px; color: var(--texto-secundario);">${a.dataHora}</span>
+                        </div>
+                    </div>
+                    <audio id="player_adm_${a.id}" class="player-adm-carro-${a.idTaxi}" controls src="${a.audioUrl.startsWith('http') ? a.audioUrl : SOCKET_URL + a.audioUrl}" style="width: 100%; height: 30px;" onplay="this.volume = ${volumeSalvo}; marcarAudioComoVistoAdmin('${a.id}')"></audio>
+                    
+                    ${a.idTaxi !== 'Fiscal' && a.idTaxi !== 'ADM' ? `
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--texto-secundario);">
+                        <span>🔊 Volume do Carro.${a.idTaxi}:</span>
+                        <input type="range" min="0" max="1" step="0.1" value="${volumeSalvo}" style="width: 100px; accent-color: var(--amarelo-ponto); margin: 0;" oninput="ajustarVolumePorMotoristaAdm('${a.idTaxi}', this.value)">
+                    </div>` : ''}
+                </div>
+            `;
+        }).join('');
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     }
 
     function alterarModo(modo) { socket.emit('alterarModoOperacao', modo); }

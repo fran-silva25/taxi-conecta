@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+<<<<<<< HEAD
     <!-- PERMISSÕES NATIVAS DO ANDROID (DEVEM FICAR AQUI DENTRO) -->
+=======
+    <!-- PERMISSÕES NATIVAS DO ANDROID -->
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<<<<<<< HEAD
     <uses-permission android:name="android.permission.VIBRATE" />
 
 <!-- Permissões para acender a tela e sobrepor outros aplicativos -->
@@ -14,6 +19,17 @@
 <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
 <uses-permission android:name="android.permission.VIBRATE" />
+=======
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- PERMISSÕES DE SEGUNDO PLANO E OVERLAY -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
     <application
         android:allowBackup="true"
@@ -23,6 +39,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+<<<<<<< HEAD
+=======
+        <!-- SERVIÇO EM SEGUNDO PLANO PARA O GPS E RÁDIO -->
+        <service
+            android:name="com.capacitorjs.plugins.foregroundservice.ForegroundService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"

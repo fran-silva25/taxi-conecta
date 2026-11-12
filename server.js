@@ -41,11 +41,16 @@ function checarAniversarioApp() {
   return (hoje.getDate() === 3 && hoje.getMonth() === 9 && hoje.getFullYear() > 2026);  
 }  
   
+<<<<<<< HEAD
+=======
+// LIMPEZA AUTOMÁTICA DE ÁUDIOS AJUSTADA PARA 5 DIAS
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 function limparAudiosAntigos() {  
   try {  
     if (fs.existsSync(PASTA_AUDIOS)) {  
       const arquivos = fs.readdirSync(PASTA_AUDIOS);  
       const agora = Date.now();  
+<<<<<<< HEAD
       const quinzeDiasMs = 15 * 24 * 60 * 60 * 1000;  
       arquivos.forEach(file => {  
         const caminhoArquivo = path.join(PASTA_AUDIOS, file);  
@@ -55,6 +60,17 @@ function limparAudiosAntigos() {
         }  
       });  
       historicoAudio = historicoAudio.filter(h => (agora - h.timestamp) <= quinzeDiasMs);  
+=======
+      const cincoDiasMs = 5 * 24 * 60 * 60 * 1000;  
+      arquivos.forEach(file => {  
+        const caminhoArquivo = path.join(PASTA_AUDIOS, file);  
+        const stats = fs.statSync(caminhoArquivo);  
+        if ((agora - stats.mtimeMs) > cincoDiasMs) {  
+          fs.unlinkSync(caminhoArquivo);  
+        }  
+      });  
+      historicoAudio = historicoAudio.filter(h => (agora - h.timestamp) <= cincoDiasMs);  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
       salvarHistoricoPTTNaNuvem();  
     }  
   } catch (e) {  
@@ -325,7 +341,11 @@ function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
   
 function determinarModoAutomatico() {  
   const hora = new Date().getHours();  
+<<<<<<< HEAD
   if (hora >= 5 && hora < 8) return "SO_PH";          // 05h às 07h59: Todos os carros no PH  
+=======
+  if (hora >= 5 && hora < 8) return "SO_PH";             // 05h às 07h59: Todos os carros no PH  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
   if (hora >= 8 && hora < 10) return "MANHA_SHOPPING";  // 08h às 09h59: 1 no PA4, 1 no PA2, resto no PH  
   if (hora >= 10 && hora < 22) return "SHOPPING_COMPLETO"; // 10h às 21h59: Abastece PA4 -> PA2 -> PH  
   if (hora >= 22 && hora < 24) return "NOTURNO";        // 22h às 23h59: Mantém 2 a 3 no PA4 + resto no PH  
@@ -343,7 +363,23 @@ function redistribuirVagas() {
   if (filaGeral.length === 0) return;  
   
   const totalCarros = filaGeral.length;  
+<<<<<<< HEAD
   filaGeral.forEach(c => c.setor = 'Aguardando Vaga');  
+=======
+  const agoraMs = Date.now();
+  const cincoMinutosMs = 5 * 60 * 1000;
+
+  // PH Inteligente com tolerância de 5 minutos
+  filaGeral.forEach(c => {
+    if (c.pontoFisicoReal === 'PH' && c.dataEntrada) {
+      const tempoNoPhMs = agoraMs - new Date(c.dataEntrada).getTime();
+      c.excedeuToleranciaPH = tempoNoPhMs > cincoMinutosMs;
+    } else {
+      c.excedeuToleranciaPH = false;
+    }
+    c.setor = 'Aguardando Vaga';
+  });  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
   
   if (modoOperacao === "SO_PH" || modoOperacao === "BAIXA_FROTA") {  
     const capacidadePH = PONTOS_FISICOS.PH.capacidade;  
@@ -394,7 +430,12 @@ function redistribuirVagas() {
   
   const vagasPH = Math.min(PONTOS_FISICOS.PH.capacidade, totalCarros - indiceAtribuicao);  
   for (let i = 0; i < vagasPH; i++) {  
+<<<<<<< HEAD
     filaGeral[indiceAtribuicao].setor = 'PH';  
+=======
+    const carroAtual = filaGeral[indiceAtribuicao];
+    carroAtual.setor = carroAtual.excedeuToleranciaPH ? 'PH (Giro Ativo 5m)' : 'PH';  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     indiceAtribuicao++;  
   }  
   
@@ -482,7 +523,10 @@ io.on('connection', (socket) => {
           await db.query('DELETE FROM motoristas WHERE numero = $1', [idLimpo]);
 
           emitirAtualizacaoGeral();
+<<<<<<< HEAD
           console.log(`🗑️ Veículo Carro.${idLimpo} excluído com sucesso pela central.`);
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
       } catch (e) {
           console.error("Erro ao excluir veículo da frota:", e);
       }
@@ -706,8 +750,13 @@ io.on('connection', (socket) => {
     logModeracao = [];
     try { if (fs.existsSync(ARQUIVO_LOG_MODERACAO)) fs.unlinkSync(ARQUIVO_LOG_MODERACAO); } catch (e) {}
     emitirAtualizacaoGeral();
+<<<<<<< HEAD
   });
     
+=======
+  });  
+  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
   socket.on('solicitarCanalPTT', (dados) => {  
     const idTransmissor = String(dados.idTaxi);  
     const loginTransmissor = `Carro.${idTransmissor}`;  
@@ -819,9 +868,13 @@ io.on('connection', (socket) => {
     io.emit('corridaAtribuida', chamadoFinal);  
   });  
   
+<<<<<<< HEAD
   // Tratamento do GPS contínuo a cada 15 segundos emitido pelo app do motorista
   socket.on('atualizarGPS', async (dados) => {  
     // Trava de segurança para ignorar pacotes de GPS vazios ou inválidos
+=======
+  socket.on('atualizarGPS', async (dados) => {  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     if (!dados || dados.latitude === undefined || dados.longitude === undefined || isNaN(dados.latitude) || isNaN(dados.longitude)) {
       return;
     }
@@ -840,13 +893,18 @@ io.on('connection', (socket) => {
       }
     }  
   
+<<<<<<< HEAD
     const bloqueadoPorRecusa = veiculo && veiculo.bloqueioRecusa;  
+=======
+    const bloqueioRecusa = veiculo && veiculo.bloqueioRecusa;  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
   
     if (dados.status === "AUSENTE") {  
       if (motoristasConectados[idTaxiStr]) motoristasConectados[idTaxiStr].status = "AUSENTE";  
       return;  
     }  
   
+<<<<<<< HEAD
     // Atualiza o registro em tempo real do motorista conectado (processa a cada ping de 15s)
     motoristasConectados[idTaxiStr] = { 
       idTaxi: idTaxiStr, 
@@ -855,6 +913,15 @@ io.on('connection', (socket) => {
       longitude: dados.longitude, 
       status: dados.status, 
       socketId: socket.id 
+=======
+    motoristasConectados[idTaxiStr] = {  
+      idTaxi: idTaxiStr,  
+      nome: dados.nome,  
+      latitude: dados.latitude,  
+      longitude: dados.longitude,  
+      status: dados.status,  
+      socketId: socket.id  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     };  
   
     const indexFila = filaGeral.findIndex(m => String(m.idTaxi) === idTaxiStr);  
@@ -868,11 +935,15 @@ io.on('connection', (socket) => {
       return;  
     }  
   
+<<<<<<< HEAD
     // Cálculo de distância para os pontos físicos
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     const distPH = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PH.latitude, PONTOS_FISICOS.PH.longitude);  
     const distPA2 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA2.latitude, PONTOS_FISICOS.PA2.longitude);  
     const distPA4 = calcularDistanciaMetros(dados.latitude, dados.longitude, PONTOS_FISICOS.PA4.latitude, PONTOS_FISICOS.PA4.longitude);  
   
+<<<<<<< HEAD
     let estaNoPonto = (distPH <= PONTOS_FISICOS.PH.raioMetros) || (!pa2Fechado && distPA2 <= PONTOS_FISICOS.PA2.raioMetros) || (distPA4 <= PONTOS_FISICOS.PA4.raioMetros);  
   
     // Simulação rigorosamente desligada por padrão (apenas se enviada explicitamente)
@@ -886,19 +957,44 @@ io.on('connection', (socket) => {
         nome: dados.nome,  
         distanciaMetros: simulacaoForcada ? 0 : Math.min(Math.round(distPH), pa2Fechado ? 99999 : Math.round(distPA2), Math.round(distPA4)),  
         pontoFisicoReal: (distPH <= PONTOS_FISICOS.PH.raioMetros) ? 'PH' : 'OUTRO',  
+=======
+    let estaNoPonto = (distPH <= PONTOS_FISICOS.PH.raioMetros) || (distPA2 <= PONTOS_FISICOS.PA2.raioMetros) || (distPA4 <= PONTOS_FISICOS.PA4.raioMetros);  
+  
+    const simulacaoForcada = dados.simulacao === true;  
+    const naArea = simulacaoForcada || verificarDentroDaCerca([dados.latitude, dados.longitude], fronteiraPonto2216);  
+  
+    if ((estaNoPonto || simulacaoForcada) && naArea && indexFila === -1 && !bloqueioRecusa) {  
+      let paDetectado = 'OUTRO';
+      if (distPA4 <= PONTOS_FISICOS.PA4.raioMetros) paDetectado = 'PA4';
+      else if (distPA2 <= PONTOS_FISICOS.PA2.raioMetros) paDetectado = 'PA2';
+      else if (distPH <= PONTOS_FISICOS.PH.raioMetros) paDetectado = 'PH';
+
+      const novoCarroFila = {  
+        idTaxi: idTaxiStr,  
+        nome: dados.nome,  
+        distanciaMetros: simulacaoForcada ? 0 : Math.min(Math.round(distPH), Math.round(distPA2), Math.round(distPA4)),  
+        pontoFisicoReal: paDetectado,  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         dataEntrada: new Date()  
       };  
   
       filaGeral.push(novoCarroFila);  
       redistribuirVagas();  
       emitirAtualizacaoGeral();  
+<<<<<<< HEAD
     } 
     // Se o motorista JÁ ESTÁ na fila, mas se afastou dos pontos físicos permitidos nos ciclos de 15s, removemos ele da fila para evitar fraude
+=======
+    }   
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     else if (!estaNoPonto && !simulacaoForcada && indexFila !== -1) {
       filaGeral.splice(indexFila, 1);
       redistribuirVagas();
       emitirAtualizacaoGeral();
+<<<<<<< HEAD
       console.log(`🚗 Carro.${idTaxiStr} se afastou dos PAs e foi removido da fila física automaticamente.`);
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     }
   });  
   
@@ -1032,10 +1128,13 @@ function dispararPonteiroFila(idChamadaFixa) {
         }  
         liberarClienteWhatsApp(chamada.jidCliente);  
         delete chamadasPendentes[idChamadaFixa];  
+<<<<<<< HEAD
         
         if (filaEsperaWhatsApp.length > 0) {  
             const proximaSolicitacao = filaEsperaWhatsApp.shift();  
         }
+=======
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
         return;
     }  
 
@@ -1045,10 +1144,14 @@ function dispararPonteiroFila(idChamadaFixa) {
 
     const proximoMotorista = filaGeral[chamada.indiceTentativaAtual];
     
+<<<<<<< HEAD
     if (!proximoMotorista) {
         console.error("Erro: proximoMotorista é undefined na fila.");
         return;
     }
+=======
+    if (!proximoMotorista) return;
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
     const idTaxiStr = String(proximoMotorista.idTaxi);  
     chamada.idTaxi = idTaxiStr;  
@@ -1115,7 +1218,11 @@ function confirmarEBaixarCorrida(idChamada) {
     const mensagemFinal = `🚕 *TÁXI CONFIRMADO!*\n\n` +  
       `👤 *Passageiro(a):* ${dadosAtribuicao.nomeCliente}\n` +  
       `👨‍✈️ *Motorista:* ${dadosAtribuicao.nome}\n` +  
+<<<<<<< HEAD
       `🚘 *Veículo:* ${dadosAtriviaicao?.modelo || dadosAtribuicao.modelo}\n` +  
+=======
+      `🚘 *Veículo:* ${dadosAtribuicao.modelo}\n` +  
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
       `📋 *Placa:* ${dadosAtribuicao.placa}\n\n` +  
       `⏱️ *Previsão de chegada:* aprox. ${tempoEstimado}\n\n` +  
       `⚠️ Aguarde no local *(se for condomínio, aguardar na portaria)*, o seu táxi está a caminho!`;  
@@ -1155,7 +1262,11 @@ function solicitarCorridaViaWhatsApp(dados) {
   
   if (Object.keys(chamadasPendentes).length > 0) {
     filaEsperaWhatsApp.push(dados);
+<<<<<<< HEAD
   } else {
+=======
+    } else {
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
     processarNovaSolicitacaoWhatsApp(dados);
   }
   return true;  
@@ -1174,12 +1285,18 @@ async function iniciarServidor() {
       if (pkg.version !== VERSAO_SISTEMA) {
         pkg.version = VERSAO_SISTEMA;
         fs.writeFileSync(caminhoPackage, JSON.stringify(pkg, null, 2), 'utf8');
+<<<<<<< HEAD
         console.log(`📦 package.json atualizado automaticamente para v${VERSAO_SISTEMA}`);
       }
     }
   } catch (e) {
     console.error("Erro ao sincronizar versão no package.json:", e);
   }
+=======
+      }
+    }
+  } catch (e) {}
+>>>>>>> 7514cfaac9957b9c7d49686a8a853967289ce96e
 
   const PORTA = process.env.PORT || 3000;  
   server.listen(PORTA, () => console.log(`🚕 Servidor Ponto 2216 (v${VERSAO_SISTEMA}) rodando na nuvem na porta ${PORTA} com Base de Dados do Render conectada!`));  
