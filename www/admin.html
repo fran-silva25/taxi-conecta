@@ -62,6 +62,7 @@
 
         body { font-family: Arial, sans-serif; background: var(--bg-body); margin: 0; padding: 15px; color: var(--texto-principal); transition: background 0.3s, color 0.3s; }
         
+        /* Container Principal Controlado */
         .container { 
             max-width: 1200px; 
             width: 100%; 
@@ -75,6 +76,7 @@
             box-sizing: border-box; 
         }
         
+        /* Banner Principal Ponto 2216 */
         .banner-ponto-2216 { 
             background: #000000; 
             border: 2px solid #ffcc00; 
@@ -106,6 +108,7 @@
             color: #ffcc00;
         }
 
+        /* Wrapper para os botões alinhados logo abaixo do banner */
         .botoes-acao-wrapper {
             display: flex;
             justify-content: space-between;
@@ -253,12 +256,14 @@
 <body>
 
 <div class="container">
+    <!-- Banner Principal -->
     <div class="banner-ponto-2216"> 
         <span class="logo-estrela">✦</span> 
         <span class="texto-banner-ponto">Ponto 2216 / Admin-Fiscal</span> 
         <span class="logo-estrela">✦</span> 
     </div> 
 
+    <!-- Linha Inferior com os botões alinhados nas pontas -->
     <div class="botoes-acao-wrapper">
         <button class="btn-acao-topo" onclick="alternarTema()">🌗 <span id="labelTema">Escuro</span></button>
         <button id="btnSairAdm" class="btn-sair" onclick="fazerLogoutAdm()">🚪 Sair</button>
@@ -282,6 +287,7 @@
                 <span style="font-weight: bold; color: var(--amarelo-ponto);">Bem-vindo, <span id="nomeUsuarioLogado">Carregando...</span></span>
                 <span id="badgeCargoLogado" style="background: #000; border: 1px solid var(--amarelo-ponto); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: var(--amarelo-ponto); margin-left: 8px;">ADM</span>
             </div>
+            <!-- 🛡️ BLOCO COM ID PARA OCULTAR O REFRESH PARA FISCAL -->
             <div id="containerBtnRefresh">
                 <button class="btn-refresh-geral" onclick="executarLimpezaGeralSistema()">🔄 REFRESH / LIMPEZA GERAL</button>
             </div>
@@ -325,6 +331,7 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <h3 style="margin: 0;">🚗 Fila Geral de Veículos no Ponto</h3>
+                    <button onclick="chamarProximoManual()" style="background: #16a34a; color: white;">🛎️ Chamar Próximo da Fila</button>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -332,9 +339,9 @@
                             <tr>
                                 <th>Posição</th>
                                 <th>Carro</th>
-                                <th>PA</th>
-                                <th>Tempo na Fila</th>
                                 <th>Motorista</th>
+                                <th>Setor Atribuído</th>
+                                <th>Tempo na Fila</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaFilaGeral">
@@ -589,42 +596,24 @@
     document.addEventListener('click', destravarAudioAutomatica, { once: true });
     document.addEventListener('touchstart', destravarAudioAutomatica, { once: true });
 
-    // BLINDAGEM DE SESSÃO ADMIN
     socket.on('connect', () => {
         const adminLogado = localStorage.getItem('taxi_admin');
         if (adminLogado) {
-            socket.emit('loginAdmin', { usuario: adminLogado, senha: localStorage.getItem('taxi_admin_senha') || '123' });
-        } else {
-            window.location.href = "index.html";
+            socket.emit('loginAdmin', { login: adminLogado });
         }
-    });
-
-    socket.on('loginAdmSucesso', (dados) => {
-        localStorage.setItem('taxi_admin', dados.usuario);
-        localStorage.setItem('taxi_admin_nome', dados.nome);
-        localStorage.setItem('taxi_admin_cargo', dados.cargo);
-    });
-
-    socket.on('loginErro', (erro) => {
-        alert(erro.mensagem || "Sessão expirada ou credenciais inválidas.");
-        fazerLogoutAdm();
     });
 
     window.addEventListener('DOMContentLoaded', () => {
         const nomeSalvo = localStorage.getItem('taxi_admin_nome') || "Administrador Geral";
         const cargoSalvo = localStorage.getItem('taxi_admin_cargo') || "ADM";
-        const loginSalvo = localStorage.getItem('taxi_admin');
+        const loginSalvo = localStorage.getItem('taxi_admin') || "admin";
         
-        if (!loginSalvo) {
-            window.location.href = "index.html";
-            return;
-        }
-
         const elNome = document.getElementById('nomeUsuarioLogado');
         const elCargo = document.getElementById('badgeCargoLogado');
         if (elNome) elNome.innerText = nomeSalvo;
         if (elCargo) elCargo.innerText = cargoSalvo;
         
+        // 🛡️ VERIFICAÇÃO DE PERMISSÃO PARA OCULTAR O REFRESH DO FISCAL
         if (cargoSalvo && cargoSalvo.trim().toUpperCase() === 'FISCAL') {
             const containerRefresh = document.getElementById('containerBtnRefresh');
             if (containerRefresh) {
@@ -639,16 +628,19 @@
 
         inicializarGravadorFiscal();
 
+        // OUVINDO RÁDIO OCUPADO (BOTÃO FICA VERMELHO)
         socket.on('canalOcupado', (dados) => {
             if (dados.idTaxi !== 'Fiscal' && dados.idTaxi !== 'ADM') {
                 setEstadoPTTFiscal('OUVINDO', dados.nome);
             }
         });
 
+        // CANAL LIVRE (RESTAURA O BOTÃO DO FISCAL)
         socket.on('canalLivre', () => {
             if (!gravandoFiscal) setEstadoPTTFiscal('STANDBY');
         });
 
+        // RECEBIMENTO DE ÁUDIO PTT -> REPRODUÇÃO AUTOMÁTICA (BLINDADO CONTRA ECO)
         socket.on('receberAudioPTT', (dados) => {
             setEstadoPTTFiscal('STANDBY');
             if (dados.historico) renderizarAudioAdm(dados.historico);
@@ -668,6 +660,7 @@
             }
         });
 
+        // ESTADOS VISUAIS DO BOTÃO PTT FISCAL
         function setEstadoPTTFiscal(estado, nomeFalante = "") {
             const btn = document.getElementById('btnPTTFiscal');
             const lbl = document.getElementById('labelPTTFiscal');
@@ -699,10 +692,6 @@
                     if (e.data && e.data.size > 0) audioChunksFiscal.push(e.data);
                 };
                 mediaRecorderFiscal.onstop = () => {
-                    if (mediaRecorderFiscal && mediaRecorderFiscal.stream) {
-                        mediaRecorderFiscal.stream.getTracks().forEach(track => track.stop());
-                    }
-
                     if (audioChunksFiscal.length === 0) return;
                     const blob = new Blob(audioChunksFiscal, { type: 'audio/webm' });
                     audioChunksFiscal = [];
@@ -804,7 +793,6 @@
             localStorage.removeItem('taxi_admin');
             localStorage.removeItem('taxi_admin_nome');
             localStorage.removeItem('taxi_admin_cargo');
-            localStorage.removeItem('taxi_admin_senha');
             window.location.href = "index.html?logout=true";
         }
     }
@@ -1091,14 +1079,13 @@
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum veículo na fila.</td></tr>`;
             return;
         }
-        // NOVA ORDEM: 1) Posição | 2) Carro | 3) PA | 4) Tempo na Fila | 5) Motorista
         tbody.innerHTML = fila.map((c, idx) => `
             <tr>
                 <td><strong>${idx + 1}º</strong></td>
                 <td>Carro.${c.idTaxi}</td>
+                <td>${c.nome}</td>
                 <td><span style="background:#000; color:var(--amarelo-ponto); padding:2px 6px; border-radius:4px; font-weight:bold;">${c.setor || 'Aguardando'}</span></td>
                 <td>${c.distanciaMetros ? c.distanciaMetros + 'm' : 'No Ponto'}</td>
-                <td>${c.nome}</td>
             </tr>
         `).join('');
     }
@@ -1221,6 +1208,7 @@
     }
 
     function alterarModo(modo) { socket.emit('alterarModoOperacao', modo); }
+    function chamarProximoManual() { socket.emit('chamarCorrida'); }
     function limparHistoricoPTT() { if (confirm("Apagar histórico de áudios?")) socket.emit('limparHistoricoPTT'); }
     function limparHistoricoRecusas() { if (confirm("Limpar recusas?")) socket.emit('limparHistoricoRecusas'); }
     function limparHistoricoCorridas() { if (confirm("Limpar histórico de corridas?")) socket.emit('limparHistoricoCorridas'); }
