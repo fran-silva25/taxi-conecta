@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taxi Conecta - Ponto 2216</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-body: #ffffff;
+            --texto-principal: #1f2937;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #121212;
+                --texto-principal: #f8fafc;
+            }
+        }
+        body {
+            background-color: var(--bg-body);
+            color: var(--texto-principal);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between items-center p-4">
+
+    <!-- SPLASH SCREEN / TELA DE CARREGAMENTO INICIAL COM O BANNER.PNG -->
+    <div id="splashScreen" class="fixed inset-0 bg-white dark:bg-zinc-900 flex flex-col justify-between items-center z-50 p-6 transition-opacity duration-1000">
+        
+        <!-- BANNER DA PASTA WWW (banner.png) -->
+        <div class="w-full max-w-xs flex items-center justify-center p-2">
+            <img src="banner.png" alt="Ponto 2216" class="w-full h-auto object-contain" onerror="this.style.display='none'">
+        </div>
+
+        <div class="flex flex-col items-center text-center space-y-4">
+            <div class="w-28 h-28 flex items-center justify-center p-2">
+                <img src="taxi-animado.webp" alt="Taxi Conecta" class="w-full h-full object-contain" onerror="this.style.display='none'">
+            </div>
+
+            <div>
+                <h1 class="text-2xl font-bold tracking-wide">Taxi Conecta</h1>
+                <p class="text-xs text-gray-500 mt-1">Ponto de Táxi 2216 - Shopping Anália Franco e Carrefour</p>
+            </div>
+
+            <div class="w-72 mt-2">
+                <p id="statusSplashMessage" class="text-xs font-medium text-gray-600 dark:text-gray-400 min-h-[1.5rem]">
+                    Iniciando o sistema...
+                </p>
+                <div class="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-amber-500 h-full rounded-full animate-pulse w-3/4"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full flex justify-between items-center text-xs text-gray-400 px-2 pb-2">
+            <span>v2.0</span>
+            <span class="font-medium">By Franklin Silva</span>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN INTELIGENTE -->
+    <div id="loginContainer" class="w-full max-w-sm flex-1 flex flex-col justify-center items-center hidden py-8">
+        <div class="w-full bg-white dark:bg-zinc-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-700">
+            
+            <!-- MINI BANNER NO TOPO DO LOGIN -->
+            <div class="w-full flex items-center justify-center mb-6">
+                <img src="banner.png" alt="Ponto 2216" class="max-h-12 object-contain" onerror="this.style.display='none'">
+            </div>
+
+            <div class="text-center mb-6">
+                <h2 class="text-xl font-bold">Acesso ao Sistema</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Digite sua Credencial ou Nº do Carro</p>
+            </div>
+
+            <form id="loginForm" onsubmit="fazerLoginUniversal(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase mb-1 text-gray-600 dark:text-gray-300">Identificação</label>
+                    <input type="text" id="userInput" placeholder="Ex: adm ou 99" 
+                        class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm transition" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase mb-1 text-gray-600 dark:text-gray-300">Senha</label>
+                    <input type="password" id="passInput" placeholder="Sua senha" 
+                        class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm transition" required>
+                </div>
+                <button type="submit" 
+                    class="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold py-3 rounded-xl shadow-md transition duration-200 text-sm">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="w-full flex justify-between items-center text-xs text-gray-400 py-2">
+        <span>v2.0</span>
+        <span class="font-medium">By Franklin Silva</span>
+    </footer>
+
+    <!-- Socket.io para comunicação com o Render -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const SOCKET_URL = "https://taxi-conecta-api.onrender.com"; 
+        const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+
+        async function runSplashScreen() {
+            const splash = document.getElementById('splashScreen');
+            const loginContainer = document.getElementById('loginContainer');
+            
+            await new Promise(r => setTimeout(r, 2000)); 
+
+            splash.style.opacity = '0';
+            setTimeout(() => { 
+                splash.remove(); 
+                loginContainer.classList.remove('hidden'); 
+            }, 500);
+        }
+
+        function fazerLoginUniversal(event) {  
+            event.preventDefault();  
+              
+            const valorInput = document.getElementById('userInput').value.trim();  
+            const senhaInput = document.getElementById('passInput').value.trim();  
+
+            const isAdm = isNaN(valorInput) || valorInput.includes('.') || valorInput.toLowerCase().startsWith('admin');
+
+            if (isAdm) {
+                console.log("Enviando login admin -> Usuário:", valorInput);
+                socket.emit('loginAdmin', { usuario: valorInput, senha: senhaInput });
+
+                const tratarSucesso = (dadosAdm) => {
+                    localStorage.setItem('taxi_admin', valorInput);
+                    if (dadosAdm && dadosAdm.nome) localStorage.setItem('taxi_admin_nome', dadosAdm.nome);
+                    if (dadosAdm && dadosAdm.cargo) localStorage.setItem('taxi_admin_cargo', dadosAdm.cargo);
+                    localStorage.removeItem('taxi_carro');
+                    window.location.href = "admin.html"; // Se o seu painel for admin.html, mantenha. Se for painel-admin.html, ajuste aqui.
+                };
+
+                socket.once('loginAdmSucesso', tratarSucesso);
+                socket.once('loginAdminSucesso', tratarSucesso);
+                socket.once('loginAdminOk', tratarSucesso);
+
+                socket.once('loginErro', (err) => {
+                    alert(err.mensagem || "Credencial ou senha de Administrador incorreta.");
+                });
+
+            } else {  
+                let carroFormatado = valorInput;  
+                if (!carroFormatado.toLowerCase().startsWith('carro.')) {  
+                    carroFormatado = `Carro.${carroFormatado}`;  
+                }  
+                
+                console.log("Enviando login motorista -> Carro:", carroFormatado, "| Senha:", senhaInput);
+                socket.emit('loginMotorista', { login: carroFormatado, senha: senhaInput });  
+
+                socket.once('loginSucesso', (dadosMotorista) => {
+                    localStorage.setItem('taxi_carro', carroFormatado);
+                    localStorage.setItem('taxi_senha_temp', senhaInput);
+                    localStorage.removeItem('taxi_admin');
+                    window.location.href = "motorista.html";
+                });
+
+                socket.once('loginErro', (err) => {
+                    alert(err.mensagem || "Carro não cadastrado ou senha incorreta.");
+                });
+            }
+        }
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('logout') === 'true') {
+                const splash = document.getElementById('splashScreen');
+                if (splash) splash.remove();
+                document.getElementById('loginContainer').classList.remove('hidden');
+            } else {
+                runSplashScreen();
+            }
+        };
+    </script>
+</body>
+</html>
