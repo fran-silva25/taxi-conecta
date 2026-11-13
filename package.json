@@ -15,6 +15,7 @@
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "cacheable": "latest",
     "cors": "^2.8.6",
     "express": "^5.3.0",
     "googleapis": "^188.0.0",
